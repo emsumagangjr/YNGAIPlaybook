@@ -25,10 +25,9 @@ Every field appears, in this order, even when its value is "none".
 | `failed`      | Tried and could not make it work; `ISSUES` says what was tried         |
 | `needs-human` | The slice reached something a person must decide or do; `ISSUES` gives the reason in one sentence |
 
-`needs-human` covers everything in the guide's *Never promoted to
-`ready-for-agent`* list: a schema change to anything in production,
-authentication or authorisation, a step only a person can perform, and
-anything the worker is unsure about.
+`needs-human` covers everything on the guide's *Never promoted to
+`ready-for-agent`* list, which `agents/slice-worker.md` carries for the
+worker to act on.
 
 ## REVIEW RECORD
 
