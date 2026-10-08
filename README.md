@@ -40,7 +40,8 @@ YNGAIPlaybook/
 │   └── slice-worker.md    ← the worker it dispatches: one slice, worktree to PR
 └── scripts/
     ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser)
-    └── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
+    ├── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
+    └── yngorch.ps1 / .sh    ← install or upgrade the orchestrator in a project, uncommitted
 ```
 
 ## Quick start
@@ -59,7 +60,7 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): install the orchestrator into the project root, beside `.bare/` — nothing is committed to your project (section 25 of the guide has the commands). Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+6. **Let an agent orchestrate** (optional): from anywhere inside your project, run `scripts/yngorch.ps1` (Windows) or `scripts/yngorch.sh` (macOS/Linux) from this playbook. It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 
 ## Roadmap
 
