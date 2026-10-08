@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.0.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.1.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -404,7 +404,8 @@ anomaly in the activity log instead of silently producing code.
 
 Agents do not update issues. The **dispatcher** does (or the person
 running the agents, if there is no dispatcher), and it is the only
-writer of issue state during the work.
+writer of issue state during the work. Section 25 runs the dispatcher
+as an agent: the *orchestrator*.
 
 | Transition                      | Set by             | When                                            |
 |---------------------------------|--------------------|-------------------------------------------------|
@@ -1366,6 +1367,73 @@ git --git-dir=.bare branch -d epic/AUTH-100-authentication
 ``` bash
 git --git-dir=.bare worktree prune
 ```
+
+------------------------------------------------------------------------
+
+## 25. Running the Dispatcher as an Orchestrator
+
+The dispatcher in section 6 can itself be an agent. The playbook ships
+it as the **orchestrator** skill, with the **slice worker** agent it
+hands slices to:
+
+``` text
+skills/orchestrate/SKILL.md       the orchestrator: role, run log, steps
+skills/orchestrate/plan.md        cut the Epic into slices; create issues
+skills/orchestrate/dispatch.md    Gate 1 check, worktree, launch a worker
+skills/orchestrate/track.md       act on reports; close merged slices
+skills/orchestrate/report.md      the completion report every worker ends with
+agents/slice-worker.md            the worker: one slice, worktree to PR
+```
+
+The orchestrator runs in the main agent session, from the Epic
+worktree. Workers run as subagents, one per slice, each in the slice
+worktree the orchestrator created for it (section 10). A worker's last
+message is its **completion report**, so it reaches the orchestrator
+with no extra channel:
+
+``` text
+             Orchestrator (main session, the dispatcher)
+       plan ─► check Gate 1 ─► dispatch ─► track ─► hand back
+                                  │           ▲
+                 ┌────────────────┼───────────┼───────┐
+                 ▼                ▼           │       ▼
+              Worker A         Worker B    reports  Worker C
+           slice worktree   slice worktree        slice worktree
+```
+
+It keeps to both gates:
+
+-   **Gate 1.** It creates slice issues at `workflow:needs-triage` and
+    dispatches only issues a person labelled `workflow:ready-for-agent`,
+    checking the issue timeline for who applied the label.
+-   **Gate 2.** Workers open pull requests; the orchestrator labels them
+    `workflow:in-review` and tells the person. After the person merges,
+    it closes the slice issue and removes the worktree.
+
+Its run log, `.orchestrator/run-log.md` in the Epic worktree and
+excluded from Git, lets an interrupted run resume where it stopped.
+
+### Install
+
+For Claude Code, copy the files into the project:
+
+``` text
+skills/orchestrate/   →  .claude/skills/orchestrate/
+agents/slice-worker.md  →  .claude/agents/slice-worker.md
+```
+
+Another agent that supports skills and subagents takes the same files in
+its own config folders. The commands inside are written for GitHub
+(`gh`); on another tracker, use its equivalents.
+
+### Run
+
+From the Epic worktree, start the agent and run `/orchestrate <epic
+issue>`. With no slice issues yet, it plans first and waits for you to
+approve the plan; afterwards, promote the slices you want an agent to
+take, and run it again. It ends each run with one list of everything
+waiting on you: pull requests to merge, slices handed back, slices
+waiting for promotion.
 
 ------------------------------------------------------------------------
 

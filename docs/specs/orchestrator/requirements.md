@@ -174,6 +174,6 @@ Slice: #6
 Slice: #7
 
 1.  README lists the skills and agents and how to install them.
-2.  `guides/epic-workflow.md` gains a section on running the dispatcher
+2.  `guides/epic-workflow.md` gains section 25 on running the dispatcher
     as an orchestrator, linked from *Who moves the labels*.
 3.  CHANGELOG entry; `VERSION` and the guide header move to 1.1.0.

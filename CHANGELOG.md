@@ -4,6 +4,18 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.1.0] — 2026-10-08
+
+The dispatcher, as an agent.
+
+### Added
+- `skills/orchestrate/` — the orchestrator skill (`/orchestrate`): plans an Epic into outcome-titled slices, dispatches only slices a person promoted to worker subagents in their own worktrees, acts on each completion report, and closes slices after a person merges. Steps in `plan.md`, `dispatch.md`, `track.md`; the report format in `report.md`.
+- `agents/slice-worker.md` — the worker agent: carries one slice from its worktree to an open pull request into the Epic branch and ends with a completion report.
+- `docs/specs/orchestrator/` — the feature's requirements and decisions.
+- `guides/epic-workflow.md` section 25 — running the dispatcher as an orchestrator: install and run.
+
+---
+
 ## [1.0.0] — 2026-10-05
 
 First public release. Carried over from the author's private onboarding repository, generalised for anyone to use.
