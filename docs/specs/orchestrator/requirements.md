@@ -32,10 +32,20 @@ request (Gate 2).
 ## Deliverables
 
 ``` text
-skills/orchestrate/SKILL.md       the orchestrator
+skills/orchestrate/SKILL.md       the orchestrator: role, run log, the step sequence
+skills/orchestrate/plan.md        step: planning (R3)
+skills/orchestrate/dispatch.md    step: dispatch (R4)
+skills/orchestrate/track.md       step: tracking (R5)
 skills/orchestrate/report.md      the completion report format (R1)
-agents/slice-worker.md            the worker
+agents/slice-worker.md            the worker (R2)
 ```
+
+Each step lives in its own file, reached from `SKILL.md` only when that
+step runs, so the entry file stays short and each step can change
+without touching the others.
+
+The orchestrator is user-invoked (`/orchestrate`): running an Epic is a
+person's decision, so it carries no always-loaded description.
 
 Installed into a project by copying them into the agent's config
 folder (for Claude Code: `.claude/skills/` and `.claude/agents/`).
@@ -52,6 +62,7 @@ Slice: #2
     STATUS:        done | blocked | failed | needs-human
     SUMMARY:       what was delivered, in one or two sentences
     BRANCH:        slice branch name
+    PR:            pull request URL, or "none"
     COMMITS:       short SHAs and subjects
     TESTS:         what ran and the result
     REVIEW RECORD: open decisions only, or "none"
@@ -60,7 +71,8 @@ Slice: #2
 
 2.  The format is defined once, in `skills/orchestrate/report.md`. The
     worker and the orchestrator both reference it; neither restates it.
-3.  `needs-human` states its reason, so the orchestrator can hand the
+3.  Every field appears, in order, even when its value is "none".
+4.  `needs-human` states its reason, so the orchestrator can hand the
     slice back without re-reading the work.
 
 ## R2 Slice worker
@@ -139,8 +151,10 @@ Slice: #6
 2.  After a person merges a slice PR into the Epic branch: closes the
     slice issue with a note naming the Epic branch, then removes the
     slice worktree and its local branch.
-3.  Keeps a run log in the Epic worktree, so an interrupted run can
-    resume where it stopped.
+3.  Keeps a run log at `.orchestrator/run-log.md` in the Epic worktree,
+    excluded from Git, so an interrupted run can resume where it
+    stopped. `SKILL.md` defines the log's location and line format;
+    `track.md` says what each report adds to it.
 4.  Is the only writer of issue state during the work. Never merges.
 
 ## R6 Documentation
