@@ -88,7 +88,8 @@ REPORT:       <absolute path of skills/orchestrate/report.md>
 ```
 
 `LEAD-IN` is `diagnose` for a bug, `design the seam` for a refactor and
-`none` otherwise, unless the issue names a different one.
+`none` otherwise, unless the issue's `Lead-in:` line (written by
+planning) names a different one.
 
 Launch each as a `slice-worker` subagent (Claude Code: the Agent tool
 with `subagent_type: slice-worker`, the filled template as `prompt`).
