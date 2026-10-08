@@ -69,7 +69,8 @@ Done when every dispatchable slice has a worker running.
 
 As each worker's completion report arrives, follow [track.md](track.md).
 The report format is defined in [report.md](report.md). After acting on
-a report, return to step 3: a merge can unblock a waiting slice.
+a report, return to step 3: a merge, yours on an `auto` path or the
+person's, closes a slice and can unblock the slices waiting on it.
 
 Done when every slice issue is closed, or is waiting on a person.
 
@@ -81,6 +82,10 @@ Tell the person, in one list, everything waiting on them:
 - PRs whose auto-merge was held, with the condition that held them;
 - slices relabelled `workflow:ready-for-human`, with the reason;
 - slices still waiting for promotion (Gate 1).
+
+Beside each item, name the slices whose `Depends on:` waits on it, and
+put the items holding up the most slices first: those are what stop
+the Epic.
 
 When every slice is closed, open the Epic's pull request into `main`
 and follow [merge.md](merge.md) for the `epic-to-main` path. On

@@ -5,6 +5,11 @@ advance per merge path, in `.orchestrator/config.yml`. This step reads
 that decision for one pull request and either merges or hands it to the
 person.
 
+`slice-to-epic: auto` is what lets you carry an Epic through on your
+own: each merge lands a slice on the Epic branch, which closes it and
+unblocks the slices that depend on it, so dispatch continues without
+waiting for a person.
+
 ## The config
 
 ``` yaml

@@ -1457,8 +1457,10 @@ merge:
 The orchestrator reads the file from `origin/main` only, and any pull
 request that changes it is `required`, so no branch can grant itself
 `auto`. A common start is `slice-to-epic: auto` with the other two
-`required`: slices flow into the Epic unattended while every change to
-`main` still passes a person.
+`required`. This is what lets the orchestrator carry the Epic on its
+own: each slice it merges closes, which unblocks the slices that depend
+on it, so it keeps dispatching instead of stopping at every slice to
+wait for a person. Every change to `main` still passes a person.
 
 `fix-to-main` is read whenever the orchestrator holds a standalone-fix
 pull request; it does not yet dispatch standalone fixes itself.
