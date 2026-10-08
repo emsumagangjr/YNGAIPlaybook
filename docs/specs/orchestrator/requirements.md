@@ -119,7 +119,11 @@ Slice: #5
 1.  Dispatches only issues labelled `workflow:ready-for-agent`, and
     only after reading the issue timeline and confirming a human
     account applied that label (the guide's provenance check). Refuses
-    and reports otherwise.
+    and reports otherwise. A human account is a timeline `labeled`
+    event whose actor has type `User`, no `[bot]` login, and no
+    `performed_via_github_app`. A label applied through the person's
+    own token passes this check, so the orchestrator never applies
+    `workflow:ready-for-agent` itself.
 2.  Creates the slice worktree from the Epic branch, following the
     guide's naming, and records the Epic on the branch:
 
