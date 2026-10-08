@@ -152,13 +152,13 @@ Slice: #6
 
     | Report STATUS | Orchestrator action                                         |
     |---------------|-------------------------------------------------------------|
-    | `done`        | Confirms the PR is open; sets `workflow:in-review`          |
-    | `blocked` / `failed` | Re-dispatches once with the added context; on a second failure hands back to a person with the report |
+    | `done`        | Confirms the PR is open into the Epic branch; sets `workflow:in-review`; comments the open decisions |
+    | `blocked` / `failed` | Re-dispatches once with the added context; on a second failure sets `workflow:ready-for-human` and comments the report |
     | `needs-human` | Sets `workflow:ready-for-human`; comments the reason        |
 
-2.  After a person merges a slice PR into the Epic branch: closes the
-    slice issue with a note naming the Epic branch, then removes the
-    slice worktree and its local branch.
+2.  After a person merges a slice PR into the Epic branch: pulls the
+    Epic worktree, closes the slice issue with a note naming the Epic
+    branch, then removes the slice worktree and its local branch.
 3.  Keeps a run log at `.orchestrator/run-log.md` in the Epic worktree,
     excluded from Git, so an interrupted run can resume where it
     stopped. `SKILL.md` defines the log's location and line format;
