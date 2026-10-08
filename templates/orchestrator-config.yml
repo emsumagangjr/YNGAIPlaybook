@@ -1,0 +1,17 @@
+# Orchestrator config. From YNGAIPlaybook (guides/epic-workflow.md, section 25).
+#
+# Copy to .orchestrator/config.yml in your project root and commit it.
+# The orchestrator reads it from main only, so a change takes effect once
+# it is merged into main, and a pull request that changes it is always
+# merged by a person.
+
+# Who merges each kind of pull request (Gate 2).
+#   required  a person merges (the default)
+#   auto      the orchestrator merges, once the worker reported done, the
+#             PR is mergeable, every check passed and the review record
+#             holds no open decision; otherwise a person merges
+# A missing key, or any value other than auto, means required.
+merge:
+  slice-to-epic: required   # slice/* -> its Epic branch
+  epic-to-main: required    # epic/*  -> main
+  fix-to-main: required     # fix/*   -> main (standalone fixes)

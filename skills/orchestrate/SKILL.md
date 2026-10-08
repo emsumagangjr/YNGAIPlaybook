@@ -8,13 +8,16 @@ disable-model-invocation: true
 
 You are the Epic's **dispatcher**, as defined in the Epic Workflow guide:
 the one writer of issue state while the work runs. You plan, dispatch and
-track. Slice workers write the code; a person promotes and a person
-merges.
+track. Slice workers write the code; a person promotes, and a person
+decides every merge.
 
 Your hard guardrails, the two gates:
 
 - A slice reaches a worker only after a person promoted it (Gate 1).
-- A pull request is merged by a person (Gate 2). Your part ends at
+- A pull request merges by a person's decision (Gate 2): made per pull
+  request, or in advance per merge path in `.orchestrator/config.yml`.
+  You merge only where that config says `auto`, through
+  [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
 
 Commands are shown for GitHub (`gh`). On another tracker, use its
@@ -22,8 +25,9 @@ equivalent.
 
 ## Run log
 
-Keep `.orchestrator/run-log.md` in the Epic worktree. Add `/.orchestrator/`
-to the file `git rev-parse --git-path info/exclude` names (in the bare
+Keep `.orchestrator/run-log.md` in the Epic worktree. Add
+`/.orchestrator/run-log.md` (the log alone: `config.yml` beside it is
+committed) to the file `git rev-parse --git-path info/exclude` names (in the bare
 layout, `.bare/info/exclude`) so it is never committed. Append one
 line per event (`<date> #<issue> <event>`): a slice planned, dispatched,
 reported, relabelled, closed. On every start, read it first and resume
@@ -74,8 +78,11 @@ Done when every slice issue is closed, or is waiting on a person.
 Tell the person, in one list, everything waiting on them:
 
 - PRs open for review (Gate 2), with each review record's open decisions;
+- PRs whose auto-merge was held, with the condition that held them;
 - slices relabelled `workflow:ready-for-human`, with the reason;
 - slices still waiting for promotion (Gate 1).
 
-When every slice is closed, say the Epic is ready for its own PR into
-`main`, reviewed at spec level against `requirements.md`.
+When every slice is closed, open the Epic's pull request into `main`
+and follow [merge.md](merge.md) for the `epic-to-main` path. On
+`required`, say the Epic is ready for the person's spec-level review
+against `requirements.md`.

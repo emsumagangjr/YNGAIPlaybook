@@ -21,3 +21,11 @@ Dated log of options refused, one line of why each.
 - **2026-10-08** Refused: one `SKILL.md` holding every step. Planning,
   dispatch and tracking each run on their own branch of the loop; split
   files keep the entry short and let slices change them independently.
+- **2026-10-09** Refused: reading the merge config from the working
+  branch. A slice could set its own path to `auto` and merge itself;
+  `origin/main` changes only through a merge a person already allowed.
+- **2026-10-09** Refused: GitHub's native auto-merge. It merges on
+  checks alone; `auto` here also needs a `done` report and an empty
+  review record, which only the orchestrator sees.
+- **2026-10-09** Refused: excluding the whole `.orchestrator/` folder
+  from Git. The config beside the run log must be committed.

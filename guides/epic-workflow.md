@@ -361,7 +361,7 @@ an agent picks it up       a person picks it up
               in-review            MR is open, waiting for a person
                      │
                      ▼
-GATE 2  a person merges            no agent is an eligible approver
+GATE 2  a person merges            or a person's `auto` rule (see below)
                      │
                      ▼
                   Closed
@@ -424,6 +424,17 @@ deliberate: an "agent is reviewing" column would be empty most of the
 time and would show nothing anyone can act on. With `in-review` meaning
 "your turn", its length is the review backlog, which is the one number
 on the board worth watching.
+
+### Gate 2 by policy
+
+A person may decide Gate 2 in advance for a whole kind of merge
+instead of for each merge request: slice into Epic, Epic into `main`,
+standalone fix into `main`. The decision lives in the project's
+committed `.orchestrator/config.yml` as `required` (a person merges) or
+`auto` (the orchestrator merges once the work reports done, every check
+passes and the review record holds no open decision). It is read from
+`main` only, so no branch can grant itself `auto`, and every path
+defaults to `required`. See section 25.
 
 ### Slice completion
 
@@ -801,12 +812,14 @@ MAIN
 6.  Each concurrently active slice receives its own worktree.
 7.  Each worktree is owned by one slice/agent at a time.
 8.  Completed slice branches merge into the Epic branch, not `main`,
-    through a merge request that a person merges.
+    through a merge request that a person merges, or that the
+    orchestrator merges on a path a person set to `auto`.
 9.  Integration testing is performed against the combined Epic branch.
 10. Only a completed, reviewed, and validated Epic branch may merge into
     `main`.
 11. Repository protection should reject direct pushes to `main`.
-12. Agents never merge, and never promote an issue to `ready-for-agent`.
+12. Agents never promote an issue to `ready-for-agent`. An agent merges
+    only as the orchestrator, on a path a person set to `auto`.
 13. The spec lives on the Epic branch and is updated in the same change
     as the code it describes.
 
@@ -1381,8 +1394,10 @@ skills/orchestrate/SKILL.md       the orchestrator: role, run log, steps
 skills/orchestrate/plan.md        cut the Epic into slices; create issues
 skills/orchestrate/dispatch.md    Gate 1 check, worktree, launch a worker
 skills/orchestrate/track.md       act on reports; close merged slices
+skills/orchestrate/merge.md       apply the project's merge rule to a PR
 skills/orchestrate/report.md      the completion report every worker ends with
 agents/slice-worker.md            the worker: one slice, worktree to PR
+templates/orchestrator-config.yml the project's config, starting at all-required
 ```
 
 The orchestrator runs in the main agent session, from the Epic
@@ -1407,19 +1422,51 @@ It keeps to both gates:
     dispatches only issues a person labelled `workflow:ready-for-agent`,
     checking the issue timeline for who applied the label.
 -   **Gate 2.** Workers open pull requests; the orchestrator labels them
-    `workflow:in-review` and tells the person. After the person merges,
-    it closes the slice issue and removes the worktree.
+    `workflow:in-review` and applies the merge rule for the path (see
+    *Merge rules* below). On `required` it tells the person; after a
+    merge, by either, it closes the slice issue and removes the
+    worktree.
 
 Its run log, `.orchestrator/run-log.md` in the Epic worktree and
 excluded from Git, lets an interrupted run resume where it stopped.
+
+### Merge rules
+
+`.orchestrator/config.yml`, committed in the project, records the
+person's Gate 2 decision per merge path:
+
+``` yaml
+merge:
+  slice-to-epic: required   # required | auto
+  epic-to-main: required
+  fix-to-main: required
+```
+
+-   `required`: a person merges. This is the default for a missing file,
+    a missing key, or any value other than `auto`.
+-   `auto`: the orchestrator merges, with a merge commit, when the
+    worker reported `done` (for an Epic, every slice is closed), the
+    pull request is mergeable, every check passed, and the review record
+    holds no open decision. When any of these fails, it comments which
+    one on the pull request and leaves it to the person.
+
+The orchestrator reads the file from `origin/main` only, and any pull
+request that changes it is `required`, so no branch can grant itself
+`auto`. A common start is `slice-to-epic: auto` with the other two
+`required`: slices flow into the Epic unattended while every change to
+`main` still passes a person.
+
+`fix-to-main` is read whenever the orchestrator holds a standalone-fix
+pull request; it does not yet dispatch standalone fixes itself.
 
 ### Install
 
 For Claude Code, copy the files into the project:
 
 ``` text
-skills/orchestrate/   →  .claude/skills/orchestrate/
-agents/slice-worker.md  →  .claude/agents/slice-worker.md
+skills/orchestrate/                →  .claude/skills/orchestrate/
+agents/slice-worker.md             →  .claude/agents/slice-worker.md
+templates/orchestrator-config.yml  →  .orchestrator/config.yml (commit it)
 ```
 
 Another agent that supports skills and subagents takes the same files in
@@ -1462,8 +1509,8 @@ reviewed, tested, and validated Epic branch (work with no Epic follows
 the standalone-fix path).
 
 Two people-only gates govern the flow: a person promotes an issue before
-an agent may start it, and a person merges every merge request. The
-Epic is a feature of roughly two weeks or less, its slices are named for
+an agent may start it, and a person merges every merge request (or
+sets, per merge path, that the orchestrator may). The Epic is a feature of roughly two weeks or less, its slices are named for
 outcomes, and its spec is versioned on the Epic branch beside the code.
 
 ``` text

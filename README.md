@@ -16,7 +16,7 @@ It answers three questions:
 
 - **How is the work split?** A feature is an **Epic**. It is cut into **slices**, each one independently deliverable outcome. The **spec** lives in the repo beside the code, not in an issue.
 - **How do agents work in parallel safely?** Each slice gets its own branch and its own Git **worktree**, all sharing one bare repository. Agents never touch each other's files.
-- **Where do people stay in control?** At two gates. **A person promotes** an issue before an agent may start it, and **a person merges** every merge request. Everything between can run unattended.
+- **Where do people stay in control?** At two gates. **A person promotes** an issue before an agent may start it, and **a person merges** every merge request, or decides in advance which kinds the orchestrator may merge. Everything between can run unattended.
 
 ```text
 Agent → Slice Branch → Epic Branch → main
@@ -32,6 +32,7 @@ YNGAIPlaybook/
 ├── templates/             ← copy these into your own project
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
+│   ├── orchestrator-config.yml ← merge rules: who merges each kind of PR
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
 │   └── orchestrate/       ← the dispatcher as an agent: plan, dispatch, track
@@ -58,7 +59,7 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): copy `skills/orchestrate/` to `.claude/skills/orchestrate/` and `agents/slice-worker.md` to `.claude/agents/`, then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge. See section 25 of the guide.
+6. **Let an agent orchestrate** (optional): copy `skills/orchestrate/` to `.claude/skills/orchestrate/` and `agents/slice-worker.md` to `.claude/agents/`, and commit `templates/orchestrator-config.yml` as `.orchestrator/config.yml`. Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`. See section 25 of the guide.
 
 ## Roadmap
 

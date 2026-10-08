@@ -49,7 +49,7 @@ For projects involving multiple concurrent AI agents (e.g., an Epic with several
 
 This gives each agent an isolated worktree and branch, keeps `main` protected from direct feature changes, and enforces a controlled promotion path: **Agent → Slice Branch → Epic Branch → Main**.
 
-Two gates are people-only: **a person promotes an issue before an agent may start it, and a person merges every merge request.** Agents never merge and never promote. Slice issues are titled for the outcome (not the step), and the spec lives in `docs/specs/<feature>/` on the Epic branch, never in an issue. Keep an Epic under about two weeks.
+Two gates are people-only: **a person promotes an issue before an agent may start it, and a person merges every merge request** (or sets, per merge path, that the orchestrator may). Workers never merge; no agent promotes. Slice issues are titled for the outcome (not the step), and the spec lives in `docs/specs/<feature>/` on the Epic branch, never in an issue. Keep an Epic under about two weeks.
 
 See the [Epic Workflow guide](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/guides/epic-workflow.md) for full setup steps, branching rules, the gates, and agent safety guidelines.
 

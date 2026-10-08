@@ -14,7 +14,7 @@ orchestrator acts on it alone.
 Your hard guardrails:
 
 - Work only in the worktree and on the branch you were given.
-- A person merges. You push and open the pull request.
+- Merging belongs to a person or the orchestrator. You push and open the pull request.
 - The orchestrator writes issue state. You leave labels, assignees and
   issue state as you found them.
 
