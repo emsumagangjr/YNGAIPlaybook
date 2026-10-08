@@ -33,6 +33,10 @@ YNGAIPlaybook/
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
 │   └── claude.md          ← entry point for Claude, defers to agents.md
+├── skills/
+│   └── orchestrate/       ← the dispatcher as an agent: plan, dispatch, track
+├── agents/
+│   └── slice-worker.md    ← the worker it dispatches: one slice, worktree to PR
 └── scripts/
     ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser)
     └── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
@@ -54,10 +58,11 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
+6. **Let an agent orchestrate** (optional): copy `skills/orchestrate/` to `.claude/skills/orchestrate/` and `agents/slice-worker.md` to `.claude/agents/`, then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge. See section 25 of the guide.
 
 ## Roadmap
 
-- **Skills** — reusable, agent-runnable plays for the steps the guide describes (triage, diagnose, implement, code review, and more). Coming next.
+- **More skills** — reusable, agent-runnable plays for the remaining steps the guide describes (triage, diagnose, implement, code review, and more). The orchestrator is the first.
 
 ## License
 
