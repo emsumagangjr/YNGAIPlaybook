@@ -29,3 +29,11 @@ Dated log of options refused, one line of why each.
   review record, which only the orchestrator sees.
 - **2026-10-09** Refused: excluding the whole `.orchestrator/` folder
   from Git. The config beside the run log must be committed.
+- **2026-10-09** Refused: committing the orchestrator, its config or its
+  logs to the project. The owner wants it standalone; the project root
+  beside `.bare/` already holds local files outside Git (`.shared/`).
+  This supersedes reading the config from `origin/main`: a file no
+  branch holds is safer than one only `main` holds.
+- **2026-10-09** Refused: a user-level install (`~/.claude/`). It would
+  put the worker's description in every project's sessions; per project
+  keeps it where Epics run.

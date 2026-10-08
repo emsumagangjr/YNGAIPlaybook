@@ -32,7 +32,7 @@ YNGAIPlaybook/
 ├── templates/             ← copy these into your own project
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
-│   ├── orchestrator-config.yml ← merge rules: who merges each kind of PR
+│   ├── orchestrator-config.yml ← merge rules (lives in your project root, uncommitted)
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
 │   └── orchestrate/       ← the dispatcher as an agent: plan, dispatch, track
@@ -59,7 +59,7 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): copy `skills/orchestrate/` to `.claude/skills/orchestrate/` and `agents/slice-worker.md` to `.claude/agents/`, and commit `templates/orchestrator-config.yml` as `.orchestrator/config.yml`. Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`. See section 25 of the guide.
+6. **Let an agent orchestrate** (optional): install the orchestrator into the project root, beside `.bare/` — nothing is committed to your project (section 25 of the guide has the commands). Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 
 ## Roadmap
 
