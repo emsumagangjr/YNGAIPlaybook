@@ -34,7 +34,13 @@ BRANCH:       slice/<n>-<name>
 PR BASE:      the branch the PR targets (normally the Epic branch)
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       absolute path of skills/orchestrate/report.md
+PREVIOUS:     re-dispatch only: the last attempt's STATUS, ISSUES and
+              COMMITS, plus what has changed since
 ```
+
+On a re-dispatch, `PREVIOUS` is your starting point: build on the
+commits already on `BRANCH` and resolve the cause it names before
+anything else.
 
 ## Stop with `needs-human`
 
