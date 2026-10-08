@@ -26,8 +26,8 @@ automatically.
 ```
 
 Neither the orchestrator nor any worker passes a people-only gate: a
-person promotes every issue (Gate 1) and a person merges every pull
-request (Gate 2).
+person promotes every issue (Gate 1) and a person decides every merge
+(Gate 2), per pull request or in advance per merge path (R7).
 
 ## Deliverables
 
@@ -36,8 +36,10 @@ skills/orchestrate/SKILL.md       the orchestrator: role, run log, the step sequ
 skills/orchestrate/plan.md        step: planning (R3)
 skills/orchestrate/dispatch.md    step: dispatch (R4)
 skills/orchestrate/track.md       step: tracking (R5)
+skills/orchestrate/merge.md       step: merge by rule (R7)
 skills/orchestrate/report.md      the completion report format (R1)
 agents/slice-worker.md            the worker (R2)
+templates/orchestrator-config.yml the project config template (R7)
 ```
 
 Each step lives in its own file, reached from `SKILL.md` only when that
@@ -167,7 +169,8 @@ Slice: #6
     excluded from Git, so an interrupted run can resume where it
     stopped. `SKILL.md` defines the log's location and line format;
     `track.md` says what each report adds to it.
-4.  Is the only writer of issue state during the work. Never merges.
+4.  Is the only writer of issue state during the work. Merges only on
+    an `auto` path (R7).
 
 ## R6 Documentation
 
@@ -177,3 +180,36 @@ Slice: #7
 2.  `guides/epic-workflow.md` gains section 25 on running the dispatcher
     as an orchestrator, linked from *Who moves the labels*.
 3.  CHANGELOG entry; `VERSION` and the guide header move to 1.1.0.
+
+## R7 Merge rules
+
+Slice: #14
+
+1.  A project sets who merges each kind of pull request in a committed
+    file, `.orchestrator/config.yml`:
+
+    ``` yaml
+    merge:
+      slice-to-epic: required   # required | auto
+      epic-to-main: required
+      fix-to-main: required
+    ```
+
+    `required`: a person merges. `auto`: the orchestrator merges.
+2.  `templates/orchestrator-config.yml` ships with every path
+    `required`. A missing file, missing key, or any value other than
+    `auto` means `required`.
+3.  The orchestrator reads the config from `origin/main`, never from a
+    working branch, and treats any pull request that changes the config
+    as `required`: no branch can grant itself `auto`.
+4.  On `auto`, it merges only when the report is `done` (for
+    `epic-to-main`, every slice is closed), the pull request is open
+    and mergeable from the expected branch into the expected base,
+    every check passed, and the review record is "none". Otherwise the
+    pull request stays with the person, with the held condition
+    commented on it.
+5.  It merges with a merge commit and deletes the head branch, then
+    runs the post-merge path of R5.2.
+6.  Workers never merge. `fix-to-main` is honoured whenever the
+    orchestrator holds a standalone-fix pull request; the orchestrator
+    does not yet dispatch standalone fixes.

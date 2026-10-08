@@ -9,9 +9,9 @@ from the Epic worktree. Every action below appends one line to the run
 log, in the format `SKILL.md` defines; the event to write is given with
 each action.
 
-You move labels, close issues and remove worktrees. Merging is a
-person's act (Gate 2): when a PR is ready, your part is to label it and
-say so.
+You move labels, close issues and remove worktrees. Merging follows
+the person's merge rule (Gate 2): when a PR is ready, you label it and
+apply that rule through [merge.md](merge.md).
 
 ## On a report
 
@@ -46,7 +46,8 @@ Open decisions:
 <REVIEW RECORD, one per line, or none>"
 ```
 
-Log `in-review <PR>`.
+Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
+`slice-to-epic` path.
 
 **`blocked` / `failed`**: count the slice's `dispatched` and
 `re-dispatched` lines in the run log.
