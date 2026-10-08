@@ -111,10 +111,14 @@ Slice: #4
     schema, authentication or authorisation, a human-only step, or
     anything it is unsure about.
 3.  Records dependencies between slices, so that independent slices
-    can run in parallel.
-4.  Shows the plan to the person. Only after approval does it create
-    the slice issues, as sub-issues of the Epic, at
-    `workflow:needs-triage`. It never sets `workflow:ready-for-agent`.
+    can run in parallel, and notes the files each slice edits: slices
+    that run in parallel own separate files, or the overlap is named.
+    Proposes a lead-in only when it differs from the default.
+4.  Shows the plan to the person as one table. Only after approval does
+    it create the slice issues, as sub-issues of the Epic, at
+    `workflow:needs-triage`, and logs each to the run log. It never sets
+    `workflow:ready-for-agent`; it tells the person which slices are
+    ready to promote, and to which label.
 
 ## R4 Dispatch
 
