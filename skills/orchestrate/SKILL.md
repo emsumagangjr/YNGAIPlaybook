@@ -38,8 +38,12 @@ Find the Epic issue (the argument, or
 branch, the Epic worktree, the spec folder `docs/specs/<feature>/`, the
 run log, and the Epic's slice issues with their labels.
 
+Then run the *On a merge* path of [track.md](track.md): slices a
+person merged while you were away are closed before anything new is
+dispatched.
+
 Done when you can name each one, or have told the person which is
-missing.
+missing, and merged slices are closed.
 
 ### 2. Plan
 
@@ -51,7 +55,8 @@ Done when the person has approved the plan and its slice issues exist.
 ### 3. Dispatch
 
 For every slice labelled `workflow:ready-for-agent` whose dependencies
-have merged into the Epic branch, follow [dispatch.md](dispatch.md).
+(the issue's `Depends on:` line, written by planning) are closed,
+follow [dispatch.md](dispatch.md).
 Dispatch independent slices together, in parallel.
 
 Done when every dispatchable slice has a worker running.
