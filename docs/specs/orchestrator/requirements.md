@@ -81,11 +81,15 @@ Slice: #3
 
 1.  Works only in the worktree path and on the branch it is given.
     Checks `git status` and the current branch first and refuses on a
-    mismatch.
+    mismatch: it reports `blocked`, names the mismatch, and leaves the
+    worktree untouched.
 2.  Runs the guide's chain inside `in-progress`: optional lead-in (a
     bug defaults to *diagnose*, a refactor to *design the seam*), then
-    implement test-first, then code review last. Fixes what review finds
-    that it can fix; puts only open decisions in the review record.
+    implement test-first, then code review last. Review uses the
+    project's code-review skill when it has one, and otherwise checks
+    the diff against the project's written standards and the acceptance
+    criteria. Fixes what review finds that it can fix; puts only open
+    decisions in the review record.
 3.  Updates the spec on the Epic branch in the same change as the code
     it describes.
 4.  Pushes the slice branch and opens a pull request into the Epic
