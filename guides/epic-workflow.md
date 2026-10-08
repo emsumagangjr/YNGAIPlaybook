@@ -32,10 +32,12 @@ The complete promotion path is:
 
 > **Agent → Slice Branch → Epic Branch → Main**
 
-A person decides what an agent works on and a person merges what it
-produces. The two human gates are described in section 6:
+A person decides what an agent works on and how what it produces is
+merged: by hand, or by a rule the person configured. Either way, people
+stay in control. The two human gates are described in section 6:
 
-> **Gate 1: a person promotes the issue. Gate 2: a person merges.**
+> **Gate 1: a person promotes the issue. Gate 2: a person decides the
+> merge, by hand or by config.**
 
 Terminology used throughout: an **Epic** is a feature (a tracker card
 plus an integration branch). A **slice** is one independently
@@ -361,7 +363,7 @@ an agent picks it up       a person picks it up
               in-review            MR is open, waiting for a person
                      │
                      ▼
-GATE 2  a person merges            or a person's `auto` rule (see below)
+GATE 2  a person decides the merge by hand, or by config (see below)
                      │
                      ▼
                   Closed
@@ -723,8 +725,9 @@ useless as one that says "LGTM".
 ## 13. Integrating Slices into the Epic
 
 Every slice reaches the Epic branch through a **merge request into the
-Epic branch, merged by a person** (Gate 2). That is the default, not an
-option: the MR is where the review record is read and where CI runs.
+Epic branch** (Gate 2), merged by a person or, where the project's
+config says `auto`, by the orchestrator (section 25). The MR itself is
+not optional: it is where the review record is read and where CI runs.
 
 After AUTH-101's MR is approved and merged:
 
@@ -891,7 +894,8 @@ git --git-dir=.bare worktree add \
 ```
 
 It runs the same chain (lead-in, implement, code-review), opens an MR
-into `main`, and is merged by a person (Gate 2). Nothing about it
+into `main`, and is merged under Gate 2: by a person, or by config
+(`fix-to-main`, section 25). Nothing about it
 bypasses review; it only skips the Epic level.
 
 Deciding where a bug goes:
@@ -1509,9 +1513,10 @@ reviewed, tested, and validated Epic branch (work with no Epic follows
 the standalone-fix path).
 
 Two people-only gates govern the flow: a person promotes an issue before
-an agent may start it, and a person merges every merge request (or
-sets, per merge path, that the orchestrator may). The Epic is a feature of roughly two weeks or less, its slices are named for
-outcomes, and its spec is versioned on the Epic branch beside the code.
+an agent may start it, and a person decides every merge, by hand or by
+config. The Epic is a feature of roughly two weeks or less, its slices
+are named for outcomes, and its spec is versioned on the Epic branch
+beside the code.
 
 ``` text
                          MAIN

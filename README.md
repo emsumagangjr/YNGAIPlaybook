@@ -16,11 +16,11 @@ It answers three questions:
 
 - **How is the work split?** A feature is an **Epic**. It is cut into **slices**, each one independently deliverable outcome. The **spec** lives in the repo beside the code, not in an issue.
 - **How do agents work in parallel safely?** Each slice gets its own branch and its own Git **worktree**, all sharing one bare repository. Agents never touch each other's files.
-- **Where do people stay in control?** At two gates. **A person promotes** an issue before an agent may start it, and **a person merges** every merge request, or decides in advance which kinds the orchestrator may merge. Everything between can run unattended.
+- **Where do people stay in control?** At two gates. **A person promotes** an issue before an agent may start it, and **a person decides every merge**, by hand or by config (`required` or `auto` per merge path). Everything between can run unattended.
 
 ```text
 Agent → Slice Branch → Epic Branch → main
-         (Gate 1: a person promotes)   (Gate 2: a person merges)
+         (Gate 1: a person promotes)   (Gate 2: a person decides the merge, by hand or by config)
 ```
 
 ## What's inside

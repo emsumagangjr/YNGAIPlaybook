@@ -15,7 +15,7 @@ The dispatcher, as an agent.
 - `docs/specs/orchestrator/` — the feature's requirements and decisions.
 
 ### Changed
-- `guides/epic-workflow.md` — Gate 2 can be decided in advance per merge path (section 6, *Gate 2 by policy*); rules 8 and 12 updated to match.
+- Gate 2 reworded from "a person merges" to "a person decides the merge, by hand or by config" across the guide, README and agent template; the guide gains *Gate 2 by policy* (section 6), and rules 8 and 12 match.
 - `guides/epic-workflow.md` section 25 — running the dispatcher as an orchestrator: install and run.
 
 ---
