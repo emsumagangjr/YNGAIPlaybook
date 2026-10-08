@@ -15,3 +15,9 @@ Dated log of options refused, one line of why each.
   the dispatcher the only writer of issue state.
 - **2026-10-08** Refused: scoped labels (`workflow::`). GitHub has none;
   plain labels prefixed `workflow:` carry the same states.
+- **2026-10-08** Refused: a model-invoked `orchestrate` skill. Running an
+  Epic is a person's call; a description would sit in every session's
+  context to enable something nobody wants triggered implicitly.
+- **2026-10-08** Refused: one `SKILL.md` holding every step. Planning,
+  dispatch and tracking each run on their own branch of the loop; split
+  files keep the entry short and let slices change them independently.
