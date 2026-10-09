@@ -57,7 +57,7 @@ See the [Epic Workflow guide](https://github.com/emsumagangjr/YNGAIPlaybook/blob
 
 ## Viewing Files
 
-Use the `yngv` command to view files from the CLI instead of dumping raw text: [yngv.ps1](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.ps1) on Windows, [yngv.sh](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.sh) on macOS/Linux (e.g. `yngv notes.md`). It detects the file extension and renders accordingly — markdown opens rendered in the browser by default (falling back to a styled console view), and any unrecognized file type is shown as plain text. See the script's own help (`Get-Help ./yngv.ps1 -Full`, or `yngv.sh -h`) for requirements, install steps, and usage.
+Use the `yngv` command to view files from the CLI instead of dumping raw text: [yngv.ps1](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.ps1) on Windows, [yngv.sh](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.sh) on macOS/Linux (e.g. `yngv notes.md`). It detects the file extension and renders accordingly — markdown opens rendered in the browser by default (falling back to a styled console view), and any unrecognized file type is shown as plain text. The YNG Orchestrator installer (`yngorch`) puts it in `~/.local/bin` on your PATH. See the script's own help (`Get-Help ./yngv.ps1 -Full`, or `yngv.sh -h`) for requirements, install steps, and usage.
 
 ---
 

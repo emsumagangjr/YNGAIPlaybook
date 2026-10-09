@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.2.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.3.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1503,15 +1503,18 @@ It finds the project root, copies the skill and worker into
 `.shared/.claude/`, writes `.yngorchestrator/config.yml` with every path
 `required` (only if you have none), hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
-every worktree through `yngshared`, and creates the workflow labels
-with `gh` when it is installed. Then set your merge rules in
-`.yngorchestrator/config.yml`.
+every worktree through `yngshared`, creates the workflow labels
+with `gh` when it is installed, and puts `yngv`, the file viewer, in
+your `~/.local/bin` (on Windows it also adds that folder to your user
+PATH; on macOS/Linux it prints the line to add when it is missing).
+Then set your merge rules in `.yngorchestrator/config.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
 link it; it never overwrites your config. The orchestrator links the
 slice worktrees it creates itself. `-Project <path>` / `--project
 <path>` installs into a project other than the current folder, and
-`-SkipLabels` / `--skip-labels` leaves the labels alone.
+`-SkipLabels` / `--skip-labels` leaves the labels alone, and
+`-SkipViewer` / `--skip-viewer` leaves `yngv` out.
 
 These are Claude Code's folders. Another agent that supports skills and
 subagents takes the same files in its own folders. The commands inside

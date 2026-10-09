@@ -40,9 +40,9 @@ YNGAIPlaybook/
 ├── agents/
 │   └── slice-worker.md    ← the worker it dispatches: one slice, worktree to PR
 └── scripts/
-    ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser)
+    ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser); yngorch puts it on your PATH
     ├── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
-    └── yngorch.ps1 / .sh    ← install or upgrade the YNG Orchestrator in a project, uncommitted
+    └── yngorch.ps1 / .sh    ← install or upgrade the YNG Orchestrator in a project, uncommitted, plus yngv for you
 ```
 
 ## Quick start
