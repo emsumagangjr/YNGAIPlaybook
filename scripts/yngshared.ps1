@@ -50,6 +50,14 @@
 
     Nothing inside .shared\ is ever changed, moved or deleted.
 
+    PROJECT ROOT
+    -link also links every file of .shared\.claude\ into the project root's
+    own .claude\ (for example .claude\agents\slice-worker.md), by the same
+    rules as a worktree, so a Claude Code session started at the root finds
+    the same skills and agents. Only .claude\ goes to the root; .env and the
+    other items do not. The root is outside every worktree, so it needs no
+    exclude line. -copy and -unlink leave the root alone.
+
     WHAT HAPPENS TO WHAT IS ALREADY IN THE WORKTREE
 
     "Link" below means a symlink, junction or hard link that points into
@@ -166,7 +174,8 @@
 .EXAMPLE
     .\yngshared.ps1 -link dev
 
-    Link every existing file inside .shared\ into dev\, preserving subfolders.
+    Link every existing file inside .shared\ into dev\, preserving subfolders,
+    and every file of .shared\.claude\ into the project root's .claude\.
 
 .EXAMPLE
     .\yngshared.ps1 -link -All -WhatIf
@@ -309,7 +318,9 @@ function New-SharedSymlink([string]$Dest, $Item, [string]$Label) {
         throw "Shared source is not an existing file: $($Item.FullName)"
     }
     # Climb from the destination file's parent back to the project root.
-    $levels = ($Label -split '\\').Count + ($Item.RelativePath -split '\\').Count - 1
+    # An empty label is the project root itself.
+    $labelLevels = if ($Label) { ($Label -split '\\').Count } else { 0 }
+    $levels = $labelLevels + ($Item.RelativePath -split '\\').Count - 1
     $up     = '..\' * $levels
     $target = "$up.shared\$($Item.RelativePath)"
     # cmd's mklink stores the target text exactly as written, so the link is
@@ -397,7 +408,7 @@ function Find-LinkedParent([string]$Dest, [string]$WtPath) {
 }
 
 function Invoke-ItemAction([string]$Action, [string]$Dest, $Item, [string]$Label, [string]$WtPath) {
-    $rel   = "$Label\$($Item.RelativePath)"
+    $rel   = if ($Label) { "$Label\$($Item.RelativePath)" } else { $Item.RelativePath }
     $linked = Find-LinkedParent $Dest $WtPath
     if ($linked) {
         Report 'warn' $rel "parent folder $($linked.Substring($WtPath.Length + 1)) is a link (older version?); replace it with a real folder first"
@@ -553,6 +564,19 @@ foreach ($arg in $targets) {
         try { Invoke-ItemAction $action (Join-Path $wt.Path $item.RelativePath) $item $wt.Label $wt.Path }
         catch {
             Report 'error' "$($wt.Label)\$($item.RelativePath)" $_.Exception.Message
+            $problems++
+        }
+    }
+}
+
+# -link also links .shared\.claude\ into the project root's own .claude\, so a
+# Claude Code session started at the root finds the same skills and agents.
+# The root is outside every worktree, so no exclude line is needed.
+if ($action -eq 'link') {
+    foreach ($item in @($items | Where-Object { $_.RelativePath -like '.claude\*' })) {
+        try { Invoke-ItemAction 'link' (Join-Path $root $item.RelativePath) $item '' $root }
+        catch {
+            Report 'error' $item.RelativePath $_.Exception.Message
             $problems++
         }
     }
