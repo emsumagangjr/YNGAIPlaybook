@@ -4,6 +4,22 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.5.0] — 2026-10-09
+
+The playbook's files in your project root live in one folder, `.yngaiplaybook/`.
+
+### Added
+- `<root>/.yngaiplaybook/` holds every playbook file kept in the project root, beside `.bare/` and never committed: `yngorchestratorconfig.yml` (merge rules) and `yngorchestratorruns/` (run logs and locks). Each item is named `<tool><purpose>`, so tools sharing the folder cannot collide.
+- `templates/yngaiplaybookreadme.md`: `yngorch` writes it as `<root>/.yngaiplaybook/README.md` on every install, with the playbook version filled in. It explains each file, who owns it, whether the installer overwrites it, and the merge keys.
+- `yngorch` (`.ps1` and `.sh`) moves an older `.yngorchestrator/` (1.2.0-1.4.0) or `.orchestrator/` (1.1.0) into `.yngaiplaybook/`: `config.yml` becomes `yngorchestratorconfig.yml`, `runs/` becomes `yngorchestratorruns/`, other files keep their names, one line per item. When `.yngaiplaybook/` already exists, or both old folders do, it moves nothing and warns.
+
+### Changed
+- `/yngorchestrator` reads and writes only the `.yngaiplaybook/` paths. A run on a root that still has `.yngorchestrator/` or `.orchestrator/` and no `.yngaiplaybook/` stops before taking the lock and names `yngorch` to run; the skill never migrates.
+- `templates/orchestrator-config.yml` is renamed `templates/yngorchestratorconfig.yml`.
+- README, INSTALL and guide sections 6 and 25 name the new paths and link to the folder's README. The spec gains R23-R27.
+
+---
+
 ## [1.4.0] — 2026-10-09
 
 `/yngorchestrator` runs from anywhere in the project, on any issue.
