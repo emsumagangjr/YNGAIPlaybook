@@ -117,9 +117,19 @@ existing folder.
     old skill folder, its links in every worktree and its exclude line.
     When both folders exist it warns and leaves both: report it.
 
+    It also installs `yngv`, the file viewer, for the person, in
+    `~/.local/bin` (Windows: `yngv.ps1` and a `yngv.cmd` shim, with the
+    folder added to their user PATH when missing). On macOS/Linux a
+    `note` line with an `export PATH=...` line means the folder is not
+    on PATH: give the person that line, and leave their shell startup
+    file alone. When the person does not want `yngv`, add `-SkipViewer`
+    / `--skip-viewer`.
+
 5.  **Report.** Tell the person:
     - The project root, the playbook version (`VERSION`) installed, and
       what the installer created or kept.
+    - Where `yngv` went, and whether they must open a new terminal or
+      add the PATH line first.
     - On a first install: their merge rules are all `required`. Ask
       whether they want any path set to `auto`, and edit
       `<root>/.yngorchestrator/config.yml` only as they answer.
@@ -152,6 +162,12 @@ existing folder.
     ``` bash
     ~/.yngaiplaybook/scripts/yngorch.sh             # macOS/Linux
     ```
+
+    It also puts `yngv`, the file viewer, in `~/.local/bin`. On Windows
+    it adds that folder to your user PATH; on macOS/Linux it prints the
+    `export PATH=...` line to add when the folder is not on PATH. Open a
+    new terminal afterwards. Add `-SkipViewer` / `--skip-viewer` to
+    leave `yngv` out.
 
 Then continue with [After installing](#after-installing).
 
