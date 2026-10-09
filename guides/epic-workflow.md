@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.0.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.1.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -32,10 +32,12 @@ The complete promotion path is:
 
 > **Agent → Slice Branch → Epic Branch → Main**
 
-A person decides what an agent works on and a person merges what it
-produces. The two human gates are described in section 6:
+A person decides what an agent works on and how what it produces is
+merged: by hand, or by a rule the person configured. Either way, people
+stay in control. The two human gates are described in section 6:
 
-> **Gate 1: a person promotes the issue. Gate 2: a person merges.**
+> **Gate 1: a person promotes the issue. Gate 2: a person decides the
+> merge, by hand or by config.**
 
 Terminology used throughout: an **Epic** is a feature (a tracker card
 plus an integration branch). A **slice** is one independently
@@ -361,7 +363,7 @@ an agent picks it up       a person picks it up
               in-review            MR is open, waiting for a person
                      │
                      ▼
-GATE 2  a person merges            no agent is an eligible approver
+GATE 2  a person decides the merge by hand, or by config (see below)
                      │
                      ▼
                   Closed
@@ -404,7 +406,8 @@ anomaly in the activity log instead of silently producing code.
 
 Agents do not update issues. The **dispatcher** does (or the person
 running the agents, if there is no dispatcher), and it is the only
-writer of issue state during the work.
+writer of issue state during the work. Section 25 runs the dispatcher
+as an agent: the *orchestrator*.
 
 | Transition                      | Set by             | When                                            |
 |---------------------------------|--------------------|-------------------------------------------------|
@@ -423,6 +426,17 @@ deliberate: an "agent is reviewing" column would be empty most of the
 time and would show nothing anyone can act on. With `in-review` meaning
 "your turn", its length is the review backlog, which is the one number
 on the board worth watching.
+
+### Gate 2 by policy
+
+A person may decide Gate 2 in advance for a whole kind of merge
+instead of for each merge request: slice into Epic, Epic into `main`,
+standalone fix into `main`. The decision lives in
+`.orchestrator/config.yml` in the project root, beside `.bare/` and
+outside every worktree, as `required` (a person merges) or `auto` (the
+orchestrator merges once the work reports done, every check passes and
+the review record holds no open decision). No branch or merge request
+can change it, and every path defaults to `required`. See section 25.
 
 ### Slice completion
 
@@ -711,8 +725,9 @@ useless as one that says "LGTM".
 ## 13. Integrating Slices into the Epic
 
 Every slice reaches the Epic branch through a **merge request into the
-Epic branch, merged by a person** (Gate 2). That is the default, not an
-option: the MR is where the review record is read and where CI runs.
+Epic branch** (Gate 2), merged by a person or, where the project's
+config says `auto`, by the orchestrator (section 25). The MR itself is
+not optional: it is where the review record is read and where CI runs.
 
 After AUTH-101's MR is approved and merged:
 
@@ -800,12 +815,14 @@ MAIN
 6.  Each concurrently active slice receives its own worktree.
 7.  Each worktree is owned by one slice/agent at a time.
 8.  Completed slice branches merge into the Epic branch, not `main`,
-    through a merge request that a person merges.
+    through a merge request that a person merges, or that the
+    orchestrator merges on a path a person set to `auto`.
 9.  Integration testing is performed against the combined Epic branch.
 10. Only a completed, reviewed, and validated Epic branch may merge into
     `main`.
 11. Repository protection should reject direct pushes to `main`.
-12. Agents never merge, and never promote an issue to `ready-for-agent`.
+12. Agents never promote an issue to `ready-for-agent`. An agent merges
+    only as the orchestrator, on a path a person set to `auto`.
 13. The spec lives on the Epic branch and is updated in the same change
     as the code it describes.
 
@@ -877,7 +894,8 @@ git --git-dir=.bare worktree add \
 ```
 
 It runs the same chain (lead-in, implement, code-review), opens an MR
-into `main`, and is merged by a person (Gate 2). Nothing about it
+into `main`, and is merged under Gate 2: by a person, or by config
+(`fix-to-main`, section 25). Nothing about it
 bypasses review; it only skips the Epic level.
 
 Deciding where a bug goes:
@@ -1369,6 +1387,147 @@ git --git-dir=.bare worktree prune
 
 ------------------------------------------------------------------------
 
+## 25. Running the Dispatcher as an Orchestrator
+
+The dispatcher in section 6 can itself be an agent. The playbook ships
+it as the **orchestrator** skill, with the **slice worker** agent it
+hands slices to:
+
+``` text
+skills/orchestrate/SKILL.md       the orchestrator: role, run log, steps
+skills/orchestrate/plan.md        cut the Epic into slices; create issues
+skills/orchestrate/dispatch.md    Gate 1 check, worktree, launch a worker
+skills/orchestrate/track.md       act on reports; close merged slices
+skills/orchestrate/merge.md       apply the project's merge rule to a PR
+skills/orchestrate/report.md      the completion report every worker ends with
+agents/slice-worker.md            the worker: one slice, worktree to PR
+templates/orchestrator-config.yml the project's config, starting at all-required
+```
+
+The orchestrator runs in the main agent session, from the Epic
+worktree. Workers run as subagents, one per slice, each in the slice
+worktree the orchestrator created for it (section 10). A worker's last
+message is its **completion report**, so it reaches the orchestrator
+with no extra channel:
+
+``` text
+             Orchestrator (main session, the dispatcher)
+       plan ─► check Gate 1 ─► dispatch ─► track ─► hand back
+                                  │           ▲
+                 ┌────────────────┼───────────┼───────┐
+                 ▼                ▼           │       ▼
+              Worker A         Worker B    reports  Worker C
+           slice worktree   slice worktree        slice worktree
+```
+
+It keeps to both gates:
+
+-   **Gate 1.** It creates slice issues at `workflow:needs-triage` and
+    dispatches only issues a person labelled `workflow:ready-for-agent`,
+    checking the issue timeline for who applied the label.
+-   **Gate 2.** Workers open pull requests; the orchestrator labels them
+    `workflow:in-review` and applies the merge rule for the path (see
+    *Merge rules* below). On `required` it tells the person; after a
+    merge, by either, it closes the slice issue and removes the
+    worktree.
+
+It is **standalone**: nothing of it is committed to the project. Its
+files sit in the project root, beside `.bare/` and outside every
+worktree:
+
+``` text
+myproject/
+├── .bare/
+├── .shared/
+│   └── .claude/                 # linked into worktrees by yngshared
+│       ├── skills/orchestrate/
+│       └── agents/slice-worker.md
+├── .orchestrator/
+│   ├── config.yml               # merge rules
+│   └── runs/
+│       └── 100.md               # run log for Epic #100
+├── main/
+└── epic-auth/
+```
+
+The run log lets an interrupted run resume where it stopped, and
+outlives the Epic worktree.
+
+### Merge rules
+
+`.orchestrator/config.yml` in the project root records the person's
+Gate 2 decision per merge path:
+
+``` yaml
+merge:
+  slice-to-epic: required   # required | auto
+  epic-to-main: required
+  fix-to-main: required
+```
+
+-   `required`: a person merges. This is the default for a missing file,
+    a missing key, or any value other than `auto`.
+-   `auto`: the orchestrator merges, with a merge commit, when the
+    worker reported `done` (for an Epic, every slice is closed), the
+    pull request is mergeable, every check passed, and the review record
+    holds no open decision. When any of these fails, it comments which
+    one on the pull request and leaves it to the person.
+
+The file belongs to no branch, so no branch or merge request can grant
+itself `auto`; the orchestrator reads it fresh at every merge, so an
+edit applies at once. A common start is `slice-to-epic: auto` with the other two
+`required`. This is what lets the orchestrator carry the Epic on its
+own: each slice it merges closes, which unblocks the slices that depend
+on it, so it keeps dispatching instead of stopping at every slice to
+wait for a person. Every change to `main` still passes a person.
+
+`fix-to-main` is read whenever the orchestrator holds a standalone-fix
+pull request; it does not yet dispatch standalone fixes itself.
+
+### Install
+
+[INSTALL.md](../INSTALL.md) has the whole path, by hand or by asking
+your agent: prerequisites, setting up the layout, and the first Epic.
+The install itself is one command, from anywhere inside the project (its root or any
+worktree), using your clone of YNGAIPlaybook:
+
+``` powershell
+C:\path\to\YNGAIPlaybook\scripts\yngorch.ps1     # Windows
+```
+
+``` bash
+/path/to/YNGAIPlaybook/scripts/yngorch.sh        # macOS/Linux
+```
+
+It finds the project root, copies the skill and worker into
+`.shared/.claude/`, writes `.orchestrator/config.yml` with every path
+`required` (only if you have none), hides the links with
+`.bare/info/exclude` (Git's local ignore file, never pushed), links
+every worktree through `yngshared`, and creates the workflow labels
+with `gh` when it is installed. Then set your merge rules in
+`.orchestrator/config.yml`.
+
+Run the same command again to upgrade, or after creating a worktree to
+link it; it never overwrites your config. The orchestrator links the
+slice worktrees it creates itself. `-Project <path>` / `--project
+<path>` installs into a project other than the current folder, and
+`-SkipLabels` / `--skip-labels` leaves the labels alone.
+
+These are Claude Code's folders. Another agent that supports skills and
+subagents takes the same files in its own folders. The commands inside
+are written for GitHub (`gh`); on another tracker, use its equivalents.
+
+### Run
+
+From the Epic worktree, start the agent and run `/orchestrate <epic
+issue>`. With no slice issues yet, it plans first and waits for you to
+approve the plan; afterwards, promote the slices you want an agent to
+take, and run it again. It ends each run with one list of everything
+waiting on you: pull requests to merge, slices handed back, slices
+waiting for promotion.
+
+------------------------------------------------------------------------
+
 ## Summary
 
 The **Bare Repository + Git Worktrees Pattern** provides a structured
@@ -1394,9 +1553,10 @@ reviewed, tested, and validated Epic branch (work with no Epic follows
 the standalone-fix path).
 
 Two people-only gates govern the flow: a person promotes an issue before
-an agent may start it, and a person merges every merge request. The
-Epic is a feature of roughly two weeks or less, its slices are named for
-outcomes, and its spec is versioned on the Epic branch beside the code.
+an agent may start it, and a person decides every merge, by hand or by
+config. The Epic is a feature of roughly two weeks or less, its slices
+are named for outcomes, and its spec is versioned on the Epic branch
+beside the code.
 
 ``` text
                          MAIN

@@ -1,0 +1,16 @@
+# Orchestrator config. From YNGAIPlaybook (guides/epic-workflow.md, section 25).
+#
+# Copy to .orchestrator/config.yml in your project root: the folder holding
+# .bare/, outside every worktree. It is never committed, and no branch or
+# pull request can change it; the orchestrator reads it fresh at each merge.
+
+# Who merges each kind of pull request (Gate 2).
+#   required  a person merges (the default)
+#   auto      the orchestrator merges, once the worker reported done, the
+#             PR is mergeable, every check passed and the review record
+#             holds no open decision; otherwise a person merges
+# A missing key, or any value other than auto, means required.
+merge:
+  slice-to-epic: required   # slice/* -> its Epic branch
+  epic-to-main: required    # epic/*  -> main
+  fix-to-main: required     # fix/*   -> main (standalone fixes)
