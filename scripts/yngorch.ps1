@@ -17,9 +17,10 @@
         |-- .shared\.claude\
         |   |-- skills\yngorchestrator\ the orchestrator skill
         |   `-- agents\slice-worker.md  the worker it dispatches
-        |-- .yngorchestrator\
-        |   |-- config.yml              merge rules (written only if absent)
-        |   `-- runs\                   one run log per Epic
+        |-- .yngaiplaybook\             the playbook's files for this project
+        |   |-- README.md               the folder explained (rewritten every run)
+        |   |-- yngorchestratorconfig.yml  merge rules (written only if absent)
+        |   `-- yngorchestratorruns\    one run log per Epic, and run locks
         |-- .claude\                    linked from .shared\.claude\, for a session at the root
         |-- yngshared.ps1               links .shared\ into the worktrees
         `-- main\, epic-...\, ...       worktrees, linked file by file
@@ -27,7 +28,8 @@
     Steps, all safe to repeat:
       1. Find the project root from -Project (default: the current folder).
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
-      3. Write .yngorchestrator\config.yml from the template, only if absent.
+      3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template,
+         only if absent; yngorchestratorruns\; README.md from the template.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree,
          and .shared\.claude\ into the root's own .claude\.
@@ -35,10 +37,15 @@
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
 
-    Upgrading from 1.1.0 (the skill was named "orchestrate"): step 3 moves
-    .orchestrator\ to .yngorchestrator\, keeping your config and run logs
-    (when both exist it leaves both and warns), and steps 2, 4 and 5 remove
-    the old skill folder, its exclude line and its links in every worktree.
+    Upgrading from 1.1.0-1.4.0: step 3 moves .yngorchestrator\ (1.2.0-1.4.0)
+    or .orchestrator\ (1.1.0) into .yngaiplaybook\, one line per item:
+    config.yml becomes yngorchestratorconfig.yml, runs\ becomes
+    yngorchestratorruns\, any other file keeps its name, and the emptied old
+    folder goes. When .yngaiplaybook\ already exists, or both old folders do,
+    it moves nothing, leaves each folder as it is, and warns: move what you
+    need by hand. From 1.1.0 (the skill was named "orchestrate"), steps 2, 4
+    and 5 also remove the old skill folder, its exclude line and its links in
+    every worktree.
 
     Run it again after creating a worktree, or to upgrade: it re-links every
     worktree and never overwrites your config.
@@ -103,17 +110,43 @@ Step 'copied' '.shared\.claude\skills\yngorchestrator\, .shared\.claude\agents\s
 $oldSkill = Join-Path $root '.shared\.claude\skills\orchestrate'
 if (Test-Path $oldSkill) { Remove-Item -Recurse -Force $oldSkill; Step 'removed' '.shared\.claude\skills\orchestrate\ (renamed yngorchestrator)' }
 
-# 3. Config, only if absent; run logs folder. A 1.1.0 .orchestrator\ moves here.
-$orch = Join-Path $root '.yngorchestrator'
-$oldOrch = Join-Path $root '.orchestrator'
-if (Test-Path $oldOrch) {
-    if (Test-Path $orch) { Step 'warning' 'both .orchestrator\ and .yngorchestrator\ exist; left both, move what you need by hand' }
-    else { Move-Item $oldOrch $orch; Step 'moved' '.orchestrator\ -> .yngorchestrator\ (config and run logs kept)' }
+# 3. The playbook's root folder, .yngaiplaybook\ (spec R23-R26). An older
+# .yngorchestrator\ (1.2.0-1.4.0) or .orchestrator\ (1.1.0) moves into it
+# first, item by item; when that is ambiguous, nothing moves or is created.
+$ynga = Join-Path $root '.yngaiplaybook'
+$config = Join-Path $ynga 'yngorchestratorconfig.yml'
+$olds = @('.yngorchestrator', '.orchestrator') | Where-Object { Test-Path -PathType Container (Join-Path $root $_) }
+$hasYnga = Test-Path -PathType Container $ynga
+if ($olds -and ($hasYnga -or @($olds).Count -gt 1)) {
+    $names = @(if ($hasYnga) { '.yngaiplaybook\' }) + @($olds | ForEach-Object { "$_\" })
+    Step 'warning' "found $($names -join ' '); moved nothing and left each as it is: move what you need into .yngaiplaybook\ by hand"
 }
-New-Item -ItemType Directory -Force (Join-Path $orch 'runs') | Out-Null
-$config = Join-Path $orch 'config.yml'
-if (Test-Path $config) { Step 'kept' '.yngorchestrator\config.yml (yours)' }
-else { Copy-Item (Join-Path $playbook 'templates\orchestrator-config.yml') $config; Step 'created' '.yngorchestrator\config.yml (every path required)' }
+else {
+    if ($olds) {
+        $old = @($olds)[0]
+        $oldDir = Join-Path $root $old
+        New-Item -ItemType Directory -Force $ynga | Out-Null
+        foreach ($item in Get-ChildItem -Force $oldDir) {
+            $dest = switch -CaseSensitive ($item.Name) {
+                'config.yml' { 'yngorchestratorconfig.yml' }
+                'runs'       { 'yngorchestratorruns' }
+                default      { $item.Name }
+            }
+            $s = if ($item.PSIsContainer) { '\' } else { '' }
+            Move-Item -LiteralPath $item.FullName (Join-Path $ynga $dest)
+            Step 'moved' "$old\$($item.Name)$s -> .yngaiplaybook\$dest$s"
+        }
+        if (Get-ChildItem -Force $oldDir) { Step 'warning' "$old\ is not empty; left in place" }
+        else { Remove-Item -Force $oldDir; Step 'removed' "$old\ (empty)" }
+    }
+    New-Item -ItemType Directory -Force (Join-Path $ynga 'yngorchestratorruns') | Out-Null
+    if (Test-Path $config) { Step 'kept' '.yngaiplaybook\yngorchestratorconfig.yml (yours)' }
+    else { Copy-Item (Join-Path $playbook 'templates\yngorchestratorconfig.yml') $config; Step 'created' '.yngaiplaybook\yngorchestratorconfig.yml (every path required)' }
+    $version = ([IO.File]::ReadAllText((Join-Path $playbook 'VERSION'))).Trim()
+    $readme = [IO.File]::ReadAllText((Join-Path $playbook 'templates\yngaiplaybookreadme.md')).Replace('{{VERSION}}', $version)
+    [IO.File]::WriteAllText((Join-Path $ynga 'README.md'), $readme, (New-Object Text.UTF8Encoding $false))
+    Step 'wrote' ".yngaiplaybook\README.md (the folder explained, $version)"
+}
 
 # 4. Exclude lines, only if missing; the 1.1.0 line goes.
 $exclude = Join-Path $root '.bare\info\exclude'

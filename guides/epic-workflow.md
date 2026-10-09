@@ -1404,7 +1404,8 @@ skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
 skills/yngorchestrator/report.md    the completion report every worker ends with
 agents/slice-worker.md              the worker: one slice, worktree to PR
-templates/orchestrator-config.yml   the project's config, starting at all-required
+templates/yngorchestratorconfig.yml the project's config, starting at all-required
+templates/yngaiplaybookreadme.md    the README of the project's .yngaiplaybook/ folder
 ```
 
 The orchestrator runs in the main agent session, started anywhere in
