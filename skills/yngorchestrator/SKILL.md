@@ -1,5 +1,5 @@
 ---
-name: orchestrate
+name: yngorchestrator
 description: Run an Epic as its dispatcher. Plan its slices, dispatch promoted slices to worker subagents in their own worktrees, and act on each completion report.
 disable-model-invocation: true
 ---

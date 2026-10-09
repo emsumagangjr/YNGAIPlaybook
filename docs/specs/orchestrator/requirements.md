@@ -32,21 +32,21 @@ person promotes every issue (Gate 1) and a person decides every merge
 ## Deliverables
 
 ``` text
-skills/orchestrate/SKILL.md       the orchestrator: role, run log, the step sequence
-skills/orchestrate/plan.md        step: planning (R3)
-skills/orchestrate/dispatch.md    step: dispatch (R4)
-skills/orchestrate/track.md       step: tracking (R5)
-skills/orchestrate/merge.md       step: merge by rule (R7)
-skills/orchestrate/report.md      the completion report format (R1)
-agents/slice-worker.md            the worker (R2)
-templates/orchestrator-config.yml the project config template (R7)
+skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
+skills/yngorchestrator/plan.md      step: planning (R3)
+skills/yngorchestrator/dispatch.md  step: dispatch (R4)
+skills/yngorchestrator/track.md     step: tracking (R5)
+skills/yngorchestrator/merge.md     step: merge by rule (R7)
+skills/yngorchestrator/report.md    the completion report format (R1)
+agents/slice-worker.md              the worker (R2)
+templates/orchestrator-config.yml   the project config template (R7)
 ```
 
 Each step lives in its own file, reached from `SKILL.md` only when that
 step runs, so the entry file stays short and each step can change
 without touching the others.
 
-The orchestrator is user-invoked (`/orchestrate`): running an Epic is a
+The orchestrator is user-invoked (`/yngorchestrator`): running an Epic is a
 person's decision, so it carries no always-loaded description.
 
 Installed per project without being committed to it (R8).
@@ -70,7 +70,7 @@ Slice: #2
     ISSUES:        new issues opened, or blockers and their cause
     ```
 
-2.  The format is defined once, in `skills/orchestrate/report.md`. The
+2.  The format is defined once, in `skills/yngorchestrator/report.md`. The
     worker and the orchestrator both reference it; neither restates it.
 3.  Every field appears, in order, even when its value is "none".
 4.  `needs-human` states its reason, so the orchestrator can hand the
@@ -221,7 +221,7 @@ Slice: #16
     holding `.bare/`, outside every worktree:
 
     ``` text
-    <root>/.shared/.claude/skills/orchestrate/   the skill
+    <root>/.shared/.claude/skills/yngorchestrator/ the skill
     <root>/.shared/.claude/agents/slice-worker.md the worker
     <root>/.orchestrator/config.yml              merge rules (R7)
     <root>/.orchestrator/runs/<epic>.md          run log per Epic (R5)

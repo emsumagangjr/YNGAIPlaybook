@@ -15,7 +15,7 @@
         <project-root>\
         |-- .bare\info\exclude          + hides the links in every worktree
         |-- .shared\.claude\
-        |   |-- skills\orchestrate\     the orchestrator skill
+        |   |-- skills\yngorchestrator\ the orchestrator skill
         |   `-- agents\slice-worker.md  the worker it dispatches
         |-- .orchestrator\
         |   |-- config.yml              merge rules (written only if absent)
@@ -75,12 +75,12 @@ $root = Split-Path -Parent ([IO.Path]::GetFullPath($common))
 Write-Host "Orchestrator -> $root"
 
 # 2. Skill and worker into .shared\.claude\.
-$skillDir = Join-Path $root '.shared\.claude\skills\orchestrate'
+$skillDir = Join-Path $root '.shared\.claude\skills\yngorchestrator'
 $agentDir = Join-Path $root '.shared\.claude\agents'
 New-Item -ItemType Directory -Force $skillDir, $agentDir | Out-Null
-Copy-Item -Force (Join-Path $playbook 'skills\orchestrate\*') $skillDir
+Copy-Item -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
 Copy-Item -Force (Join-Path $playbook 'agents\slice-worker.md') $agentDir
-Step 'copied' '.shared\.claude\skills\orchestrate\, .shared\.claude\agents\slice-worker.md'
+Step 'copied' '.shared\.claude\skills\yngorchestrator\, .shared\.claude\agents\slice-worker.md'
 
 # 3. Config, only if absent; run logs folder.
 $orch = Join-Path $root '.orchestrator'
@@ -93,7 +93,7 @@ else { Copy-Item (Join-Path $playbook 'templates\orchestrator-config.yml') $conf
 $exclude = Join-Path $root '.bare\info\exclude'
 New-Item -ItemType Directory -Force (Split-Path $exclude) | Out-Null
 $have = if (Test-Path $exclude) { @(Get-Content $exclude) } else { @() }
-$add = @('/.claude/skills/orchestrate/', '/.claude/agents/slice-worker.md') | Where-Object { $_ -notin $have }
+$add = @('/.claude/skills/yngorchestrator/', '/.claude/agents/slice-worker.md') | Where-Object { $_ -notin $have }
 if ($add) { Add-Content $exclude $add; Step 'added' ".bare\info\exclude: $($add -join ', ')" }
 else { Step 'kept' '.bare\info\exclude' }
 
@@ -134,5 +134,5 @@ else {
 Write-Host ''
 Write-Host 'Done. Next:'
 Write-Host "  - Set your merge rules in $config"
-Write-Host '  - From an Epic worktree, start Claude Code and run: /orchestrate <epic issue>'
+Write-Host '  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>'
 Write-Host '  - After creating a new worktree, run this script again to link it.'

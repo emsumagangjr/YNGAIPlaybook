@@ -84,7 +84,7 @@ WORKTREE:     <absolute path of slice-<epic>-<name>>
 BRANCH:       slice/<n>-<name>
 PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
-REPORT:       <absolute path of skills/orchestrate/report.md>
+REPORT:       <absolute path of skills/yngorchestrator/report.md>
 ```
 
 `LEAD-IN` is `diagnose` for a bug, `design the seam` for a refactor and
