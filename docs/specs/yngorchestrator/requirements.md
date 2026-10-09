@@ -34,6 +34,7 @@ person promotes every issue (Gate 1) and a person decides every merge
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
 skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15)
+skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/plan.md      step: planning (R3)
 skills/yngorchestrator/dispatch.md  step: dispatch (R4)
 skills/yngorchestrator/track.md     step: tracking (R5)
@@ -376,11 +377,12 @@ Slice: #41
 
 ## R16 Branch lookup
 
-Epic: #39
+Slice: #43
 
 1.  A `Branch:` line in the issue body names the branch, and wins.
 2.  Otherwise the branch is the one matching `*/<n>-*`, looked up in
-    local branches first, then on `origin`.
+    local branches first, then on `origin` (fetched first), which is
+    consulted only when no local branch matches.
 3.  The prefix must fit the kind: `epic/` for an Epic, `slice/` for a
     slice, `fix/` for a standalone issue. A mismatch stops the run.
 4.  More than one match stops the run with the matches listed.
@@ -389,31 +391,47 @@ Epic: #39
 
 ## R17 Branch and worktree setup
 
-Epic: #39
+Slice: #43
+
+The procedure is `skills/yngorchestrator/worktree.md`, reached from
+`locate.md` for an Epic run. Slice (R19) and standalone (R20) runs
+reach it only after their Gate 1 check.
 
 1.  Per the branch's state:
     -   **local, with a worktree**: fetch, and fast-forward it when it
         is behind `origin`. A branch that has diverged is reported and
-        left as it is;
+        left as it is, as is one ahead of `origin` or one a
+        fast-forward cannot reach for uncommitted changes;
     -   **local, no worktree**: create the worktree;
     -   **only on `origin`**: fetch it, create a local tracking branch
         and its worktree;
     -   **nowhere**: for a slice, create it from the Epic branch; for a
         standalone issue, from `origin/main`. For an Epic, propose
-        `epic/<n>-<name>` from `origin/main` and create it only once the
-        person confirms the name.
+        `epic/<n>-<name>` (or the `Branch:` line's name) from
+        `origin/main` and create it only once the person confirms the
+        name. A slice whose Epic has no branch stops the run.
+
+    A new branch is created with `--no-track`, so it does not track
+    its start point; its first push sets its upstream.
 2.  Worktree directories follow the guide's naming: `epic-<name>`,
     `slice-<epic>-<name>`, `fix-<name>`. `<name>` is a short kebab-case
-    form of the issue's title.
+    form of the issue's title, or, for a branch that already exists,
+    the branch's name after `<prefix><n>-`. `<epic>` is the Epic
+    worktree's name without `epic-`. A folder already at that path
+    stops the run.
 3.  Every branch created records its Epic in
     `branch.<branch>.epicid`; an Epic branch records its own number.
+    A standalone `fix/` branch has no Epic and records nothing.
 4.  A new worktree gets the skill and worker linked in through
     `<root>/yngshared` (`-link <worktree>` / `--link <worktree>`).
     When `<root>/.shared/` or `yngshared` is missing, the project was
-    never installed: the run stops and names `yngorch` to run once.
+    never installed: the run stops, before creating anything, and names
+    `yngorch` to run once.
 5.  An Epic run stops when `docs/specs/<feature>/requirements.md` is
     missing on the Epic branch: planning (R3) has nothing to cut. The
-    orchestrator does not write the spec.
+    orchestrator does not write the spec. `<feature>` comes from the
+    Epic body's `Spec:` line, or else from the one spec on the Epic
+    branch whose header reads `Epic: #<n>`; neither stops the run too.
 
 ## R18 Working from any session
 
