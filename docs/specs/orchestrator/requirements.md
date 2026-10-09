@@ -164,7 +164,7 @@ Slice: #6
 2.  After a person merges a slice PR into the Epic branch: pulls the
     Epic worktree, closes the slice issue with a note naming the Epic
     branch, then removes the slice worktree and its local branch.
-3.  Keeps one run log per Epic at `<root>/.orchestrator/runs/<epic>.md`
+3.  Keeps one run log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`
     (R8), so an interrupted run can resume where it stopped and the log
     outlives the Epic worktree. `SKILL.md` defines the log's location and line format;
     `track.md` says what each report adds to it.
@@ -185,7 +185,7 @@ Slice: #7
 Slice: #14
 
 1.  A project sets who merges each kind of pull request in
-    `<root>/.orchestrator/config.yml` (R8):
+    `<root>/.yngorchestrator/config.yml` (R8):
 
     ``` yaml
     merge:
@@ -221,10 +221,10 @@ Slice: #16
     holding `.bare/`, outside every worktree:
 
     ``` text
-    <root>/.shared/.claude/skills/yngorchestrator/ the skill
-    <root>/.shared/.claude/agents/slice-worker.md the worker
-    <root>/.orchestrator/config.yml              merge rules (R7)
-    <root>/.orchestrator/runs/<epic>.md          run log per Epic (R5)
+    <root>/.shared/.claude/skills/yngorchestrator/  the skill
+    <root>/.shared/.claude/agents/slice-worker.md   the worker
+    <root>/.yngorchestrator/config.yml              merge rules (R7)
+    <root>/.yngorchestrator/runs/<epic>.md          run log per Epic (R5)
     ```
 
 2.  `yngshared` links the skill and worker into each worktree, one

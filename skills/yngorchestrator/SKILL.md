@@ -24,7 +24,7 @@ Your hard guardrails, the two gates:
 
 - A slice reaches a worker only after a person promoted it (Gate 1).
 - A pull request merges by a person's decision (Gate 2): made per pull
-  request, or in advance per merge path in `<root>/.orchestrator/config.yml`.
+  request, or in advance per merge path in `<root>/.yngorchestrator/config.yml`.
   You merge only where that config says `auto`, through
   [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
@@ -41,13 +41,13 @@ outside Git:
 dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
 ```
 
-`<root>/.orchestrator/` holds the person's config (`config.yml`) and
+`<root>/.yngorchestrator/` holds the person's config (`config.yml`) and
 your run logs. Nothing in it belongs to a branch, so nothing in it is
 committed, and no branch can change it.
 
 ## Run log
 
-Keep one log per Epic at `<root>/.orchestrator/runs/<epic>.md`, where
+Keep one log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`, where
 `<epic>` is the Epic's issue number. Append one line per event
 (`<date> #<issue> <event>`): a slice planned, dispatched, reported,
 relabelled, merged, closed. On every start, read it first and resume
