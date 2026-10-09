@@ -1,7 +1,8 @@
 # Merge by rule
 
 Gate 2 is a person's decision. They make it per pull request, or in
-advance per merge path, in `.orchestrator/config.yml`. This step reads
+advance per merge path, in `<root>/.orchestrator/config.yml` (see
+*The project root* in [SKILL.md](SKILL.md)). This step reads
 that decision for one pull request and either merges or hands it to the
 person.
 
@@ -30,21 +31,12 @@ step 2 holds.
 
 ## 1. Read the rule
 
-Read the config from `main`, never from the working branch, so a branch
-cannot grant itself `auto`:
-
-``` bash
-git --git-dir=.bare fetch -q origin main
-git --git-dir=.bare show origin/main:.orchestrator/config.yml
-```
+Read `<root>/.orchestrator/config.yml` as it is now, every time. It
+lives outside every worktree and branch, so only the person edits it
+and no pull request can change it.
 
 The rule is `required` when the file is absent, the path's key is
-absent, or its value is anything other than `auto`. It is also
-`required` when the pull request itself changes `.orchestrator/config.yml`:
-
-``` bash
-gh pr diff <PR> --name-only
-```
+absent, or its value is anything other than `auto`.
 
 Log `merge rule <path> <rule>`.
 

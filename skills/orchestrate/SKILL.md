@@ -15,7 +15,7 @@ Your hard guardrails, the two gates:
 
 - A slice reaches a worker only after a person promoted it (Gate 1).
 - A pull request merges by a person's decision (Gate 2): made per pull
-  request, or in advance per merge path in `.orchestrator/config.yml`.
+  request, or in advance per merge path in `<root>/.orchestrator/config.yml`.
   You merge only where that config says `auto`, through
   [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
@@ -23,14 +23,25 @@ Your hard guardrails, the two gates:
 Commands are shown for GitHub (`gh`). On another tracker, use its
 equivalent.
 
+## The project root
+
+`<root>` is the folder holding `.bare/`, outside every worktree and
+outside Git:
+
+``` bash
+dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
+```
+
+`<root>/.orchestrator/` holds the person's config (`config.yml`) and
+your run logs. Nothing in it belongs to a branch, so nothing in it is
+committed, and no branch can change it.
+
 ## Run log
 
-Keep `.orchestrator/run-log.md` in the Epic worktree. Add
-`/.orchestrator/run-log.md` (the log alone: `config.yml` beside it is
-committed) to the file `git rev-parse --git-path info/exclude` names (in the bare
-layout, `.bare/info/exclude`) so it is never committed. Append one
-line per event (`<date> #<issue> <event>`): a slice planned, dispatched,
-reported, relabelled, closed. On every start, read it first and resume
+Keep one log per Epic at `<root>/.orchestrator/runs/<epic>.md`, where
+`<epic>` is the Epic's issue number. Append one line per event
+(`<date> #<issue> <event>`): a slice planned, dispatched, reported,
+relabelled, merged, closed. On every start, read it first and resume
 from its last line.
 
 ## Steps

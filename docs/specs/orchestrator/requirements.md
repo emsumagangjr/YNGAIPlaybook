@@ -49,8 +49,7 @@ without touching the others.
 The orchestrator is user-invoked (`/orchestrate`): running an Epic is a
 person's decision, so it carries no always-loaded description.
 
-Installed into a project by copying them into the agent's config
-folder (for Claude Code: `.claude/skills/` and `.claude/agents/`).
+Installed per project without being committed to it (R8).
 
 ------------------------------------------------------------------------
 
@@ -165,9 +164,9 @@ Slice: #6
 2.  After a person merges a slice PR into the Epic branch: pulls the
     Epic worktree, closes the slice issue with a note naming the Epic
     branch, then removes the slice worktree and its local branch.
-3.  Keeps a run log at `.orchestrator/run-log.md` in the Epic worktree,
-    excluded from Git, so an interrupted run can resume where it
-    stopped. `SKILL.md` defines the log's location and line format;
+3.  Keeps one run log per Epic at `<root>/.orchestrator/runs/<epic>.md`
+    (R8), so an interrupted run can resume where it stopped and the log
+    outlives the Epic worktree. `SKILL.md` defines the log's location and line format;
     `track.md` says what each report adds to it.
 4.  Is the only writer of issue state during the work. Merges only on
     an `auto` path (R7).
@@ -185,8 +184,8 @@ Slice: #7
 
 Slice: #14
 
-1.  A project sets who merges each kind of pull request in a committed
-    file, `.orchestrator/config.yml`:
+1.  A project sets who merges each kind of pull request in
+    `<root>/.orchestrator/config.yml` (R8):
 
     ``` yaml
     merge:
@@ -199,9 +198,8 @@ Slice: #14
 2.  `templates/orchestrator-config.yml` ships with every path
     `required`. A missing file, missing key, or any value other than
     `auto` means `required`.
-3.  The orchestrator reads the config from `origin/main`, never from a
-    working branch, and treats any pull request that changes the config
-    as `required`: no branch can grant itself `auto`.
+3.  The config belongs to no branch, so no branch or pull request can
+    grant itself `auto`. The orchestrator reads it fresh at every merge.
 4.  On `auto`, it merges only when the report is `done` (for
     `epic-to-main`, every slice is closed), the pull request is open
     and mergeable from the expected branch into the expected base,
@@ -213,3 +211,27 @@ Slice: #14
 6.  Workers never merge. `fix-to-main` is honoured whenever the
     orchestrator holds a standalone-fix pull request; the orchestrator
     does not yet dispatch standalone fixes.
+
+## R8 Standalone install
+
+Slice: #16
+
+1.  Nothing of the orchestrator is committed to the project that uses
+    it. Everything lives in the project root `<root>`, the folder
+    holding `.bare/`, outside every worktree:
+
+    ``` text
+    <root>/.shared/.claude/skills/orchestrate/   the skill
+    <root>/.shared/.claude/agents/slice-worker.md the worker
+    <root>/.orchestrator/config.yml              merge rules (R7)
+    <root>/.orchestrator/runs/<epic>.md          run log per Epic (R5)
+    ```
+
+2.  `yngshared` links the skill and worker into each worktree, one
+    symlink per file; `<root>/.bare/info/exclude` hides them from Git
+    in every worktree, with no `.gitignore` change.
+3.  The orchestrator finds `<root>` from inside any worktree with
+    `git rev-parse --git-common-dir`.
+4.  Upgrading is re-copying into `<root>/.shared/`: every linked
+    worktree sees the new files at once.
+5.  The guide gives the install commands for Windows and macOS/Linux.

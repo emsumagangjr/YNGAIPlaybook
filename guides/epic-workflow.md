@@ -431,12 +431,12 @@ on the board worth watching.
 
 A person may decide Gate 2 in advance for a whole kind of merge
 instead of for each merge request: slice into Epic, Epic into `main`,
-standalone fix into `main`. The decision lives in the project's
-committed `.orchestrator/config.yml` as `required` (a person merges) or
-`auto` (the orchestrator merges once the work reports done, every check
-passes and the review record holds no open decision). It is read from
-`main` only, so no branch can grant itself `auto`, and every path
-defaults to `required`. See section 25.
+standalone fix into `main`. The decision lives in
+`.orchestrator/config.yml` in the project root, beside `.bare/` and
+outside every worktree, as `required` (a person merges) or `auto` (the
+orchestrator merges once the work reports done, every check passes and
+the review record holds no open decision). No branch or merge request
+can change it, and every path defaults to `required`. See section 25.
 
 ### Slice completion
 
@@ -1431,13 +1431,32 @@ It keeps to both gates:
     merge, by either, it closes the slice issue and removes the
     worktree.
 
-Its run log, `.orchestrator/run-log.md` in the Epic worktree and
-excluded from Git, lets an interrupted run resume where it stopped.
+It is **standalone**: nothing of it is committed to the project. Its
+files sit in the project root, beside `.bare/` and outside every
+worktree:
+
+``` text
+myproject/
+├── .bare/
+├── .shared/
+│   └── .claude/                 # linked into worktrees by yngshared
+│       ├── skills/orchestrate/
+│       └── agents/slice-worker.md
+├── .orchestrator/
+│   ├── config.yml               # merge rules
+│   └── runs/
+│       └── 100.md               # run log for Epic #100
+├── main/
+└── epic-auth/
+```
+
+The run log lets an interrupted run resume where it stopped, and
+outlives the Epic worktree.
 
 ### Merge rules
 
-`.orchestrator/config.yml`, committed in the project, records the
-person's Gate 2 decision per merge path:
+`.orchestrator/config.yml` in the project root records the person's
+Gate 2 decision per merge path:
 
 ``` yaml
 merge:
@@ -1454,9 +1473,9 @@ merge:
     holds no open decision. When any of these fails, it comments which
     one on the pull request and leaves it to the person.
 
-The orchestrator reads the file from `origin/main` only, and any pull
-request that changes it is `required`, so no branch can grant itself
-`auto`. A common start is `slice-to-epic: auto` with the other two
+The file belongs to no branch, so no branch or merge request can grant
+itself `auto`; the orchestrator reads it fresh at every merge, so an
+edit applies at once. A common start is `slice-to-epic: auto` with the other two
 `required`. This is what lets the orchestrator carry the Epic on its
 own: each slice it merges closes, which unblocks the slices that depend
 on it, so it keeps dispatching instead of stopping at every slice to
@@ -1467,17 +1486,48 @@ pull request; it does not yet dispatch standalone fixes itself.
 
 ### Install
 
-For Claude Code, copy the files into the project:
+Once per project, from the project root (the folder holding `.bare/`),
+with `yngshared` copied there (section 19). Replace the playbook path
+with your clone of YNGAIPlaybook.
 
-``` text
-skills/orchestrate/                →  .claude/skills/orchestrate/
-agents/slice-worker.md             →  .claude/agents/slice-worker.md
-templates/orchestrator-config.yml  →  .orchestrator/config.yml (commit it)
+**Windows (PowerShell):**
+
+``` powershell
+$pb = "C:\path\to\YNGAIPlaybook"
+New-Item -ItemType Directory -Force .shared\.claude\skills\orchestrate, .shared\.claude\agents, .orchestrator\runs | Out-Null
+Copy-Item -Force "$pb\skills\orchestrate\*" .shared\.claude\skills\orchestrate\
+Copy-Item -Force "$pb\agents\slice-worker.md" .shared\.claude\agents\
+if (-not (Test-Path .orchestrator\config.yml)) { Copy-Item "$pb\templates\orchestrator-config.yml" .orchestrator\config.yml }
+Add-Content .bare\info\exclude "/.claude/skills/orchestrate/", "/.claude/agents/slice-worker.md"
+.\yngshared.ps1 -link -All
 ```
 
-Another agent that supports skills and subagents takes the same files in
-its own config folders. The commands inside are written for GitHub
-(`gh`); on another tracker, use its equivalents.
+**macOS/Linux:**
+
+``` bash
+pb=/path/to/YNGAIPlaybook
+mkdir -p .shared/.claude/skills/orchestrate .shared/.claude/agents .orchestrator/runs
+cp "$pb"/skills/orchestrate/* .shared/.claude/skills/orchestrate/
+cp "$pb/agents/slice-worker.md" .shared/.claude/agents/
+[ -f .orchestrator/config.yml ] || cp "$pb/templates/orchestrator-config.yml" .orchestrator/config.yml
+printf '%s\n' /.claude/skills/orchestrate/ /.claude/agents/slice-worker.md >> .bare/info/exclude
+./yngshared.sh --link --all
+```
+
+`.bare/info/exclude` is Git's local ignore file: it hides the linked
+files in every worktree without a `.gitignore` change, and is never
+pushed. Run the `exclude` line once; run the rest again to upgrade.
+Every worktree follows its links, so an upgrade reaches all of them at
+once. Link each new Epic worktree with `yngshared` when you create it;
+the orchestrator links the slice worktrees it creates.
+
+Then edit `.orchestrator/config.yml` and create the workflow labels in
+the repository once (`gh label create workflow:ready-for-agent`, and
+so on for each label in section 6, plus `epic`).
+
+These are Claude Code's folders. Another agent that supports skills and
+subagents takes the same files in its own folders. The commands inside
+are written for GitHub (`gh`); on another tracker, use its equivalents.
 
 ### Run
 
