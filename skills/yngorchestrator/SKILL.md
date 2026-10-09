@@ -111,9 +111,10 @@ The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
 and handles a closed issue. Once it has told the kind, take the lock
 (*The lock* above) before going on.
 
-For an Epic, then find the Epic branch, the Epic worktree, the spec
-folder `<epic worktree>/docs/specs/<feature>/`, the run log, and the
-Epic's slice issues with their labels.
+For an Epic, locate.md hands on through [worktree.md](worktree.md):
+it finds or creates the Epic branch and the Epic worktree, and checks
+the spec folder `<epic worktree>/docs/specs/<feature>/`. Then find the
+run log and the Epic's slice issues with their labels.
 
 Then run the *On a merge* path of [track.md](track.md): slices a
 person merged while you were away are closed before anything new is

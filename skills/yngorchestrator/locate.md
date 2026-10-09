@@ -151,14 +151,18 @@ Done when the issue is open, or the run has ended with it closed.
 
 The run stays within the issue's boundary:
 
-- **Epic**: the run drives the Epic. Go on with step 1 of
-  [SKILL.md](SKILL.md), holding `<root>`, `<owner>/<repo>` and the
-  Epic `<n>`;
+- **Epic**: the run drives the Epic. Follow
+  [worktree.md](worktree.md), holding `<root>`, `<owner>/<repo>`, the
+  Epic `<n>` and its title: it finds or creates the Epic branch and
+  worktree, checks the spec, and hands on to step 1 of
+  [SKILL.md](SKILL.md);
 - **slice**: the run handles that slice only (R19);
 - **standalone**: the run handles that issue only (R20).
 
 This skill does not yet run a slice or a standalone issue on its own.
-For those two kinds, tell the person the kind you found and stop.
+For those two kinds, tell the person the kind you found and stop. Their
+runs reach [worktree.md](worktree.md) only after their Gate 1 check, so
+no branch is created for an issue a person has not promoted.
 
 Done when the run continues as an Epic run, or has stopped with the
 kind named.
