@@ -1486,7 +1486,9 @@ pull request; it does not yet dispatch standalone fixes itself.
 
 ### Install
 
-One command, from anywhere inside the project (its root or any
+[INSTALL.md](../INSTALL.md) has the whole path, by hand or by asking
+your agent: prerequisites, setting up the layout, and the first Epic.
+The install itself is one command, from anywhere inside the project (its root or any
 worktree), using your clone of YNGAIPlaybook:
 
 ``` powershell
