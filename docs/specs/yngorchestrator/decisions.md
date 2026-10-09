@@ -75,3 +75,21 @@ Dated log of options refused, one line of why each.
   dispatch.
 - **2026-10-09** Refused: a new `issue-to-main` merge path. The
   template's `fix-to-main` already covers standalone work on `fix/*`.
+- **2026-10-09** Refused: a subfolder per tool
+  (`.yngaiplaybook/yngorchestrator/config.yml`). A flat folder with
+  `<tool><purpose>` names keeps every file one level down and its owner
+  in its name; the owner chose it.
+- **2026-10-09** Refused: a bare `runs/` in the shared folder. Once
+  other tools share `.yngaiplaybook/`, it no longer says whose runs.
+- **2026-10-09** Refused: moving `.shared/` into `.yngaiplaybook/` in
+  this Epic. It breaks every worktree's links and is `yngshared`'s
+  concern; this Epic covers the orchestrator's files only.
+- **2026-10-09** Refused: the skill migrating an old folder itself, or
+  falling back to the old paths. Two copies of the move would drift;
+  reading no config silently treats every path as `required` and
+  starts a fresh log. It stops and names `yngorch`.
+- **2026-10-09** Refused: writing the folder's README once and keeping
+  it as the person's. It documents the installed version; only an
+  overwrite keeps it true.
+- **2026-10-09** Refused: 2.0.0 for the move. The migration is
+  automatic, as the 1.2.0 move from `.orchestrator/` was.

@@ -42,7 +42,8 @@ skills/yngorchestrator/track.md     step: tracking (R5)
 skills/yngorchestrator/merge.md     step: merge by rule (R7)
 skills/yngorchestrator/report.md    the completion report format (R1)
 agents/slice-worker.md              the worker (R2)
-templates/orchestrator-config.yml   the project config template (R7)
+templates/yngorchestratorconfig.yml the project config template (R7)
+templates/yngaiplaybookreadme.md    the root folder's README template (R26)
 ```
 
 Each step lives in its own file, reached from `SKILL.md` only when that
@@ -167,8 +168,8 @@ Slice: #6
 2.  After a person merges a slice PR into the Epic branch: pulls the
     Epic worktree, closes the slice issue with a note naming the Epic
     branch, then removes the slice worktree and its local branch.
-3.  Keeps one run log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`
-    (R8), so an interrupted run can resume where it stopped and the log
+3.  Keeps one run log per Epic at
+    `<root>/.yngaiplaybook/yngorchestratorruns/<epic>.md` (R8), so an interrupted run can resume where it stopped and the log
     outlives the Epic worktree. `SKILL.md` defines the log's location and line format;
     `track.md` says what each report adds to it.
 4.  Is the only writer of issue state during the work. Merges only on
@@ -188,7 +189,7 @@ Slice: #7
 Slice: #14
 
 1.  A project sets who merges each kind of pull request in
-    `<root>/.yngorchestrator/config.yml` (R8):
+    `<root>/.yngaiplaybook/yngorchestratorconfig.yml` (R8):
 
     ``` yaml
     merge:
@@ -198,7 +199,7 @@ Slice: #14
     ```
 
     `required`: a person merges. `auto`: the orchestrator merges.
-2.  `templates/orchestrator-config.yml` ships with every path
+2.  `templates/yngorchestratorconfig.yml` ships with every path
     `required`. A missing file, missing key, or any value other than
     `auto` means `required`.
 3.  The config belongs to no branch, so no branch or pull request can
@@ -225,8 +226,9 @@ Slice: #16
     ``` text
     <root>/.shared/.claude/skills/yngorchestrator/  the skill
     <root>/.shared/.claude/agents/slice-worker.md   the worker
-    <root>/.yngorchestrator/config.yml              merge rules (R7)
-    <root>/.yngorchestrator/runs/<epic>.md          run log per Epic (R5)
+    <root>/.yngaiplaybook/README.md                 the folder explained (R26)
+    <root>/.yngaiplaybook/yngorchestratorconfig.yml merge rules (R7)
+    <root>/.yngaiplaybook/yngorchestratorruns/<epic>.md  run log per Epic (R5)
     ```
 
 2.  `yngshared` links the skill and worker into each worktree, one
@@ -275,12 +277,10 @@ Slice: #23
 
 Slice: #24
 
-1.  The person's config and the run logs live in
-    `<root>/.yngorchestrator/` (`config.yml`, `runs/<epic>.md`).
-2.  The installer writes there. When it finds an older
-    `<root>/.orchestrator/` and no `<root>/.yngorchestrator/`, it moves
-    the folder, keeping the config and run logs; when both exist it
-    leaves both and warns.
+1.  The person's config and the run logs live in `<root>/.yngaiplaybook/`
+    (`yngorchestratorconfig.yml`, `yngorchestratorruns/<epic>.md`; R23).
+2.  The installer writes there. An older `<root>/.orchestrator/` or
+    `<root>/.yngorchestrator/` moves there as R24 says.
 3.  On upgrade, the installer removes what the old name left behind:
     `<root>/.shared/.claude/skills/orchestrate/`, the links to it in
     every worktree, and its `.bare/info/exclude` line.
@@ -292,7 +292,7 @@ Slice: #25
 1.  README, INSTALL, guide section 25, the config template and the
     specs name the product **YNG Orchestrator**, the command
     `/yngorchestrator`, the folders `skills/yngorchestrator/` and
-    `<root>/.yngorchestrator/`. "The orchestrator" stays as the role's
+    `<root>/.yngaiplaybook/` (R23). "The orchestrator" stays as the role's
     name in running text.
 2.  The spec folder is `docs/specs/yngorchestrator/`.
 3.  CHANGELOG entry; `VERSION` and the guide header move to 1.2.0.
@@ -486,7 +486,7 @@ Slice: #45
     `SPEC: none`: the issue's acceptance criteria are the whole
     contract, and the worker edits no spec.
 2.  Its pull request merges by the `fix-to-main` rule in
-    `<root>/.yngorchestrator/config.yml`: `auto` through `merge.md`,
+    `<root>/.yngaiplaybook/yngorchestratorconfig.yml`: `auto` through `merge.md`,
     otherwise a person merges. A missing key means `required`, as for
     every path (R7).
 3.  After the merge it closes the issue, if no closing keyword already
@@ -498,9 +498,10 @@ Slice: #45
 Slice: #44
 
 1.  An Epic run and a slice run append to the Epic's log,
-    `runs/<epic>.md`, so a later Epic run resumes from what a slice run
-    did. A standalone run logs to `runs/<n>.md`.
-2.  A run holds `runs/<n>.lock` for the log it writes, holding the
+    `yngorchestratorruns/<epic>.md`, so a later Epic run resumes from
+    what a slice run did. A standalone run logs to
+    `yngorchestratorruns/<n>.md`.
+2.  A run holds `yngorchestratorruns/<n>.lock` for the log it writes, holding the
     time it started and the session's folder, and deletes it when it
     ends: at hand-back, and on every stop after taking it. A slice run
     takes its Epic's lock. The lock is taken once the issue's kind is
@@ -522,3 +523,103 @@ Epic: #39 · Slice: #46
     standalone issue.
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.4.0.
+
+------------------------------------------------------------------------
+
+## R23 The playbook's root folder
+
+Epic: #54
+
+1.  Every YNGAIPlaybook file kept in the project root lives under
+    `<root>/.yngaiplaybook/`, beside `.bare/` and outside every
+    worktree. Nothing in it is committed. `.shared/` stays where it is.
+2.  Each item in it is named `<tool><purpose>`, with no separator, so
+    tools sharing the folder cannot collide:
+
+    ``` text
+    <root>/.yngaiplaybook/
+    ├── README.md                       the folder explained (R26)
+    ├── yngorchestratorconfig.yml       merge rules (R7)
+    └── yngorchestratorruns/
+        ├── <epic>.md                   run log (R5, R21)
+        └── <n>.lock                    run lock (R21)
+    ```
+
+3.  A future feature that keeps files in the root puts them here,
+    named by 2, and gets a section in the README (R26).
+
+## R24 Migration
+
+Epic: #54
+
+1.  `yngorch` (`.ps1` and `.sh`) moves an older folder into the new
+    layout, keeping every file's contents:
+
+    | Found                                  | Moves to                                      |
+    |----------------------------------------|-----------------------------------------------|
+    | `.yngorchestrator/config.yml` (1.2.0-1.4.0) | `.yngaiplaybook/yngorchestratorconfig.yml` |
+    | `.yngorchestrator/runs/`               | `.yngaiplaybook/yngorchestratorruns/`         |
+    | `.orchestrator/config.yml` (1.1.0)     | `.yngaiplaybook/yngorchestratorconfig.yml`    |
+    | `.orchestrator/runs/`                  | `.yngaiplaybook/yngorchestratorruns/`         |
+
+    Any other file in the old folder moves to `.yngaiplaybook/` as it
+    is. The emptied old folder is removed.
+2.  When `.yngaiplaybook/` already exists, or both old folders exist,
+    it moves nothing, leaves every folder as it is, and warns, naming
+    them: the person moves what they need by hand.
+3.  It says what it moved, one line per item.
+4.  Re-running after a migration is safe: it finds only
+    `.yngaiplaybook/` and keeps the config (R8.5).
+
+## R25 Unmigrated root
+
+Epic: #54
+
+1.  `/yngorchestrator` reads and writes only the R23 paths: the config
+    in `merge.md`, the run log and lock in `SKILL.md`, and every other
+    step or prompt that names them.
+2.  A run that finds `<root>/.yngorchestrator/` or
+    `<root>/.orchestrator/` and no `<root>/.yngaiplaybook/` stops
+    before taking the lock or touching anything, and names `yngorch`
+    to re-run: it migrates (R24). The skill never migrates, and never
+    reads the old paths.
+
+## R26 The folder's README
+
+Epic: #54
+
+1.  `yngorch` writes `<root>/.yngaiplaybook/README.md` from
+    `templates/yngaiplaybookreadme.md` on every install, overwriting
+    it, with `{{VERSION}}` replaced by the playbook's `VERSION`. It is
+    the playbook's file, not the person's.
+2.  Its first lines say it is generated by `yngorch` and that edits
+    are replaced on the next install.
+3.  It says, briefly:
+    -   what the folder is: the playbook's files for this project,
+        beside `.bare/`, never committed;
+    -   the layout tree (R23.2), one line per item;
+    -   the `<tool><purpose>` naming rule for future files;
+    -   one section per feature with files here (today
+        `yngorchestrator`): each file's purpose, its owner (the person
+        or the playbook), whether `yngorch` overwrites it, and how to
+        change it (the `merge` keys and their values);
+    -   links to the playbook's INSTALL and guide section 25;
+    -   the installed playbook version.
+
+    It does not repeat how the orchestrator works: it links.
+4.  The README and its install step land in the same slice as the
+    layout and migration (R23, R24).
+
+## R27 Documentation and version
+
+Epic: #54
+
+1.  Every script change lands in both `.ps1` and `.sh`.
+2.  `templates/orchestrator-config.yml` is renamed
+    `templates/yngorchestratorconfig.yml`; its header names the new
+    path.
+3.  README, INSTALL, guide section 25 and its root-layout tree name
+    the R23 paths, and link to the folder's README (R26).
+4.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.5.0. Earlier CHANGELOG entries are history
+    and keep their paths.
