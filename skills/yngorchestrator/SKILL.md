@@ -52,11 +52,54 @@ committed, and no branch can change it.
 
 ## Run log
 
-Keep one log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`, where
-`<epic>` is the Epic's issue number. Append one line per event
-(`<date> #<issue> <event>`): a slice planned, dispatched, reported,
-relabelled, merged, closed. On every start, read it first and resume
-from its last line.
+Logs live in `<root>/.yngorchestrator/runs/`. The log a run writes,
+`<log>`, follows the issue's kind:
+
+| Kind       | `<log>`                    |
+|------------|----------------------------|
+| Epic       | the Epic's number          |
+| slice      | its Epic's (parent) number |
+| standalone | the issue's own number     |
+
+A slice run writes to its Epic's log, so a later Epic run resumes from
+what the slice run did. Append one line per event to
+`runs/<log>.md` (`<date> #<issue> <event>`): a slice planned,
+dispatched, reported, relabelled, merged, closed.
+
+### The lock
+
+One writer of issue state at a time: a run holds `runs/<log>.lock`
+while it writes `runs/<log>.md`. A slice run takes its Epic's lock, so
+it never runs beside its Epic's run.
+
+Take the lock as soon as [locate.md](locate.md) has told the issue's
+kind (its step 4), before its step 5 can reopen the issue. Create the
+file only if it is absent, holding the start time and the session's
+folder:
+
+``` bash
+mkdir -p "<root>/.yngorchestrator/runs"
+( set -o noclobber
+  printf 'started: %s\nsession: %s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(pwd -P)" \
+    > "<root>/.yngorchestrator/runs/<log>.lock" )
+```
+
+When that fails because the file is present, another run holds it, or
+one crashed. Stop: show the person the lock's path and contents, and
+leave the file. Only the person deletes a lock, once they know no run
+holds it; then they start the run again.
+
+With the lock held, read `runs/<log>.md`, if it exists, and resume from
+its last line.
+
+Delete the lock when the run ends, and only the lock this run created:
+after step 5, and on every stop after taking it (a stop with a reason,
+or the person ending the run).
+
+``` bash
+rm -f "<root>/.yngorchestrator/runs/<log>.lock"
+```
 
 ## Steps
 
@@ -65,7 +108,8 @@ from its last line.
 The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
 `#39` or the issue's URL. Follow [locate.md](locate.md): it finds
 `<root>`, checks the issue is in `origin`'s repository, tells its kind
-and handles a closed issue.
+and handles a closed issue. Once it has told the kind, take the lock
+(*The lock* above) before going on.
 
 For an Epic, then find the Epic branch, the Epic worktree, the spec
 folder `<epic worktree>/docs/specs/<feature>/`, the run log, and the
@@ -121,3 +165,7 @@ When every slice is closed, open the Epic's pull request into `main`
 and follow [merge.md](merge.md) for the `epic-to-main` path. On
 `required`, say the Epic is ready for the person's spec-level review
 against `requirements.md`.
+
+Last, delete the run's lock (*The lock* above): the run has ended.
+
+Done when the person holds the list and the lock is gone.
