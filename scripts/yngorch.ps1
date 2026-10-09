@@ -30,6 +30,8 @@
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree.
       6. Create or update the workflow labels with gh, when gh is available.
+      7. Copy yngv, the file viewer, into -BinDir and put it on your user
+         PATH, only if missing. Per user, not per project.
 
     Upgrading from 1.1.0 (the skill was named "orchestrate"): step 3 moves
     .orchestrator\ to .yngorchestrator\, keeping your config and run logs
@@ -52,6 +54,12 @@
 .PARAMETER SkipLabels
     Do not touch the repository's labels.
 
+.PARAMETER SkipViewer
+    Do not install yngv.
+
+.PARAMETER BinDir
+    Where yngv goes. Default: $HOME\.local\bin.
+
 .EXAMPLE
     F:\YNGAIPlaybook\scripts\yngorch.ps1
     From anywhere inside the project: install, or upgrade.
@@ -62,7 +70,9 @@
 [CmdletBinding()]
 param(
     [string]$Project = (Get-Location).Path,
-    [switch]$SkipLabels
+    [switch]$SkipLabels,
+    [switch]$SkipViewer,
+    [string]$BinDir = (Join-Path $HOME '.local\bin')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -163,6 +173,39 @@ else {
         }
         if ($failed) { Step 'warning' "labels: $failed of $($labels.Count) failed (is gh logged in? gh auth status)" }
         else { Step 'labels' "$($labels.Count) created or updated on $repo" }
+    }
+}
+
+# 7. The yngv viewer, per user (not per project): yngv.ps1 and a yngv.cmd
+# shim in BinDir, which goes on the user PATH when it is not there yet.
+if ($SkipViewer) { Step 'skipped' 'yngv (-SkipViewer)' }
+else {
+    New-Item -ItemType Directory -Force $BinDir | Out-Null
+    Copy-Item -Force (Join-Path $PSScriptRoot 'yngv.ps1') (Join-Path $BinDir 'yngv.ps1')
+    Set-Content -Encoding Ascii (Join-Path $BinDir 'yngv.cmd') @(
+        '@echo off',
+        'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0yngv.ps1" %*')
+    Step 'copied' "yngv -> $BinDir (yngv.ps1, yngv.cmd)"
+
+    # Read the raw user PATH so %VAR% entries stay unexpanded, and write it
+    # back with the same registry type.
+    $envKey = Get-Item 'HKCU:\Environment'
+    $rawPath = $envKey.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+    $full = [IO.Path]::GetFullPath($BinDir).TrimEnd('\')
+    $onPath = @($rawPath, [Environment]::GetEnvironmentVariable('Path', 'Machine')) -split ';' |
+        Where-Object { $_ } |
+        Where-Object { [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\') -eq $full }
+    if ($onPath) { Step 'kept' "$full already on PATH" }
+    else {
+        $newPath = if ($rawPath) { $rawPath.TrimEnd(';') + ';' + $full } else { $full }
+        Set-ItemProperty 'HKCU:\Environment' -Name Path -Value $newPath -Type ExpandString
+        # Tell running programs (Explorer, new terminals) the environment changed.
+        if (-not ('YngEnv' -as [type])) {
+            Add-Type -Namespace '' -Name YngEnv -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);'
+        }
+        $r = [UIntPtr]::Zero
+        [void][YngEnv]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [UIntPtr]::Zero, 'Environment', 2, 5000, [ref]$r)
+        Step 'added' "$full to your user PATH (open a new terminal to use yngv)"
     }
 }
 
