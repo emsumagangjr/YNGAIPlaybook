@@ -234,4 +234,13 @@ Slice: #16
     `git rev-parse --git-common-dir`.
 4.  Upgrading is re-copying into `<root>/.shared/`: every linked
     worktree sees the new files at once.
-5.  The guide gives the install commands for Windows and macOS/Linux.
+5.  One command installs or upgrades it: `scripts/yngorch.ps1` (Windows)
+    or `scripts/yngorch.sh` (macOS/Linux), run from anywhere inside the
+    project. It performs 1-4, links every worktree through `yngshared`,
+    and creates or updates the workflow labels when `gh` is available.
+    Re-running is safe; it never overwrites the config. (Slice #18.)
+6.  `INSTALL.md` gives the whole path two ways: by hand, or by a person
+    pointing their agent at this repository. The agent's procedure
+    checks the machine and the layout, proposes any layout change and
+    waits for approval, installs, and reports; it never commits to the
+    project or moves an existing folder.

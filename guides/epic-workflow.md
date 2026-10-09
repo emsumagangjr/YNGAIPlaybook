@@ -1486,44 +1486,32 @@ pull request; it does not yet dispatch standalone fixes itself.
 
 ### Install
 
-Once per project, from the project root (the folder holding `.bare/`),
-with `yngshared` copied there (section 19). Replace the playbook path
-with your clone of YNGAIPlaybook.
-
-**Windows (PowerShell):**
+[INSTALL.md](../INSTALL.md) has the whole path, by hand or by asking
+your agent: prerequisites, setting up the layout, and the first Epic.
+The install itself is one command, from anywhere inside the project (its root or any
+worktree), using your clone of YNGAIPlaybook:
 
 ``` powershell
-$pb = "C:\path\to\YNGAIPlaybook"
-New-Item -ItemType Directory -Force .shared\.claude\skills\orchestrate, .shared\.claude\agents, .orchestrator\runs | Out-Null
-Copy-Item -Force "$pb\skills\orchestrate\*" .shared\.claude\skills\orchestrate\
-Copy-Item -Force "$pb\agents\slice-worker.md" .shared\.claude\agents\
-if (-not (Test-Path .orchestrator\config.yml)) { Copy-Item "$pb\templates\orchestrator-config.yml" .orchestrator\config.yml }
-Add-Content .bare\info\exclude "/.claude/skills/orchestrate/", "/.claude/agents/slice-worker.md"
-.\yngshared.ps1 -link -All
+C:\path\to\YNGAIPlaybook\scripts\yngorch.ps1     # Windows
 ```
-
-**macOS/Linux:**
 
 ``` bash
-pb=/path/to/YNGAIPlaybook
-mkdir -p .shared/.claude/skills/orchestrate .shared/.claude/agents .orchestrator/runs
-cp "$pb"/skills/orchestrate/* .shared/.claude/skills/orchestrate/
-cp "$pb/agents/slice-worker.md" .shared/.claude/agents/
-[ -f .orchestrator/config.yml ] || cp "$pb/templates/orchestrator-config.yml" .orchestrator/config.yml
-printf '%s\n' /.claude/skills/orchestrate/ /.claude/agents/slice-worker.md >> .bare/info/exclude
-./yngshared.sh --link --all
+/path/to/YNGAIPlaybook/scripts/yngorch.sh        # macOS/Linux
 ```
 
-`.bare/info/exclude` is Git's local ignore file: it hides the linked
-files in every worktree without a `.gitignore` change, and is never
-pushed. Run the `exclude` line once; run the rest again to upgrade.
-Every worktree follows its links, so an upgrade reaches all of them at
-once. Link each new Epic worktree with `yngshared` when you create it;
-the orchestrator links the slice worktrees it creates.
+It finds the project root, copies the skill and worker into
+`.shared/.claude/`, writes `.orchestrator/config.yml` with every path
+`required` (only if you have none), hides the links with
+`.bare/info/exclude` (Git's local ignore file, never pushed), links
+every worktree through `yngshared`, and creates the workflow labels
+with `gh` when it is installed. Then set your merge rules in
+`.orchestrator/config.yml`.
 
-Then edit `.orchestrator/config.yml` and create the workflow labels in
-the repository once (`gh label create workflow:ready-for-agent`, and
-so on for each label in section 6, plus `epic`).
+Run the same command again to upgrade, or after creating a worktree to
+link it; it never overwrites your config. The orchestrator links the
+slice worktrees it creates itself. `-Project <path>` / `--project
+<path>` installs into a project other than the current folder, and
+`-SkipLabels` / `--skip-labels` leaves the labels alone.
 
 These are Claude Code's folders. Another agent that supports skills and
 subagents takes the same files in its own folders. The commands inside
