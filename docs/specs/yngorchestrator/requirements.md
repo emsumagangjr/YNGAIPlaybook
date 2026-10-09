@@ -420,8 +420,8 @@ reach it only after their Gate 1 check.
     worktree's name without `epic-`. A folder already at that path
     stops the run.
 3.  Every branch created records its Epic in
-    `branch.<branch>.epicid`; an Epic branch records its own number,
-    and so does a standalone `fix/` branch, which has no Epic.
+    `branch.<branch>.epicid`; an Epic branch records its own number.
+    A standalone `fix/` branch has no Epic and records nothing.
 4.  A new worktree gets the skill and worker linked in through
     `<root>/yngshared` (`-link <worktree>` / `--link <worktree>`).
     When `<root>/.shared/` or `yngshared` is missing, the project was

@@ -21,7 +21,7 @@ nothing; a stop after it names what was created.
 |------------|----------|-----------------------|----------------------|----------|
 | Epic       | `epic/`  | `epic-<name>`         | `origin/main`        | `<n>`    |
 | slice      | `slice/` | `slice-<epic>-<name>` | the Epic branch      | the Epic's number |
-| standalone | `fix/`   | `fix-<name>`          | `origin/main`        | `<n>`    |
+| standalone | `fix/`   | `fix-<name>`          | `origin/main`        | none     |
 
 ## 1. Look up the branch
 
@@ -174,9 +174,9 @@ first push sets its upstream.
 
 ### Every created branch, every new worktree
 
-A branch created above records its `epicid` (the table above): a
-slice its Epic's number, an Epic and a standalone issue their own
-number.
+A slice or Epic branch created above records its `epicid` (the table
+above): a slice its Epic's number, an Epic its own number. A `fix/`
+branch records nothing: it has no Epic.
 
 ``` bash
 git --git-dir="<root>/.bare" config "branch.<branch>.epicid" <epic number>
@@ -194,8 +194,8 @@ A worktree created above gets the skill and worker through
 ```
 
 Done when `git --git-dir="<root>/.bare" worktree list` shows
-`<worktree>` on `<branch>`, any branch you created prints its
-`epicid`, and any worktree you created holds the linked
+`<worktree>` on `<branch>`, any slice or Epic branch you created
+prints its `epicid`, and any worktree you created holds the linked
 `.claude/skills/yngorchestrator/SKILL.md`.
 
 ## 5. Check the spec (an Epic only)
