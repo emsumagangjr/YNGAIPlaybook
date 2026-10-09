@@ -27,6 +27,9 @@
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
 #   5. Copy yngshared.sh into the project root and link every worktree.
 #   6. Create or update the workflow labels with gh, when gh is available.
+#   7. Copy yngv, the file viewer, to <bin-dir>/yngv (default ~/.local/bin).
+#      Per user, not per project. When that folder is not on PATH it prints
+#      the line to add to your shell's startup file; it edits none itself.
 #
 # Upgrading from 1.1.0 (the skill was named "orchestrate"): step 3 moves
 # .orchestrator/ to .yngorchestrator/, keeping your config and run logs
@@ -36,19 +39,24 @@
 # Run it again after creating a worktree, or to upgrade: it re-links every
 # worktree and never overwrites your config.
 #
-# Usage: yngorch.sh [--project <path>] [--skip-labels]
+# Usage: yngorch.sh [--project <path>] [--skip-labels] [--skip-viewer]
+#                   [--bin-dir <path>]
 # Requires: bash, git. Optional: gh, authenticated, for the labels.
 
 set -euo pipefail
 
-usage() { sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'; }
 
 project=$PWD
 skip_labels=0
+skip_viewer=0
+bin_dir="$HOME/.local/bin"
 while [ $# -gt 0 ]; do
     case "$1" in
         --project) project=${2:?--project needs a path}; shift 2 ;;
         --skip-labels) skip_labels=1; shift ;;
+        --skip-viewer) skip_viewer=1; shift ;;
+        --bin-dir) bin_dir=${2:?--bin-dir needs a path}; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
     esac
@@ -139,6 +147,21 @@ workflow:in-review|5319e7|PR open, waiting for a person (set by the dispatcher)
 EOF
     if [ "$failed" -gt 0 ]; then step warning "labels: $failed of $total failed (is gh logged in? gh auth status)"
     else step labels "$total created or updated on $repo"; fi
+fi
+
+# 7. The yngv viewer, per user (not per project). The person's shell
+# startup file is theirs: when bin_dir is not on PATH, print the line.
+if [ "$skip_viewer" = 1 ]; then step skipped "yngv (--skip-viewer)"
+else
+    mkdir -p "$bin_dir"
+    cp "$here/yngv.sh" "$bin_dir/yngv"; chmod +x "$bin_dir/yngv"
+    bin_full=$(cd "$bin_dir" && pwd)
+    step copied "yngv -> $bin_full/yngv"
+    case ":$PATH:" in
+        *":$bin_full:"*|*":$bin_full/:"*) step kept "$bin_full already on PATH" ;;
+        *) step note "$bin_full is not on PATH; add this line to your shell's startup file (~/.bashrc, ~/.zshrc), then open a new terminal:"
+           printf '             export PATH="%s:$PATH"\n' "$bin_full" ;;
+    esac
 fi
 
 echo
