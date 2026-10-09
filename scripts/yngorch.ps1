@@ -15,9 +15,9 @@
         <project-root>\
         |-- .bare\info\exclude          + hides the links in every worktree
         |-- .shared\.claude\
-        |   |-- skills\orchestrate\     the orchestrator skill
+        |   |-- skills\yngorchestrator\ the orchestrator skill
         |   `-- agents\slice-worker.md  the worker it dispatches
-        |-- .orchestrator\
+        |-- .yngorchestrator\
         |   |-- config.yml              merge rules (written only if absent)
         |   `-- runs\                   one run log per Epic
         |-- yngshared.ps1               links .shared\ into the worktrees
@@ -26,10 +26,15 @@
     Steps, all safe to repeat:
       1. Find the project root from -Project (default: the current folder).
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
-      3. Write .orchestrator\config.yml from the template, only if absent.
+      3. Write .yngorchestrator\config.yml from the template, only if absent.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree.
       6. Create or update the workflow labels with gh, when gh is available.
+
+    Upgrading from 1.1.0 (the skill was named "orchestrate"): step 3 moves
+    .orchestrator\ to .yngorchestrator\, keeping your config and run logs
+    (when both exist it leaves both and warns), and steps 2, 4 and 5 remove
+    the old skill folder, its exclude line and its links in every worktree.
 
     Run it again after creating a worktree, or to upgrade: it re-links every
     worktree and never overwrites your config.
@@ -65,39 +70,69 @@ $playbook = Split-Path -Parent $PSScriptRoot
 
 function Step([string]$Status, [string]$Text) { Write-Host ("  {0,-8} {1}" -f $Status, $Text) }
 
-# 1. The project root: the folder holding .bare\.
-$common = & git -C $Project rev-parse --path-format=absolute --git-common-dir 2>$null
+# 1. The project root: the folder holding .bare\. From the root itself git
+# fails; Windows PowerShell 5.1 turns that into a terminating error, hence try.
+$common = try { & git -C $Project rev-parse --path-format=absolute --git-common-dir 2>$null } catch { $null }
 if (-not $common -and (Test-Path (Join-Path $Project '.bare'))) { $common = Join-Path $Project '.bare' }
 if (-not $common -or (Split-Path -Leaf $common) -ne '.bare') {
     throw "Not inside a bare-repository project (no .bare\ found from '$Project'). See guides/epic-workflow.md, sections 7-8."
 }
 $root = Split-Path -Parent ([IO.Path]::GetFullPath($common))
-Write-Host "Orchestrator -> $root"
+Write-Host "YNG Orchestrator -> $root"
 
 # 2. Skill and worker into .shared\.claude\.
-$skillDir = Join-Path $root '.shared\.claude\skills\orchestrate'
+$skillDir = Join-Path $root '.shared\.claude\skills\yngorchestrator'
 $agentDir = Join-Path $root '.shared\.claude\agents'
 New-Item -ItemType Directory -Force $skillDir, $agentDir | Out-Null
-Copy-Item -Force (Join-Path $playbook 'skills\orchestrate\*') $skillDir
+Copy-Item -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
 Copy-Item -Force (Join-Path $playbook 'agents\slice-worker.md') $agentDir
-Step 'copied' '.shared\.claude\skills\orchestrate\, .shared\.claude\agents\slice-worker.md'
+Step 'copied' '.shared\.claude\skills\yngorchestrator\, .shared\.claude\agents\slice-worker.md'
+# The 1.1.0 skill folder, which only this installer writes.
+$oldSkill = Join-Path $root '.shared\.claude\skills\orchestrate'
+if (Test-Path $oldSkill) { Remove-Item -Recurse -Force $oldSkill; Step 'removed' '.shared\.claude\skills\orchestrate\ (renamed yngorchestrator)' }
 
-# 3. Config, only if absent; run logs folder.
-$orch = Join-Path $root '.orchestrator'
+# 3. Config, only if absent; run logs folder. A 1.1.0 .orchestrator\ moves here.
+$orch = Join-Path $root '.yngorchestrator'
+$oldOrch = Join-Path $root '.orchestrator'
+if (Test-Path $oldOrch) {
+    if (Test-Path $orch) { Step 'warning' 'both .orchestrator\ and .yngorchestrator\ exist; left both, move what you need by hand' }
+    else { Move-Item $oldOrch $orch; Step 'moved' '.orchestrator\ -> .yngorchestrator\ (config and run logs kept)' }
+}
 New-Item -ItemType Directory -Force (Join-Path $orch 'runs') | Out-Null
 $config = Join-Path $orch 'config.yml'
-if (Test-Path $config) { Step 'kept' '.orchestrator\config.yml (yours)' }
-else { Copy-Item (Join-Path $playbook 'templates\orchestrator-config.yml') $config; Step 'created' '.orchestrator\config.yml (every path required)' }
+if (Test-Path $config) { Step 'kept' '.yngorchestrator\config.yml (yours)' }
+else { Copy-Item (Join-Path $playbook 'templates\orchestrator-config.yml') $config; Step 'created' '.yngorchestrator\config.yml (every path required)' }
 
-# 4. Exclude lines, only if missing.
+# 4. Exclude lines, only if missing; the 1.1.0 line goes.
 $exclude = Join-Path $root '.bare\info\exclude'
 New-Item -ItemType Directory -Force (Split-Path $exclude) | Out-Null
 $have = if (Test-Path $exclude) { @(Get-Content $exclude) } else { @() }
-$add = @('/.claude/skills/orchestrate/', '/.claude/agents/slice-worker.md') | Where-Object { $_ -notin $have }
+$oldLine = '/.claude/skills/orchestrate/'
+if ($oldLine -in $have) {
+    $have = @($have | Where-Object { $_ -ne $oldLine })
+    Set-Content $exclude $have; Step 'removed' ".bare\info\exclude: $oldLine"
+}
+$add = @('/.claude/skills/yngorchestrator/', '/.claude/agents/slice-worker.md') | Where-Object { $_ -notin $have }
 if ($add) { Add-Content $exclude $add; Step 'added' ".bare\info\exclude: $($add -join ', ')" }
 else { Step 'kept' '.bare\info\exclude' }
 
-# 5. Link every worktree through yngshared, which must sit at the project root.
+# 5. Remove the 1.1.0 skill links from every worktree (links only; a real
+# file is left with a warning), then link every worktree through yngshared,
+# which must sit at the project root.
+$worktrees = & git --git-dir=$common worktree list --porcelain |
+    Where-Object { $_ -like 'worktree *' } | ForEach-Object { $_.Substring(9) }
+foreach ($wt in $worktrees) {
+    $dir = Join-Path $wt '.claude\skills\orchestrate'
+    if (-not (Test-Path $dir)) { continue }
+    $kept = 0
+    foreach ($item in Get-ChildItem -Force $dir) {
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { $item.Delete() }
+        else { $kept++ }
+    }
+    if ($kept) { Step 'warning' "$dir holds $kept real file(s); left in place" }
+    else { Remove-Item -Force $dir; Step 'removed' "$dir (old links)" }
+}
+
 $yngshared = Join-Path $root 'yngshared.ps1'
 Copy-Item -Force (Join-Path $PSScriptRoot 'yngshared.ps1') $yngshared
 $out = & $yngshared -link -All 6>&1 | ForEach-Object { "$_" }
@@ -109,7 +144,7 @@ else { Step 'linked' 'every worktree (yngshared -link -All)' }
 if ($SkipLabels) { Step 'skipped' 'labels (-SkipLabels)' }
 elseif (-not (Get-Command gh -ErrorAction SilentlyContinue)) { Step 'skipped' 'labels (gh not found)' }
 else {
-    $url = & git --git-dir=$common remote get-url origin 2>$null
+    $url = try { & git --git-dir=$common remote get-url origin 2>$null } catch { $null }
     if (-not $url) { Step 'skipped' 'labels (no origin remote)' }
     else {
         $repo = $url -replace '\.git$', ''
@@ -134,5 +169,5 @@ else {
 Write-Host ''
 Write-Host 'Done. Next:'
 Write-Host "  - Set your merge rules in $config"
-Write-Host '  - From an Epic worktree, start Claude Code and run: /orchestrate <epic issue>'
+Write-Host '  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>'
 Write-Host '  - After creating a new worktree, run this script again to link it.'

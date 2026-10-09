@@ -1,4 +1,4 @@
-# Orchestrator: Decisions
+# YNG Orchestrator: Decisions
 
 Dated log of options refused, one line of why each.
 
@@ -37,3 +37,10 @@ Dated log of options refused, one line of why each.
 - **2026-10-09** Refused: a user-level install (`~/.claude/`). It would
   put the worker's description in every project's sessions; per project
   keeps it where Epics run.
+- **2026-10-09** Refused: renaming the role word "orchestrator" in
+  every sentence. The guide's role (dispatcher, orchestrator) is
+  generic; the brand belongs on the product's names: the command,
+  folders, skill identity, and first mention.
+- **2026-10-09** Refused: renaming `slice-worker` and the `yngorch`
+  installer. The installer already carries the prefix; the worker is
+  out of this Epic's scope.

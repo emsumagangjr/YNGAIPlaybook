@@ -1,4 +1,4 @@
-# Orchestrator: Requirements
+# YNG Orchestrator: Requirements
 
 Epic: #1 · Branch: `epic/1-orchestrator`
 
@@ -32,21 +32,21 @@ person promotes every issue (Gate 1) and a person decides every merge
 ## Deliverables
 
 ``` text
-skills/orchestrate/SKILL.md       the orchestrator: role, run log, the step sequence
-skills/orchestrate/plan.md        step: planning (R3)
-skills/orchestrate/dispatch.md    step: dispatch (R4)
-skills/orchestrate/track.md       step: tracking (R5)
-skills/orchestrate/merge.md       step: merge by rule (R7)
-skills/orchestrate/report.md      the completion report format (R1)
-agents/slice-worker.md            the worker (R2)
-templates/orchestrator-config.yml the project config template (R7)
+skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
+skills/yngorchestrator/plan.md      step: planning (R3)
+skills/yngorchestrator/dispatch.md  step: dispatch (R4)
+skills/yngorchestrator/track.md     step: tracking (R5)
+skills/yngorchestrator/merge.md     step: merge by rule (R7)
+skills/yngorchestrator/report.md    the completion report format (R1)
+agents/slice-worker.md              the worker (R2)
+templates/orchestrator-config.yml   the project config template (R7)
 ```
 
 Each step lives in its own file, reached from `SKILL.md` only when that
 step runs, so the entry file stays short and each step can change
 without touching the others.
 
-The orchestrator is user-invoked (`/orchestrate`): running an Epic is a
+The orchestrator is user-invoked (`/yngorchestrator`): running an Epic is a
 person's decision, so it carries no always-loaded description.
 
 Installed per project without being committed to it (R8).
@@ -70,7 +70,7 @@ Slice: #2
     ISSUES:        new issues opened, or blockers and their cause
     ```
 
-2.  The format is defined once, in `skills/orchestrate/report.md`. The
+2.  The format is defined once, in `skills/yngorchestrator/report.md`. The
     worker and the orchestrator both reference it; neither restates it.
 3.  Every field appears, in order, even when its value is "none".
 4.  `needs-human` states its reason, so the orchestrator can hand the
@@ -164,7 +164,7 @@ Slice: #6
 2.  After a person merges a slice PR into the Epic branch: pulls the
     Epic worktree, closes the slice issue with a note naming the Epic
     branch, then removes the slice worktree and its local branch.
-3.  Keeps one run log per Epic at `<root>/.orchestrator/runs/<epic>.md`
+3.  Keeps one run log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`
     (R8), so an interrupted run can resume where it stopped and the log
     outlives the Epic worktree. `SKILL.md` defines the log's location and line format;
     `track.md` says what each report adds to it.
@@ -185,7 +185,7 @@ Slice: #7
 Slice: #14
 
 1.  A project sets who merges each kind of pull request in
-    `<root>/.orchestrator/config.yml` (R8):
+    `<root>/.yngorchestrator/config.yml` (R8):
 
     ``` yaml
     merge:
@@ -221,10 +221,10 @@ Slice: #16
     holding `.bare/`, outside every worktree:
 
     ``` text
-    <root>/.shared/.claude/skills/orchestrate/   the skill
-    <root>/.shared/.claude/agents/slice-worker.md the worker
-    <root>/.orchestrator/config.yml              merge rules (R7)
-    <root>/.orchestrator/runs/<epic>.md          run log per Epic (R5)
+    <root>/.shared/.claude/skills/yngorchestrator/  the skill
+    <root>/.shared/.claude/agents/slice-worker.md   the worker
+    <root>/.yngorchestrator/config.yml              merge rules (R7)
+    <root>/.yngorchestrator/runs/<epic>.md          run log per Epic (R5)
     ```
 
 2.  `yngshared` links the skill and worker into each worktree, one
@@ -244,3 +244,53 @@ Slice: #16
     checks the machine and the layout, proposes any layout change and
     waits for approval, installs, and reports; it never commits to the
     project or moves an existing folder.
+
+------------------------------------------------------------------------
+
+## R9 Skill name
+
+Slice: #22
+
+1.  The skill is invoked as `/yngorchestrator`. It lives in
+    `skills/yngorchestrator/`, and its frontmatter `name` is
+    `yngorchestrator`.
+2.  Every path that names the skill folder (the worker, the dispatch
+    prompt's `REPORT` field) points at `skills/yngorchestrator/`.
+
+## R10 Skill identity
+
+Slice: #23
+
+1.  `SKILL.md` frontmatter identifies the skill: `name`,
+    `description`, `license` (CC-BY-4.0, as the playbook's guides and
+    templates), and a `metadata` block with its display name
+    (YNG Orchestrator), version, author, company and homepage.
+2.  Under its title, the body opens with one line naming it: YNG
+    Orchestrator, part of YNGAIPlaybook, by YNGSoftware.
+3.  The frontmatter `version` moves with `VERSION`.
+
+## R11 Run-state folder
+
+Slice: #24
+
+1.  The person's config and the run logs live in
+    `<root>/.yngorchestrator/` (`config.yml`, `runs/<epic>.md`).
+2.  The installer writes there. When it finds an older
+    `<root>/.orchestrator/` and no `<root>/.yngorchestrator/`, it moves
+    the folder, keeping the config and run logs; when both exist it
+    leaves both and warns.
+3.  On upgrade, the installer removes what the old name left behind:
+    `<root>/.shared/.claude/skills/orchestrate/`, the links to it in
+    every worktree, and its `.bare/info/exclude` line.
+
+## R12 Documentation naming
+
+Slice: #25
+
+1.  README, INSTALL, guide section 25, the config template and the
+    specs name the product **YNG Orchestrator**, the command
+    `/yngorchestrator`, the folders `skills/yngorchestrator/` and
+    `<root>/.yngorchestrator/`. "The orchestrator" stays as the role's
+    name in running text.
+2.  The spec folder is `docs/specs/yngorchestrator/`.
+3.  CHANGELOG entry; `VERSION` and the guide header move to 1.2.0.

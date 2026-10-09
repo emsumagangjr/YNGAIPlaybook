@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.1.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.2.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -407,7 +407,7 @@ anomaly in the activity log instead of silently producing code.
 Agents do not update issues. The **dispatcher** does (or the person
 running the agents, if there is no dispatcher), and it is the only
 writer of issue state during the work. Section 25 runs the dispatcher
-as an agent: the *orchestrator*.
+as an agent: the *YNG Orchestrator*.
 
 | Transition                      | Set by             | When                                            |
 |---------------------------------|--------------------|-------------------------------------------------|
@@ -432,7 +432,7 @@ on the board worth watching.
 A person may decide Gate 2 in advance for a whole kind of merge
 instead of for each merge request: slice into Epic, Epic into `main`,
 standalone fix into `main`. The decision lives in
-`.orchestrator/config.yml` in the project root, beside `.bare/` and
+`.yngorchestrator/config.yml` in the project root, beside `.bare/` and
 outside every worktree, as `required` (a person merges) or `auto` (the
 orchestrator merges once the work reports done, every check passes and
 the review record holds no open decision). No branch or merge request
@@ -1387,21 +1387,21 @@ git --git-dir=.bare worktree prune
 
 ------------------------------------------------------------------------
 
-## 25. Running the Dispatcher as an Orchestrator
+## 25. Running the Dispatcher as the YNG Orchestrator
 
 The dispatcher in section 6 can itself be an agent. The playbook ships
-it as the **orchestrator** skill, with the **slice worker** agent it
-hands slices to:
+it as the **YNG Orchestrator** skill (`/yngorchestrator`), with the
+**slice worker** agent it hands slices to:
 
 ``` text
-skills/orchestrate/SKILL.md       the orchestrator: role, run log, steps
-skills/orchestrate/plan.md        cut the Epic into slices; create issues
-skills/orchestrate/dispatch.md    Gate 1 check, worktree, launch a worker
-skills/orchestrate/track.md       act on reports; close merged slices
-skills/orchestrate/merge.md       apply the project's merge rule to a PR
-skills/orchestrate/report.md      the completion report every worker ends with
-agents/slice-worker.md            the worker: one slice, worktree to PR
-templates/orchestrator-config.yml the project's config, starting at all-required
+skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, steps
+skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
+skills/yngorchestrator/dispatch.md  Gate 1 check, worktree, launch a worker
+skills/yngorchestrator/track.md     act on reports; close merged slices
+skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
+skills/yngorchestrator/report.md    the completion report every worker ends with
+agents/slice-worker.md              the worker: one slice, worktree to PR
+templates/orchestrator-config.yml   the project's config, starting at all-required
 ```
 
 The orchestrator runs in the main agent session, from the Epic
@@ -1440,9 +1440,9 @@ myproject/
 ├── .bare/
 ├── .shared/
 │   └── .claude/                 # linked into worktrees by yngshared
-│       ├── skills/orchestrate/
+│       ├── skills/yngorchestrator/
 │       └── agents/slice-worker.md
-├── .orchestrator/
+├── .yngorchestrator/
 │   ├── config.yml               # merge rules
 │   └── runs/
 │       └── 100.md               # run log for Epic #100
@@ -1455,7 +1455,7 @@ outlives the Epic worktree.
 
 ### Merge rules
 
-`.orchestrator/config.yml` in the project root records the person's
+`.yngorchestrator/config.yml` in the project root records the person's
 Gate 2 decision per merge path:
 
 ``` yaml
@@ -1500,12 +1500,12 @@ C:\path\to\YNGAIPlaybook\scripts\yngorch.ps1     # Windows
 ```
 
 It finds the project root, copies the skill and worker into
-`.shared/.claude/`, writes `.orchestrator/config.yml` with every path
+`.shared/.claude/`, writes `.yngorchestrator/config.yml` with every path
 `required` (only if you have none), hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree through `yngshared`, and creates the workflow labels
 with `gh` when it is installed. Then set your merge rules in
-`.orchestrator/config.yml`.
+`.yngorchestrator/config.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
 link it; it never overwrites your config. The orchestrator links the
@@ -1519,7 +1519,7 @@ are written for GitHub (`gh`); on another tracker, use its equivalents.
 
 ### Run
 
-From the Epic worktree, start the agent and run `/orchestrate <epic
+From the Epic worktree, start the agent and run `/yngorchestrator <epic
 issue>`. With no slice issues yet, it plans first and waits for you to
 approve the plan; afterwards, promote the slices you want an agent to
 take, and run it again. It ends each run with one list of everything

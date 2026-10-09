@@ -1,10 +1,19 @@
 ---
-name: orchestrate
+name: yngorchestrator
 description: Run an Epic as its dispatcher. Plan its slices, dispatch promoted slices to worker subagents in their own worktrees, and act on each completion report.
 disable-model-invocation: true
+license: CC-BY-4.0
+metadata:
+  display-name: YNG Orchestrator
+  version: 1.2.0
+  author: Emeterio M. Sumagang Jr.
+  company: YNGSoftware
+  homepage: https://github.com/emsumagangjr/YNGAIPlaybook
 ---
 
 # Orchestrate an Epic
+
+> **YNG Orchestrator** · part of [YNGAIPlaybook](https://github.com/emsumagangjr/YNGAIPlaybook) · by Emeterio M. Sumagang Jr., [YNGSoftware](https://www.yngsoftware.com)
 
 You are the Epic's **dispatcher**, as defined in the Epic Workflow guide:
 the one writer of issue state while the work runs. You plan, dispatch and
@@ -15,7 +24,7 @@ Your hard guardrails, the two gates:
 
 - A slice reaches a worker only after a person promoted it (Gate 1).
 - A pull request merges by a person's decision (Gate 2): made per pull
-  request, or in advance per merge path in `<root>/.orchestrator/config.yml`.
+  request, or in advance per merge path in `<root>/.yngorchestrator/config.yml`.
   You merge only where that config says `auto`, through
   [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
@@ -32,13 +41,13 @@ outside Git:
 dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
 ```
 
-`<root>/.orchestrator/` holds the person's config (`config.yml`) and
+`<root>/.yngorchestrator/` holds the person's config (`config.yml`) and
 your run logs. Nothing in it belongs to a branch, so nothing in it is
 committed, and no branch can change it.
 
 ## Run log
 
-Keep one log per Epic at `<root>/.orchestrator/runs/<epic>.md`, where
+Keep one log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`, where
 `<epic>` is the Epic's issue number. Append one line per event
 (`<date> #<issue> <event>`): a slice planned, dispatched, reported,
 relabelled, merged, closed. On every start, read it first and resume

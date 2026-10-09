@@ -1,6 +1,6 @@
-# Orchestrator config. From YNGAIPlaybook (guides/epic-workflow.md, section 25).
+# YNG Orchestrator config. From YNGAIPlaybook (guides/epic-workflow.md, section 25).
 #
-# Copy to .orchestrator/config.yml in your project root: the folder holding
+# Copy to .yngorchestrator/config.yml in your project root: the folder holding
 # .bare/, outside every worktree. It is never committed, and no branch or
 # pull request can change it; the orchestrator reads it fresh at each merge.
 

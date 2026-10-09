@@ -33,7 +33,7 @@ WORKTREE:     absolute path of the slice worktree
 BRANCH:       slice/<n>-<name>
 PR BASE:      the branch the PR targets (normally the Epic branch)
 LEAD-IN:      diagnose | design the seam | none
-REPORT:       absolute path of skills/orchestrate/report.md
+REPORT:       absolute path of skills/yngorchestrator/report.md
 PREVIOUS:     re-dispatch only: the last attempt's STATUS, ISSUES and
               COMMITS, plus what has changed since
 ```
