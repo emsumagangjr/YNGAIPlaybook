@@ -33,6 +33,7 @@ person promotes every issue (Gate 1) and a person decides every merge
 
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
+skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15)
 skills/yngorchestrator/plan.md      step: planning (R3)
 skills/yngorchestrator/dispatch.md  step: dispatch (R4)
 skills/yngorchestrator/track.md     step: tracking (R5)
@@ -321,7 +322,7 @@ Slices: #32 (Windows), #33 (macOS/Linux), #34 (docs)
 
 ## R14 Invocation from anywhere
 
-Epic: #39
+Slices: #41 (items 1-3)
 
 1.  `/yngorchestrator <issue>` runs from a session started in the
     project root, in any worktree, or in any folder below a worktree.
@@ -343,18 +344,18 @@ Epic: #39
 
 ## R15 Issue check and kind
 
-Epic: #39
+Slice: #41
 
 1.  The issue must exist in `origin`'s repository. A URL to another
     repository, or a number with no issue, stops the run with the
-    reason.
+    reason; so does a pull request's number or URL.
 2.  The orchestrator classifies the issue:
     -   **Epic**: it carries the `epic` label, or has sub-issues;
     -   **slice**: it has a parent issue;
     -   **standalone**: neither.
 
-    When the signals conflict (an `epic` label and a parent), it stops
-    and asks the person which it is.
+    When the signals conflict (an `epic` label or sub-issues, together
+    with a parent), it stops and asks the person which it is.
 3.  A closed issue is not refused. The orchestrator shows its state
     (closed, its pull request and branch if any) and asks whether to
     reopen it and continue; it reopens only on the person's yes. A
@@ -407,12 +408,14 @@ Epic: #39
 
 ## R18 Working from any session
 
-Epic: #39
+Slice: #41
 
 1.  The session stays where it was started. Every command on the
-    target runs by absolute path: `git -C <worktree>`, the spec read
-    from `<worktree>/docs/specs/...`, `WORKTREE:` given to workers as
-    an absolute path.
+    target runs by absolute path: `git -C <worktree>` or
+    `git --git-dir=<root>/.bare`, the spec read from
+    `<worktree>/docs/specs/...`, `WORKTREE:` given to workers as an
+    absolute path. Every `gh` command names the repository with
+    `-R <owner>/<repo>`, taken from `origin`.
 2.  Nothing depends on the session's own folder, so a run started at
     the root, in `main/`, or in the target worktree behaves the same.
 

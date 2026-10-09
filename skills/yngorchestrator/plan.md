@@ -6,8 +6,8 @@ the slice issues once they approve it. Planning ends at
 
 ## 1. Read
 
-Read the Epic issue, `docs/specs/<feature>/requirements.md` and
-`decisions.md` on the Epic branch, and the code the spec touches. On a
+Read the Epic issue, `<epic worktree>/docs/specs/<feature>/requirements.md`
+and `decisions.md` beside it, and the code the spec touches. On a
 re-plan, also read the Epic's existing slice issues and the run log.
 
 Done when every requirement section (`Rn`) is either covered by an
@@ -70,7 +70,7 @@ existing issue keeps its labels, and its body changes only where the
 person approved the change. For each new slice:
 
 ``` bash
-gh issue create --title "<outcome>" --label "workflow:needs-triage" --body-file <file>
+gh issue create -R <owner>/<repo> --title "<outcome>" --label "workflow:needs-triage" --body-file <file>
 ```
 
 The body, with the optional lines only when they apply:
@@ -92,8 +92,8 @@ Then attach it to the Epic. The REST call takes the issue's numeric
 `id`, not its number:
 
 ``` bash
-id=$(gh api "repos/{owner}/{repo}/issues/<n>" --jq .id)
-gh api -X POST "repos/{owner}/{repo}/issues/<epic>/sub_issues" -F sub_issue_id="$id"
+id=$(gh api "repos/<owner>/<repo>/issues/<n>" --jq .id)
+gh api -X POST "repos/<owner>/<repo>/issues/<epic>/sub_issues" -F sub_issue_id="$id"
 ```
 
 Append `<date> #<n> planned` to the run log for each.

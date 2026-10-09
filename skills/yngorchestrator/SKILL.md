@@ -35,11 +35,16 @@ equivalent.
 ## The project root
 
 `<root>` is the folder holding `.bare/`, outside every worktree and
-outside Git:
+outside Git. Step 1 finds it, through [locate.md](locate.md), from a
+session started at the root, in any worktree, or in any folder below
+one.
 
-``` bash
-dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
-```
+The session stays where it started. Every command on the target names
+it by absolute path: `git -C <worktree>` or `git --git-dir=<root>/.bare`,
+files read from `<worktree>/docs/specs/...`, and `gh` with
+`-R <owner>/<repo>`. Every `<... worktree>` in these steps is an
+absolute path below `<root>`, so a run behaves the same from wherever
+it started.
 
 `<root>/.yngorchestrator/` holds the person's config (`config.yml`) and
 your run logs. Nothing in it belongs to a branch, so nothing in it is
@@ -57,10 +62,14 @@ from its last line.
 
 ### 1. Locate
 
-Find the Epic issue (the argument, or
-`git config --get "branch.$(git branch --show-current).epicid"`), the Epic
-branch, the Epic worktree, the spec folder `docs/specs/<feature>/`, the
-run log, and the Epic's slice issues with their labels.
+The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
+`#39` or the issue's URL. Follow [locate.md](locate.md): it finds
+`<root>`, checks the issue is in `origin`'s repository, tells its kind
+and handles a closed issue.
+
+For an Epic, then find the Epic branch, the Epic worktree, the spec
+folder `<epic worktree>/docs/specs/<feature>/`, the run log, and the
+Epic's slice issues with their labels.
 
 Then run the *On a merge* path of [track.md](track.md): slices a
 person merged while you were away are closed before anything new is
@@ -108,6 +117,7 @@ put the items holding up the most slices first: those are what stop
 the Epic.
 
 When every slice is closed, open the Epic's pull request into `main`
+(`gh pr create -R <owner>/<repo> --base main --head <epic branch>`)
 and follow [merge.md](merge.md) for the `epic-to-main` path. On
 `required`, say the Epic is ready for the person's spec-level review
 against `requirements.md`.
