@@ -12,7 +12,7 @@
 #   <project-root>/
 #   |-- .bare/info/exclude          + hides the links in every worktree
 #   |-- .shared/.claude/
-#   |   |-- skills/orchestrate/     the orchestrator skill
+#   |   |-- skills/yngorchestrator/ the orchestrator skill
 #   |   `-- agents/slice-worker.md  the worker it dispatches
 #   |-- .orchestrator/
 #   |   |-- config.yml              merge rules (written only if absent)
@@ -64,10 +64,10 @@ root=$(cd "$common/.." && pwd)
 echo "Orchestrator -> $root"
 
 # 2. Skill and worker into .shared/.claude/.
-mkdir -p "$root/.shared/.claude/skills/orchestrate" "$root/.shared/.claude/agents"
-cp "$playbook"/skills/orchestrate/* "$root/.shared/.claude/skills/orchestrate/"
+mkdir -p "$root/.shared/.claude/skills/yngorchestrator" "$root/.shared/.claude/agents"
+cp "$playbook"/skills/yngorchestrator/* "$root/.shared/.claude/skills/yngorchestrator/"
 cp "$playbook/agents/slice-worker.md" "$root/.shared/.claude/agents/"
-step copied ".shared/.claude/skills/orchestrate/, .shared/.claude/agents/slice-worker.md"
+step copied ".shared/.claude/skills/yngorchestrator/, .shared/.claude/agents/slice-worker.md"
 
 # 3. Config, only if absent; run logs folder.
 mkdir -p "$root/.orchestrator/runs"
@@ -79,7 +79,7 @@ else cp "$playbook/templates/orchestrator-config.yml" "$config"; step created ".
 exclude="$root/.bare/info/exclude"
 mkdir -p "$(dirname "$exclude")"; touch "$exclude"
 added=""
-for line in /.claude/skills/orchestrate/ /.claude/agents/slice-worker.md; do
+for line in /.claude/skills/yngorchestrator/ /.claude/agents/slice-worker.md; do
     grep -qxF "$line" "$exclude" || { printf '%s\n' "$line" >> "$exclude"; added="$added $line"; }
 done
 if [ -n "$added" ]; then step added ".bare/info/exclude:$added"; else step kept ".bare/info/exclude"; fi
@@ -118,5 +118,5 @@ fi
 echo
 echo "Done. Next:"
 echo "  - Set your merge rules in $config"
-echo "  - From an Epic worktree, start Claude Code and run: /orchestrate <epic issue>"
+echo "  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>"
 echo "  - After creating a new worktree, run this script again to link it."
