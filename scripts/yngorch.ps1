@@ -20,6 +20,7 @@
         |-- .yngorchestrator\
         |   |-- config.yml              merge rules (written only if absent)
         |   `-- runs\                   one run log per Epic
+        |-- .claude\                    linked from .shared\.claude\, for a session at the root
         |-- yngshared.ps1               links .shared\ into the worktrees
         `-- main\, epic-...\, ...       worktrees, linked file by file
 
@@ -28,7 +29,8 @@
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
       3. Write .yngorchestrator\config.yml from the template, only if absent.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
-      5. Copy yngshared.ps1 into the project root and link every worktree.
+      5. Copy yngshared.ps1 into the project root and link every worktree,
+         and .shared\.claude\ into the root's own .claude\.
       6. Create or update the workflow labels with gh, when gh is available.
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
@@ -148,7 +150,7 @@ Copy-Item -Force (Join-Path $PSScriptRoot 'yngshared.ps1') $yngshared
 $out = & $yngshared -link -All 6>&1 | ForEach-Object { "$_" }
 $out | Where-Object { $_ -match '^(warn|error)\b' } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
 if ($LASTEXITCODE -ne 0) { Step 'warning' 'yngshared reported problems above (symlinks need Developer Mode or an elevated shell)' }
-else { Step 'linked' 'every worktree (yngshared -link -All)' }
+else { Step 'linked' 'every worktree and the root .claude\ (yngshared -link -All)' }
 
 # 6. Labels, when gh is available.
 if ($SkipLabels) { Step 'skipped' 'labels (-SkipLabels)' }

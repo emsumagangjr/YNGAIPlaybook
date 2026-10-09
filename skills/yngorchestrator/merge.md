@@ -54,20 +54,21 @@ Done when you hold `required` or `auto` for this pull request. On
   expected base, and is mergeable:
 
   ``` bash
-  gh pr view <PR> --json state,headRefName,baseRefName,mergeable
+  gh pr view <PR> -R <owner>/<repo> --json state,headRefName,baseRefName,mergeable
   ```
 
   expecting `OPEN`, the branch, the base, and `MERGEABLE`;
 - every check passed, or the pull request has none:
 
   ``` bash
-  gh pr checks <PR>
+  gh pr checks <PR> -R <owner>/<repo>
   ```
 
 - the review record is "none": an open decision is the person's.
 
 When any one fails, the pull request is `required` after all. Comment
-the reason on it (`Auto-merge held: <condition>`), log
+the reason on it
+(`gh pr comment <PR> -R <owner>/<repo> --body "Auto-merge held: <condition>"`), log
 `merge held <condition>`, and stop.
 
 Done when every condition holds, or the pull request is held with its
@@ -79,10 +80,12 @@ Merge with a merge commit (the guide merges rather than rebases shared
 branches) and delete the head branch:
 
 ``` bash
-gh pr merge <PR> --merge --delete-branch
+gh pr merge <PR> -R <owner>/<repo> --merge --delete-branch
 ```
 
-Log `merged <PR> auto`. For a slice, run the *On a merge* path of
-[track.md](track.md) now: it closes the issue and removes the worktree.
+Log `merged <PR> auto`. In an Epic run, for a slice, run the *On a
+merge* path of [track.md](track.md) now: it closes the issue and
+removes the worktree. A slice or standalone run goes on with step 7 of
+[scoped.md](scoped.md), which does the same for its one issue.
 
-Done when the pull request shows `MERGED` and its slice issue is closed.
+Done when the pull request shows `MERGED` and its issue is closed.

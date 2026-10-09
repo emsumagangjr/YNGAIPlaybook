@@ -33,6 +33,9 @@ person promotes every issue (Gate 1) and a person decides every merge
 
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
+skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15)
+skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
+skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
 skills/yngorchestrator/dispatch.md  step: dispatch (R4)
 skills/yngorchestrator/track.md     step: tracking (R5)
@@ -208,9 +211,8 @@ Slice: #14
     commented on it.
 5.  It merges with a merge commit and deletes the head branch, then
     runs the post-merge path of R5.2.
-6.  Workers never merge. `fix-to-main` is honoured whenever the
-    orchestrator holds a standalone-fix pull request; the orchestrator
-    does not yet dispatch standalone fixes.
+6.  Workers never merge. `fix-to-main` governs the pull request of a
+    standalone run (R20).
 
 ## R8 Standalone install
 
@@ -316,3 +318,207 @@ Slices: #32 (Windows), #33 (macOS/Linux), #34 (docs)
 4.  `-SkipViewer` / `--skip-viewer` skips this step.
 5.  Nothing inside the project changes for `yngv`; it is per user, not
     per project.
+
+------------------------------------------------------------------------
+
+## R14 Invocation from anywhere
+
+Slices: #41 (items 1-3)
+
+1.  `/yngorchestrator <issue>` runs from a session started in the
+    project root, in any worktree, or in any folder below a worktree.
+2.  `<issue>` is a number (`39`), `#39`, or the issue's URL.
+3.  The orchestrator finds `<root>` from any of those places: from
+    `git rev-parse --git-common-dir` inside a worktree, and from the
+    folder holding `.bare/` when the session started at the root,
+    which is outside Git.
+4.  `yngshared` (`.ps1` and `.sh`) `-link` / `--link` also links every
+    file of `<root>/.shared/.claude/` into `<root>/.claude/`, one
+    relative symlink per file, by the same rules as a worktree, so a
+    session started at the root lists the skill and the worker:
+    -   only `.claude/` goes to the root; `.env` and other items do not;
+    -   re-running keeps existing links, and a real file is kept unless
+        `-Force` / `--force` backs it up and links over it;
+    -   `-Name` / `--name` and `-WhatIf` / `--what-if` apply as they do
+        to worktrees; `-copy` and `-unlink` leave the root alone;
+    -   `<root>/.claude/` is outside every worktree, so no exclude line
+        is written for it.
+
+    `yngorch` (`.ps1` and `.sh`) runs `yngshared -link -All`, so it
+    links the root along with every worktree.
+5.  Claude Code's docs do not say how it finds skills in a folder
+    outside Git. 4 is accepted only once a person has started a
+    session at the root and seen `/yngorchestrator` listed. If it is
+    not listed, the root gets a `yngorch <issue>` launcher instead,
+    which starts Claude Code in the target worktree with the command.
+
+## R15 Issue check and kind
+
+Slice: #41
+
+1.  The issue must exist in `origin`'s repository. A URL to another
+    repository, or a number with no issue, stops the run with the
+    reason; so does a pull request's number or URL.
+2.  The orchestrator classifies the issue:
+    -   **Epic**: it carries the `epic` label, or has sub-issues;
+    -   **slice**: it has a parent issue;
+    -   **standalone**: neither.
+
+    When the signals conflict (an `epic` label or sub-issues, together
+    with a parent), it stops and asks the person which it is.
+3.  A closed issue is not refused. The orchestrator shows its state
+    (closed, its pull request and branch if any) and asks whether to
+    reopen it and continue; it reopens only on the person's yes. A
+    closed Epic with open slices is shown as inconsistent, with those
+    slices listed.
+4.  The run stays within the issue's boundary: an Epic run drives the
+    Epic (R3-R7), a slice run that slice (R19), a standalone run that
+    issue (R20).
+
+## R16 Branch lookup
+
+Slice: #43
+
+1.  A `Branch:` line in the issue body names the branch, and wins.
+2.  Otherwise the branch is the one matching `*/<n>-*`, looked up in
+    local branches first, then on `origin` (fetched first), which is
+    consulted only when no local branch matches.
+3.  The prefix must fit the kind: `epic/` for an Epic, `slice/` for a
+    slice, `fix/` for a standalone issue. A mismatch stops the run.
+4.  More than one match stops the run with the matches listed.
+5.  A slice's Epic is its parent issue; the Epic branch is found the
+    same way.
+
+## R17 Branch and worktree setup
+
+Slice: #43
+
+The procedure is `skills/yngorchestrator/worktree.md`, reached from
+`locate.md` for an Epic run. Slice (R19) and standalone (R20) runs
+reach it from `scoped.md`, only after their Gate 1 check.
+
+1.  Per the branch's state:
+    -   **local, with a worktree**: fetch, and fast-forward it when it
+        is behind `origin`. A branch that has diverged is reported and
+        left as it is, as is one ahead of `origin` or one a
+        fast-forward cannot reach for uncommitted changes;
+    -   **local, no worktree**: create the worktree;
+    -   **only on `origin`**: fetch it, create a local tracking branch
+        and its worktree;
+    -   **nowhere**: for a slice, create it from the Epic branch; for a
+        standalone issue, from `origin/main`. For an Epic, propose
+        `epic/<n>-<name>` (or the `Branch:` line's name) from
+        `origin/main` and create it only once the person confirms the
+        name. A slice whose Epic has no branch stops the run.
+
+    A new branch is created with `--no-track`, so it does not track
+    its start point; its first push sets its upstream.
+2.  Worktree directories follow the guide's naming: `epic-<name>`,
+    `slice-<epic>-<name>`, `fix-<name>`. `<name>` is a short kebab-case
+    form of the issue's title, or, for a branch that already exists,
+    the branch's name after `<prefix><n>-`. `<epic>` is the Epic
+    worktree's name without `epic-`. A folder already at that path
+    stops the run.
+3.  Every branch created records its Epic in
+    `branch.<branch>.epicid`; an Epic branch records its own number.
+    A standalone `fix/` branch has no Epic and records nothing.
+4.  A new worktree gets the skill and worker linked in through
+    `<root>/yngshared` (`-link <worktree>` / `--link <worktree>`).
+    When `<root>/.shared/` or `yngshared` is missing, the project was
+    never installed: the run stops, before creating anything, and names
+    `yngorch` to run once.
+5.  An Epic run stops when `docs/specs/<feature>/requirements.md` is
+    missing on the Epic branch: planning (R3) has nothing to cut. The
+    orchestrator does not write the spec. `<feature>` comes from the
+    Epic body's `Spec:` line, or else from the one spec on the Epic
+    branch whose header reads `Epic: #<n>`; neither stops the run too.
+
+## R18 Working from any session
+
+Slice: #41
+
+1.  The session stays where it was started. Every command on the
+    target runs by absolute path: `git -C <worktree>` or
+    `git --git-dir=<root>/.bare`, the spec read from
+    `<worktree>/docs/specs/...`, `WORKTREE:` given to workers as an
+    absolute path. Every `gh` command names the repository with
+    `-R <owner>/<repo>`, taken from `origin`.
+2.  Nothing depends on the session's own folder, so a run started at
+    the root, in `main/`, or in the target worktree behaves the same.
+
+## R19 Slice run
+
+Slice: #45
+
+The procedure is `skills/yngorchestrator/scoped.md`, reached from
+`locate.md` for a slice or a standalone issue. It runs that one issue
+to its hand-back; the Epic run's planning and dispatch rounds do not
+run.
+
+1.  A run on a slice handles that slice only: Gate 1 provenance (R4),
+    its `Depends on:` issues closed, one `slice-worker` dispatched,
+    its report tracked (R5), and its pull request merged by the
+    `slice-to-epic` rule (R7). Both checks run before `worktree.md`
+    (R17), so no branch is created for a slice that fails them.
+2.  A failed Gate 1 check or an open dependency stops the run with the
+    reason, naming who applied the label or each open dependency. The
+    orchestrator never applies `workflow:ready-for-agent`; a slice left
+    at `workflow:in-progress` by an ended run fails Gate 1 until a
+    person promotes it again.
+3.  After the merge it closes the slice and removes its worktree and
+    local branch (R5.2), for that slice only. It then names the
+    slices the merge unblocked (the Epic's open slices whose
+    `Depends on:` names it and whose dependencies are now all closed),
+    and does not dispatch them: that is an Epic run.
+4.  A run on an issue at `workflow:in-review` resumes from its pull
+    request: an open one goes to the merge rule, a merged one to the
+    post-merge step. A `required` path or a held merge ends the run at
+    `workflow:in-review`; once a person has merged, a new run on the
+    issue closes it.
+
+## R20 Standalone run
+
+Slice: #45
+
+1.  A run on a standalone issue checks Gate 1 (R4), uses
+    `fix/<n>-<name>` from `origin/main` and its worktree, and
+    dispatches one `slice-worker` with `PR BASE: main` and
+    `SPEC: none`: the issue's acceptance criteria are the whole
+    contract, and the worker edits no spec.
+2.  Its pull request merges by the `fix-to-main` rule in
+    `<root>/.yngorchestrator/config.yml`: `auto` through `merge.md`,
+    otherwise a person merges. A missing key means `required`, as for
+    every path (R7).
+3.  After the merge it closes the issue, if no closing keyword already
+    did, naming `main`, and removes the `fix/` worktree and local
+    branch. R19.4's resume applies the same way.
+
+## R21 Run log and lock
+
+Slice: #44
+
+1.  An Epic run and a slice run append to the Epic's log,
+    `runs/<epic>.md`, so a later Epic run resumes from what a slice run
+    did. A standalone run logs to `runs/<n>.md`.
+2.  A run holds `runs/<n>.lock` for the log it writes, holding the
+    time it started and the session's folder, and deletes it when it
+    ends: at hand-back, and on every stop after taking it. A slice run
+    takes its Epic's lock. The lock is taken once the issue's kind is
+    known, before the run can write issue state (reopening a closed
+    issue included), and created only when absent, so two runs
+    starting together cannot both hold it.
+3.  A run that finds the lock present stops and shows its contents:
+    one writer of issue state at a time. A lock left by a crashed run
+    is deleted by the person; the orchestrator never deletes a lock it
+    did not create.
+
+## R22 Documentation and version
+
+Epic: #39 · Slice: #46
+
+1.  Every script change lands in both `.ps1` and `.sh`.
+2.  README, INSTALL and guide section 25 say the command runs from
+    anywhere in the project and takes an Epic, a slice or a
+    standalone issue.
+3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.4.0.

@@ -1,11 +1,11 @@
 ---
 name: yngorchestrator
-description: Run an Epic as its dispatcher. Plan its slices, dispatch promoted slices to worker subagents in their own worktrees, and act on each completion report.
+description: Run an Epic, a slice or a standalone issue as its dispatcher, from anywhere in the project. Plan an Epic's slices, dispatch promoted issues to worker subagents in their own worktrees, and act on each completion report.
 disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.3.0
+  version: 1.4.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -35,11 +35,16 @@ equivalent.
 ## The project root
 
 `<root>` is the folder holding `.bare/`, outside every worktree and
-outside Git:
+outside Git. Step 1 finds it, through [locate.md](locate.md), from a
+session started at the root, in any worktree, or in any folder below
+one.
 
-``` bash
-dirname "$(git rev-parse --path-format=absolute --git-common-dir)"
-```
+The session stays where it started. Every command on the target names
+it by absolute path: `git -C <worktree>` or `git --git-dir=<root>/.bare`,
+files read from `<worktree>/docs/specs/...`, and `gh` with
+`-R <owner>/<repo>`. Every `<... worktree>` in these steps is an
+absolute path below `<root>`, so a run behaves the same from wherever
+it started.
 
 `<root>/.yngorchestrator/` holds the person's config (`config.yml`) and
 your run logs. Nothing in it belongs to a branch, so nothing in it is
@@ -47,20 +52,74 @@ committed, and no branch can change it.
 
 ## Run log
 
-Keep one log per Epic at `<root>/.yngorchestrator/runs/<epic>.md`, where
-`<epic>` is the Epic's issue number. Append one line per event
-(`<date> #<issue> <event>`): a slice planned, dispatched, reported,
-relabelled, merged, closed. On every start, read it first and resume
-from its last line.
+Logs live in `<root>/.yngorchestrator/runs/`. The log a run writes,
+`<log>`, follows the issue's kind:
+
+| Kind       | `<log>`                    |
+|------------|----------------------------|
+| Epic       | the Epic's number          |
+| slice      | its Epic's (parent) number |
+| standalone | the issue's own number     |
+
+A slice run writes to its Epic's log, so a later Epic run resumes from
+what the slice run did. Append one line per event to
+`runs/<log>.md` (`<date> #<issue> <event>`): a slice planned,
+dispatched, reported, relabelled, merged, closed.
+
+### The lock
+
+One writer of issue state at a time: a run holds `runs/<log>.lock`
+while it writes `runs/<log>.md`. A slice run takes its Epic's lock, so
+it never runs beside its Epic's run.
+
+Take the lock as soon as [locate.md](locate.md) has told the issue's
+kind (its step 4), before its step 5 can reopen the issue. Create the
+file only if it is absent, holding the start time and the session's
+folder:
+
+``` bash
+mkdir -p "<root>/.yngorchestrator/runs"
+( set -o noclobber
+  printf 'started: %s\nsession: %s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(pwd -P)" \
+    > "<root>/.yngorchestrator/runs/<log>.lock" )
+```
+
+When that fails because the file is present, another run holds it, or
+one crashed. Stop: show the person the lock's path and contents, and
+leave the file. Only the person deletes a lock, once they know no run
+holds it; then they start the run again.
+
+With the lock held, read `runs/<log>.md`, if it exists, and resume from
+its last line.
+
+Delete the lock when the run ends, and only the lock this run created:
+after step 5 (for a slice or standalone run, at the hand-back of
+[scoped.md](scoped.md)), and on every stop after taking it (a stop
+with a reason, or the person ending the run).
+
+``` bash
+rm -f "<root>/.yngorchestrator/runs/<log>.lock"
+```
 
 ## Steps
 
 ### 1. Locate
 
-Find the Epic issue (the argument, or
-`git config --get "branch.$(git branch --show-current).epicid"`), the Epic
-branch, the Epic worktree, the spec folder `docs/specs/<feature>/`, the
-run log, and the Epic's slice issues with their labels.
+The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
+`#39` or the issue's URL. Follow [locate.md](locate.md): it finds
+`<root>`, checks the issue is in `origin`'s repository, tells its kind
+and handles a closed issue. Once it has told the kind, take the lock
+(*The lock* above) before going on.
+
+For a slice or a standalone issue, locate.md hands on to
+[scoped.md](scoped.md), which runs that one issue to its hand-back;
+the steps below are an Epic run's.
+
+For an Epic, locate.md hands on through [worktree.md](worktree.md):
+it finds or creates the Epic branch and the Epic worktree, and checks
+the spec folder `<epic worktree>/docs/specs/<feature>/`. Then find the
+run log and the Epic's slice issues with their labels.
 
 Then run the *On a merge* path of [track.md](track.md): slices a
 person merged while you were away are closed before anything new is
@@ -108,6 +167,11 @@ put the items holding up the most slices first: those are what stop
 the Epic.
 
 When every slice is closed, open the Epic's pull request into `main`
+(`gh pr create -R <owner>/<repo> --base main --head <epic branch>`)
 and follow [merge.md](merge.md) for the `epic-to-main` path. On
 `required`, say the Epic is ready for the person's spec-level review
 against `requirements.md`.
+
+Last, delete the run's lock (*The lock* above): the run has ended.
+
+Done when the person holds the list and the lock is gone.

@@ -17,6 +17,7 @@
 #   |-- .yngorchestrator/
 #   |   |-- config.yml              merge rules (written only if absent)
 #   |   `-- runs/                   one run log per Epic
+#   |-- .claude/                    linked from .shared/.claude/, for a session at the root
 #   |-- yngshared.sh                links .shared/ into the worktrees
 #   `-- main/, epic-.../, ...       worktrees, linked file by file
 #
@@ -25,7 +26,8 @@
 #   2. Copy the skill and worker into .shared/.claude/ (upgrades in place).
 #   3. Write .yngorchestrator/config.yml from the template, only if absent.
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
-#   5. Copy yngshared.sh into the project root and link every worktree.
+#   5. Copy yngshared.sh into the project root and link every worktree,
+#      and .shared/.claude/ into the root's own .claude/.
 #   6. Create or update the workflow labels with gh, when gh is available.
 #   7. Copy yngv, the file viewer, to <bin-dir>/yngv (default ~/.local/bin).
 #      Per user, not per project. When that folder is not on PATH it prints
@@ -45,7 +47,7 @@
 
 set -euo pipefail
 
-usage() { sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,46p' "$0" | sed 's/^# \{0,1\}//'; }
 
 project=$PWD
 skip_labels=0
@@ -120,7 +122,7 @@ git --git-dir="$common" worktree list --porcelain | sed -n 's/^worktree //p' | w
     else step warning "$dir holds real files; left in place"; fi
 done
 cp "$here/yngshared.sh" "$root/yngshared.sh"; chmod +x "$root/yngshared.sh"
-if out=$("$root/yngshared.sh" --link --all 2>&1); then step linked "every worktree (yngshared --link --all)"
+if out=$("$root/yngshared.sh" --link --all 2>&1); then step linked "every worktree and the root .claude/ (yngshared --link --all)"
 else
     printf '%s\n' "$out" | grep -E '^(warn|error|ERROR)' | sed 's/^/  /' || true
     step warning "yngshared reported problems above"

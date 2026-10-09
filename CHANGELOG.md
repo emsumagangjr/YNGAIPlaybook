@@ -4,6 +4,24 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.4.0] — 2026-10-09
+
+`/yngorchestrator` runs from anywhere in the project, on any issue.
+
+### Added
+- `skills/yngorchestrator/locate.md`: `/yngorchestrator <issue>` takes a number, `#<n>` or the issue's URL, from the project root, any worktree or any folder below one. It finds the root, checks the issue is in `origin`'s repository, tells its kind (Epic, slice or standalone), and offers to reopen a closed issue. With no argument inside a worktree, it takes the Epic recorded on the branch.
+- `skills/yngorchestrator/worktree.md`: finds the issue's branch (a `Branch:` line in the issue, else `*/<n>-*`, locally then on `origin`) and brings it and its worktree to a known state: fast-forwards a branch behind `origin`, creates a missing worktree or branch, and links a new worktree through `yngshared`. A new Epic branch is created only once the person confirms its name; an Epic run stops when its spec is missing. A `fix/` branch records no `epicid`.
+- `skills/yngorchestrator/scoped.md`: a run on a slice handles that slice only (Gate 1, its dependencies, one worker, the `slice-to-epic` merge, closing it) and names the slices its merge unblocked. A run on a standalone issue uses `fix/<n>-<name>` from `origin/main`, one worker with `PR BASE: main` and no spec, and the `fix-to-main` merge rule. Both check Gate 1 before creating any branch, and resume from the pull request on an issue at `workflow:in-review`.
+- A run holds `.yngorchestrator/runs/<n>.lock` while it writes issue state, and stops when it finds one held. A slice run logs to, and locks, its Epic's log.
+- `scripts/yngshared.ps1`, `scripts/yngshared.sh` (1.2.0): `-link` / `--link` also links `.shared/.claude/` into the project root's own `.claude/`, so a session started at the root finds the skill and worker. `yngorch` links the root along with every worktree.
+
+### Changed
+- Every command of a run names its target by absolute path (`git -C`, `git --git-dir`, `gh -R`), so the session stays where it started.
+- `dispatch.md` hands a standalone issue's worker `PR BASE: main`; `slice-worker` accepts `SPEC: none`.
+- README, INSTALL and guide section 25 say the command runs from anywhere in the project and takes an Epic, a slice or a standalone issue; INSTALL starts an Epic through the orchestrator instead of by hand. The spec gains R14-R22.
+
+---
+
 ## [1.3.0] — 2026-10-09
 
 One install command also gives you `yngv`.
