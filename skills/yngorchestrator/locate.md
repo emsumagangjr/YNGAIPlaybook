@@ -159,10 +159,11 @@ The run stays within the issue's boundary:
 - **slice**: the run handles that slice only (R19);
 - **standalone**: the run handles that issue only (R20).
 
-This skill does not yet run a slice or a standalone issue on its own.
-For those two kinds, tell the person the kind you found and stop. Their
-runs reach [worktree.md](worktree.md) only after their Gate 1 check, so
-no branch is created for an issue a person has not promoted.
+For a slice or a standalone issue, follow [scoped.md](scoped.md),
+holding `<root>`, `<owner>/<repo>`, `<n>`, its title, its kind and,
+for a slice, its parent. It checks Gate 1 before it reaches
+[worktree.md](worktree.md), so no branch is created for an issue a
+person has not promoted.
 
-Done when the run continues as an Epic run, or has stopped with the
-kind named.
+Done when the run continues as an Epic run, a slice run or a
+standalone run.

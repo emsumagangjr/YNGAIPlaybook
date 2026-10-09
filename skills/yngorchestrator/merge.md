@@ -83,7 +83,9 @@ branches) and delete the head branch:
 gh pr merge <PR> -R <owner>/<repo> --merge --delete-branch
 ```
 
-Log `merged <PR> auto`. For a slice, run the *On a merge* path of
-[track.md](track.md) now: it closes the issue and removes the worktree.
+Log `merged <PR> auto`. In an Epic run, for a slice, run the *On a
+merge* path of [track.md](track.md) now: it closes the issue and
+removes the worktree. A slice or standalone run goes on with step 7 of
+[scoped.md](scoped.md), which does the same for its one issue.
 
-Done when the pull request shows `MERGED` and its slice issue is closed.
+Done when the pull request shows `MERGED` and its issue is closed.

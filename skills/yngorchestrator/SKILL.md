@@ -94,8 +94,9 @@ With the lock held, read `runs/<log>.md`, if it exists, and resume from
 its last line.
 
 Delete the lock when the run ends, and only the lock this run created:
-after step 5, and on every stop after taking it (a stop with a reason,
-or the person ending the run).
+after step 5 (for a slice or standalone run, at the hand-back of
+[scoped.md](scoped.md)), and on every stop after taking it (a stop
+with a reason, or the person ending the run).
 
 ``` bash
 rm -f "<root>/.yngorchestrator/runs/<log>.lock"
@@ -110,6 +111,10 @@ The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
 `<root>`, checks the issue is in `origin`'s repository, tells its kind
 and handles a closed issue. Once it has told the kind, take the lock
 (*The lock* above) before going on.
+
+For a slice or a standalone issue, locate.md hands on to
+[scoped.md](scoped.md), which runs that one issue to its hand-back;
+the steps below are an Epic run's.
 
 For an Epic, locate.md hands on through [worktree.md](worktree.md):
 it finds or creates the Epic branch and the Epic worktree, and checks

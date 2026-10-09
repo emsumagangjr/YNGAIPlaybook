@@ -5,8 +5,9 @@ state, and link the skill into a worktree you create. You arrive from
 [locate.md](locate.md) holding `<root>`, `<owner>/<repo>`, the issue
 `<n>`, its title, its kind and, for a slice, its parent. An Epic run
 comes straight from locate.md; a slice run (R19) and a standalone run
-(R20) come only after their Gate 1 check, so no branch is created for
-an issue a person has not promoted.
+(R20) come from [scoped.md](scoped.md), only after their Gate 1
+check, so no branch is created for an issue a person has not promoted.
+They run steps 1 to 4 and return there.
 
 Every command names its target by absolute path, as in locate.md: `git
 --git-dir="<root>/.bare"` or `git -C <worktree>`, and `gh` with

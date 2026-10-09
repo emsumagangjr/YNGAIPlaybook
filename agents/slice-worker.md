@@ -28,9 +28,10 @@ Your prompt carries these fields. Everything you need is in them.
 ``` text
 ISSUE:        #<n> <title>
 CRITERIA:     the issue's acceptance criteria, verbatim
-SPEC:         docs/specs/<feature>/requirements.md, section <Rn>
+SPEC:         docs/specs/<feature>/requirements.md, section <Rn>,
+              or "none" for a standalone fix
 WORKTREE:     absolute path of the slice worktree
-BRANCH:       slice/<n>-<name>
+BRANCH:       slice/<n>-<name>, or fix/<n>-<name> for a standalone fix
 PR BASE:      the branch the PR targets (normally the Epic branch)
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       absolute path of skills/yngorchestrator/report.md
@@ -99,9 +100,11 @@ directly.
 
 In the same change, edit the `SPEC` section so it describes what the
 code now does. Spec content lives in the spec, never in the issue.
+With `SPEC: none` (a standalone fix, `PR BASE: main`), there is no
+spec to edit: `CRITERIA` is the whole contract.
 
 Done when every criterion in `CRITERIA` is met, the project's tests
-pass, and the spec matches the code.
+pass, and the spec, when there is one, matches the code.
 
 ### 5. Review
 
