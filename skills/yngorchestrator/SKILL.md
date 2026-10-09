@@ -24,8 +24,9 @@ Your hard guardrails, the two gates:
 
 - A slice reaches a worker only after a person promoted it (Gate 1).
 - A pull request merges by a person's decision (Gate 2): made per pull
-  request, or in advance per merge path in `<root>/.yngorchestrator/config.yml`.
-  You merge only where that config says `auto`, through
+  request, or in advance per merge path in
+  `<root>/.yngaiplaybook/yngorchestratorconfig.yml`. You merge only
+  where that config says `auto`, through
   [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
 
@@ -46,14 +47,22 @@ files read from `<worktree>/docs/specs/...`, and `gh` with
 absolute path below `<root>`, so a run behaves the same from wherever
 it started.
 
-`<root>/.yngorchestrator/` holds the person's config (`config.yml`) and
-your run logs. Nothing in it belongs to a branch, so nothing in it is
-committed, and no branch can change it.
+`<root>/.yngaiplaybook/` holds the playbook's files for the project.
+Yours are the person's config (`yngorchestratorconfig.yml`) and your
+run logs and locks (`yngorchestratorruns/`). Nothing in it belongs to
+a branch, so nothing in it is committed, and no branch can change it.
+These are the only paths you read or write there.
+
+An older root keeps them in `<root>/.yngorchestrator/` or
+`<root>/.orchestrator/`. You never read those folders and never move
+them: `yngorch` migrates them. Step 1 of [locate.md](locate.md) stops
+a run on a root that has not been migrated, before anything is
+touched.
 
 ## Run log
 
-Logs live in `<root>/.yngorchestrator/runs/`. The log a run writes,
-`<log>`, follows the issue's kind:
+Logs live in `<root>/.yngaiplaybook/yngorchestratorruns/`. The log a
+run writes, `<log>`, follows the issue's kind:
 
 | Kind       | `<log>`                    |
 |------------|----------------------------|
@@ -63,13 +72,14 @@ Logs live in `<root>/.yngorchestrator/runs/`. The log a run writes,
 
 A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
-`runs/<log>.md` (`<date> #<issue> <event>`): a slice planned,
-dispatched, reported, relabelled, merged, closed.
+`yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
+planned, dispatched, reported, relabelled, merged, closed.
 
 ### The lock
 
-One writer of issue state at a time: a run holds `runs/<log>.lock`
-while it writes `runs/<log>.md`. A slice run takes its Epic's lock, so
+One writer of issue state at a time: a run holds
+`yngorchestratorruns/<log>.lock` while it writes
+`yngorchestratorruns/<log>.md`. A slice run takes its Epic's lock, so
 it never runs beside its Epic's run.
 
 Take the lock as soon as [locate.md](locate.md) has told the issue's
@@ -78,11 +88,11 @@ file only if it is absent, holding the start time and the session's
 folder:
 
 ``` bash
-mkdir -p "<root>/.yngorchestrator/runs"
+mkdir -p "<root>/.yngaiplaybook/yngorchestratorruns"
 ( set -o noclobber
   printf 'started: %s\nsession: %s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$(pwd -P)" \
-    > "<root>/.yngorchestrator/runs/<log>.lock" )
+    > "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock" )
 ```
 
 When that fails because the file is present, another run holds it, or
@@ -90,8 +100,8 @@ one crashed. Stop: show the person the lock's path and contents, and
 leave the file. Only the person deletes a lock, once they know no run
 holds it; then they start the run again.
 
-With the lock held, read `runs/<log>.md`, if it exists, and resume from
-its last line.
+With the lock held, read `yngorchestratorruns/<log>.md`, if it
+exists, and resume from its last line.
 
 Delete the lock when the run ends, and only the lock this run created:
 after step 5 (for a slice or standalone run, at the hand-back of
@@ -99,7 +109,7 @@ after step 5 (for a slice or standalone run, at the hand-back of
 with a reason, or the person ending the run).
 
 ``` bash
-rm -f "<root>/.yngorchestrator/runs/<log>.lock"
+rm -f "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 ```
 
 ## Steps

@@ -33,7 +33,7 @@ person promotes every issue (Gate 1) and a person decides every merge
 
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
-skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15)
+skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15, R25)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
@@ -573,7 +573,7 @@ Epic: #54
 
 ## R25 Unmigrated root
 
-Epic: #54
+Epic: #54 · Slice: #56
 
 1.  `/yngorchestrator` reads and writes only the R23 paths: the config
     in `merge.md`, the run log and lock in `SKILL.md`, and every other
@@ -582,7 +582,9 @@ Epic: #54
     `<root>/.orchestrator/` and no `<root>/.yngaiplaybook/` stops
     before taking the lock or touching anything, and names `yngorch`
     to re-run: it migrates (R24). The skill never migrates, and never
-    reads the old paths.
+    reads the old paths. The check is the end of `locate.md` step 1,
+    once `<root>` is found: it tests only that the folders exist. A
+    root with none of the three folders is a fresh install and runs.
 
 ## R26 The folder's README
 
