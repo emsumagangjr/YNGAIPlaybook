@@ -262,11 +262,12 @@ Slice: #22
 Slice: #23
 
 1.  `SKILL.md` frontmatter identifies the skill: `name`,
-    `description`, and a `metadata` block with its display name
-    (YNG Orchestrator), version (the playbook's `VERSION`), author,
-    company and homepage, and license.
-2.  The body opens with one line naming it: YNG Orchestrator, part of
-    YNGAIPlaybook, by YNGSoftware.
+    `description`, `license` (CC-BY-4.0, as the playbook's guides and
+    templates), and a `metadata` block with its display name
+    (YNG Orchestrator), version, author, company and homepage.
+2.  Under its title, the body opens with one line naming it: YNG
+    Orchestrator, part of YNGAIPlaybook, by YNGSoftware.
+3.  The frontmatter `version` moves with `VERSION`.
 
 ## R11 Run-state folder
 
