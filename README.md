@@ -33,7 +33,8 @@ YNGAIPlaybook/
 ├── templates/             ← copy these into your own project
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
-│   ├── orchestrator-config.yml ← merge rules (lives in your project root, uncommitted)
+│   ├── yngorchestratorconfig.yml ← merge rules (lives in your project root, uncommitted)
+│   ├── yngaiplaybookreadme.md ← the README yngorch writes into your project's .yngaiplaybook/
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
 │   └── yngorchestrator/   ← YNG Orchestrator, the dispatcher as an agent: plan, dispatch, track; any issue, from anywhere
