@@ -457,17 +457,22 @@ Epic: #39
 
 ## R21 Run log and lock
 
-Epic: #39
+Slice: #44
 
 1.  An Epic run and a slice run append to the Epic's log,
     `runs/<epic>.md`, so a later Epic run resumes from what a slice run
     did. A standalone run logs to `runs/<n>.md`.
 2.  A run holds `runs/<n>.lock` for the log it writes, holding the
     time it started and the session's folder, and deletes it when it
-    ends. A slice run takes its Epic's lock.
+    ends: at hand-back, and on every stop after taking it. A slice run
+    takes its Epic's lock. The lock is taken once the issue's kind is
+    known, before the run can write issue state (reopening a closed
+    issue included), and created only when absent, so two runs
+    starting together cannot both hold it.
 3.  A run that finds the lock present stops and shows its contents:
     one writer of issue state at a time. A lock left by a crashed run
-    is deleted by the person.
+    is deleted by the person; the orchestrator never deletes a lock it
+    did not create.
 
 ## R22 Documentation and version
 
