@@ -215,23 +215,27 @@ clone until you have checked the new one:
       fix-to-main: required
     ```
 
-2.  **Start an Epic:** create its issue with the `epic` label, then its
-    branch and worktree, and record the Epic on the branch:
+2.  **Start an Epic:** create its issue with the `epic` label. Start
+    Claude Code anywhere in the project, at its root or in any
+    worktree, and run `/yngorchestrator <n>`. It proposes the Epic
+    branch, `epic/<n>-<name>` from `origin/main`, and creates it with
+    its worktree once you confirm the name, linked and with the Epic
+    recorded on the branch. With no spec on the branch yet, it stops
+    and names where the spec belongs: write
+    `docs/specs/<feature>/requirements.md` and `decisions.md` in the
+    Epic worktree, commit and push (guide, section 9).
 
-    ``` bash
-    git --git-dir=.bare worktree add -b epic/<n>-<name> epic-<name> main
-    git --git-dir=.bare config branch.epic/<n>-<name>.epicid <n>
-    ```
+3.  **Run it:** run `/yngorchestrator <n>` again, from anywhere in the
+    project. It plans the slices and waits for your approval. Promote
+    the slices an agent may take to `workflow:ready-for-agent` on
+    GitHub yourself (Gate 1), then run `/yngorchestrator <n>` again.
 
-    Run the installer again to link the new worktree. Write the spec in
-    `docs/specs/<feature>/requirements.md` and `decisions.md`, commit
-    and push (guide, section 9).
-
-3.  **Run it:** start Claude Code in the Epic worktree and run
-    `/yngorchestrator`. It plans the slices and waits for your approval.
-    Promote the slices an agent may take to `workflow:ready-for-agent`
-    on GitHub yourself (Gate 1), then run `/yngorchestrator` again (guide,
-    section 25).
+    The command takes any issue: `<n>`, `#<n>` or the issue's URL.
+    Inside a worktree, with no argument, it takes the Epic recorded on
+    the current branch. On an Epic it drives the whole Epic; on a slice
+    it runs that one slice to its merge into the Epic; on a standalone
+    issue it works on a `fix/` branch from `main` and opens a pull
+    request into `main` (guide, section 25).
 
 To upgrade, update the playbook copy and run the installer again; it
 never overwrites your config.
