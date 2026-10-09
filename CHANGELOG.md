@@ -4,6 +4,22 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.2.0] — 2026-10-09
+
+The orchestrator carries the YNG brand.
+
+### Changed
+- The orchestrator is now **YNG Orchestrator**: run it as `/yngorchestrator` (was `/orchestrate`), from `skills/yngorchestrator/`.
+- `SKILL.md` identifies itself: `license` and a `metadata` block (display name, version, author, company, homepage) in its frontmatter, and a YNG Orchestrator banner under its title.
+- Config and run logs live in `<root>/.yngorchestrator/` (was `<root>/.orchestrator/`).
+- `scripts/yngorch.ps1`, `scripts/yngorch.sh` upgrade a 1.1.0 install in place: they move `.orchestrator/` to `.yngorchestrator/` with its config and run logs (warning, and leaving both, when both exist), and remove the old skill folder, its links in every worktree and its exclude line.
+- README, INSTALL, guide section 25 and the config template use the new names; the spec moves to `docs/specs/yngorchestrator/`. The README's CC BY 4.0 line now names skills and agents.
+
+### Fixed
+- `scripts/yngorch.ps1`: run from the project root under Windows PowerShell 5.1, it no longer aborts on git's "not a git repository".
+
+---
+
 ## [1.1.0] — 2026-10-08
 
 The dispatcher, as an agent.
