@@ -36,12 +36,12 @@ YNGAIPlaybook/
 │   ├── orchestrator-config.yml ← merge rules (lives in your project root, uncommitted)
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
-│   └── yngorchestrator/   ← YNG Orchestrator, the dispatcher as an agent: plan, dispatch, track
+│   └── yngorchestrator/   ← YNG Orchestrator, the dispatcher as an agent: plan, dispatch, track; any issue, from anywhere
 ├── agents/
 │   └── slice-worker.md    ← the worker it dispatches: one slice, worktree to PR
 └── scripts/
     ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser); yngorch puts it on your PATH
-    ├── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
+    ├── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees, and the agent's files with the root
     └── yngorch.ps1 / .sh    ← install or upgrade the YNG Orchestrator in a project, uncommitted, plus yngv for you
 ```
 
@@ -61,7 +61,7 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/yngorchestrator <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree. On an Epic it plans the slices and dispatches the ones you promote to parallel workers; on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 
 ## Roadmap
 

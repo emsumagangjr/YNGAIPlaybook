@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.3.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.4.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1394,7 +1394,10 @@ it as the **YNG Orchestrator** skill (`/yngorchestrator`), with the
 **slice worker** agent it hands slices to:
 
 ``` text
-skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, steps
+skills/yngorchestrator/SKILL.md     the orchestrator: role, run log and lock, steps
+skills/yngorchestrator/locate.md    find the root; check the issue and tell its kind
+skills/yngorchestrator/worktree.md  find or create the issue's branch and worktree
+skills/yngorchestrator/scoped.md    run one slice or standalone issue to its hand-back
 skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
 skills/yngorchestrator/dispatch.md  Gate 1 check, worktree, launch a worker
 skills/yngorchestrator/track.md     act on reports; close merged slices
@@ -1404,9 +1407,11 @@ agents/slice-worker.md              the worker: one slice, worktree to PR
 templates/orchestrator-config.yml   the project's config, starting at all-required
 ```
 
-The orchestrator runs in the main agent session, from the Epic
-worktree. Workers run as subagents, one per slice, each in the slice
-worktree the orchestrator created for it (section 10). A worker's last
+The orchestrator runs in the main agent session, started anywhere in
+the project: its root, any worktree, or any folder below one. It finds
+the root and names every target by absolute path, so it behaves the
+same from each. Workers run as subagents, one per slice, each in the
+slice worktree the orchestrator created for it (section 10). A worker's last
 message is its **completion report**, so it reaches the orchestrator
 with no extra channel:
 
@@ -1442,16 +1447,22 @@ myproject/
 │   └── .claude/                 # linked into worktrees by yngshared
 │       ├── skills/yngorchestrator/
 │       └── agents/slice-worker.md
+├── .claude/                     # linked from .shared/.claude/, for a session at the root
 ├── .yngorchestrator/
 │   ├── config.yml               # merge rules
 │   └── runs/
-│       └── 100.md               # run log for Epic #100
+│       ├── 100.md               # run log for Epic #100
+│       └── 100.lock             # held while a run on Epic #100 writes
 ├── main/
 └── epic-auth/
 ```
 
 The run log lets an interrupted run resume where it stopped, and
-outlives the Epic worktree.
+outlives the Epic worktree. A run on a slice appends to its Epic's
+log; a run on a standalone issue keeps its own. The lock keeps one
+writer of issue state at a time: a run creates it only when absent,
+deletes it when it ends, and stops when it finds one, showing what it
+holds. A lock left by a crashed run is yours to delete.
 
 ### Merge rules
 
@@ -1481,8 +1492,9 @@ own: each slice it merges closes, which unblocks the slices that depend
 on it, so it keeps dispatching instead of stopping at every slice to
 wait for a person. Every change to `main` still passes a person.
 
-`fix-to-main` is read whenever the orchestrator holds a standalone-fix
-pull request; it does not yet dispatch standalone fixes itself.
+`fix-to-main` applies to a standalone issue's pull request into
+`main`, which the orchestrator's worker opens from a `fix/` branch
+(see *Run* below).
 
 ### Install
 
@@ -1503,7 +1515,8 @@ It finds the project root, copies the skill and worker into
 `.shared/.claude/`, writes `.yngorchestrator/config.yml` with every path
 `required` (only if you have none), hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
-every worktree through `yngshared`, creates the workflow labels
+every worktree, and `.shared/.claude/` into the root's own `.claude/`,
+through `yngshared`, creates the workflow labels
 with `gh` when it is installed, and puts `yngv`, the file viewer, in
 your `~/.local/bin` (on Windows it also adds that folder to your user
 PATH; on macOS/Linux it prints the line to add when it is missing).
@@ -1511,7 +1524,7 @@ Then set your merge rules in `.yngorchestrator/config.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
 link it; it never overwrites your config. The orchestrator links the
-slice worktrees it creates itself. `-Project <path>` / `--project
+worktrees it creates itself. `-Project <path>` / `--project
 <path>` installs into a project other than the current folder, and
 `-SkipLabels` / `--skip-labels` leaves the labels alone, and
 `-SkipViewer` / `--skip-viewer` leaves `yngv` out.
@@ -1522,12 +1535,40 @@ are written for GitHub (`gh`); on another tracker, use its equivalents.
 
 ### Run
 
-From the Epic worktree, start the agent and run `/yngorchestrator <epic
-issue>`. With no slice issues yet, it plans first and waits for you to
-approve the plan; afterwards, promote the slices you want an agent to
-take, and run it again. It ends each run with one list of everything
-waiting on you: pull requests to merge, slices handed back, slices
-waiting for promotion.
+Start the agent anywhere in the project, at its root or in any
+worktree, and run `/yngorchestrator <issue>`, where `<issue>` is a
+number, `#<n>` or the issue's URL. With no argument inside a worktree,
+it takes the Epic recorded on the current branch. It checks that the
+issue belongs to `origin`'s repository and tells its kind: an Epic
+(the `epic` label, or sub-issues), a slice (it has a parent issue), or
+a standalone issue (neither). A closed issue is shown with its branch
+and pull requests, and reopened only when you say yes.
+
+It then finds the issue's branch (a `Branch:` line in the issue body
+wins, else `*/<n>-*`, locally then on `origin`) and its worktree,
+creates whichever is missing, and links a new worktree through
+`yngshared`. A new Epic branch it only proposes, and creates once you
+confirm the name.
+
+-   **An Epic.** The run drives the whole Epic. It needs the spec on
+    the Epic branch; with none, it stops and names where the spec
+    belongs. With no slice issues yet, it plans first and waits for
+    you to approve the plan; afterwards, promote the slices you want an
+    agent to take, and run it again.
+-   **A slice.** The run handles that slice only: Gate 1, its
+    `Depends on:` issues closed, one worker, its pull request merged by
+    the `slice-to-epic` rule, then the slice closed. It names the
+    slices the merge unblocked, and leaves them for an Epic run.
+-   **A standalone issue.** The run checks Gate 1, works on
+    `fix/<n>-<name>` from `origin/main`, and dispatches one worker
+    whose pull request targets `main` and merges by the `fix-to-main`
+    rule. The issue's acceptance criteria are the whole contract.
+
+A slice or standalone run checks Gate 1 before it creates any branch.
+Run it again on an issue at `workflow:in-review` and it resumes from
+the pull request. Each run ends with one list of everything waiting on
+you: pull requests to merge, issues handed back, slices waiting for
+promotion.
 
 ------------------------------------------------------------------------
 

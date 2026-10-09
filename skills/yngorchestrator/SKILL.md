@@ -1,11 +1,11 @@
 ---
 name: yngorchestrator
-description: Run an Epic as its dispatcher. Plan its slices, dispatch promoted slices to worker subagents in their own worktrees, and act on each completion report.
+description: Run an Epic, a slice or a standalone issue as its dispatcher, from anywhere in the project. Plan an Epic's slices, dispatch promoted issues to worker subagents in their own worktrees, and act on each completion report.
 disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.3.0
+  version: 1.4.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook

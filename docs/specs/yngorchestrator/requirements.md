@@ -514,7 +514,7 @@ Slice: #44
 
 ## R22 Documentation and version
 
-Epic: #39
+Epic: #39 · Slice: #46
 
 1.  Every script change lands in both `.ps1` and `.sh`.
 2.  README, INSTALL and guide section 25 say the command runs from

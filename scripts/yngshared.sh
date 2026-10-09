@@ -4,7 +4,7 @@
 #             --link, --copy or --unlink.
 #
 #   Name:     yngshared.sh
-#   Version:  1.1.0
+#   Version:  1.2.0
 #   Created:  2026-09-19
 #   Author:   Emeterio M. Sumagang Jr.
 #   Company:  YNGSoftware (www.yngsoftware.com)
