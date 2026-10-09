@@ -39,19 +39,30 @@ project should go, and tell it:
 Install the orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
 ```
 
-For a new project, add the repository URL: `...into a new project for
+To upgrade to the latest version, or to repair an install, say
+*reinstall*:
+
+``` text
+Reinstall the orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
+```
+
+In place of the URL you can give a playbook clone you already have,
+such as `F:\YNGAIPlaybook\main`; the agent uses it exactly as it is. For
+a new project, add your repository: `...into a new project for
 https://github.com/you/myproject`.
 
 It checks your setup, tells you what it will change, waits for your
-approval, installs, and reports back. Next, set your merge rules and
-start an Epic ([After installing](#after-installing)).
+approval, installs, and reports back. Reinstalling keeps your merge
+rules and run logs. Next, set your merge rules and start an Epic
+([After installing](#after-installing)).
 
 ### For the agent doing the install
 
-You are installing the orchestrator into the person's project. Finish
-when the installer has run without warnings, or when you have reported
-what blocks it. You never commit to the project, change its branches,
-or move or delete an existing folder.
+You are installing or reinstalling the orchestrator in the person's
+project; both follow these steps. Finish when the installer has run
+without warnings, or when you have reported what blocks it. You never
+commit to the project, change its branches, or move or delete an
+existing folder.
 
 1.  **Check the machine.** Run `git --version` and `gh auth status`. On
     Windows, check that Developer Mode is on:
@@ -77,9 +88,11 @@ or move or delete an existing folder.
     and run, then waiting for the person's yes. The existing clone
     stays exactly where and as it is.
 
-3.  **Get the playbook.** Keep one copy per machine, outside every
-    project, in `~/.yngaiplaybook` (Windows:
-    `$HOME\.yngaiplaybook`):
+3.  **Get the playbook.** When the person gave a local path, that
+    folder is the playbook: use it as it is, with no pull or checkout.
+    Otherwise keep one copy per machine, outside every project, in
+    `~/.yngaiplaybook` (Windows: `$HOME\.yngaiplaybook`), and bring it
+    up to date:
 
     ``` bash
     git clone https://github.com/emsumagangjr/YNGAIPlaybook.git ~/.yngaiplaybook   # first time
@@ -90,18 +103,25 @@ or move or delete an existing folder.
     <branch>`); otherwise `main`. When `scripts/yngorch.ps1` is
     missing, the branch predates the orchestrator: report it and stop.
 
-4.  **Install.** From inside the project, run the installer for the
-    shell you have: `~/.yngaiplaybook/scripts/yngorch.ps1` in
-    PowerShell, `~/.yngaiplaybook/scripts/yngorch.sh` in bash (on
-    Windows, with `MSYS=winsymlinks:nativestrict` set). Done when its
-    output ends with `Done. Next:` and has no `warning` line. A warning
-    names its cause; report it.
+4.  **Install.** From inside the project, run the installer from the
+    playbook for the shell you have: `scripts/yngorch.ps1` in
+    PowerShell, `scripts/yngorch.sh` in bash (on Windows, with
+    `MSYS=winsymlinks:nativestrict` set). Done when its output ends
+    with `Done. Next:` and has no `warning` line. A warning names its
+    cause; report it.
+
+    The installer overwrites the skill and worker and keeps the config,
+    so a reinstall runs the same command. On a reinstall, also delete
+    the broken links left in each worktree's
+    `.claude/skills/orchestrate/`: they point at files the new version
+    no longer ships.
 
 5.  **Report.** Tell the person:
-    - The project root, and what the installer created or kept.
-    - Their merge rules are all `required`. Ask whether they want any
-      path set to `auto`, and edit `<root>/.orchestrator/config.yml`
-      only as they answer.
+    - The project root, the playbook version (`VERSION`) installed, and
+      what the installer created or kept.
+    - On a first install: their merge rules are all `required`. Ask
+      whether they want any path set to `auto`, and edit
+      `<root>/.orchestrator/config.yml` only as they answer.
     - The next steps from [After installing](#after-installing).
 
 ------------------------------------------------------------------------
