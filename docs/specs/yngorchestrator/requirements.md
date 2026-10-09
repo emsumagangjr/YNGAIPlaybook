@@ -616,14 +616,18 @@ Epic: #54 · Slice: #55
 
 ## R27 Documentation and version
 
-Epic: #54
+Epic: #54 · Slice: #57
 
 1.  Every script change lands in both `.ps1` and `.sh`.
 2.  `templates/orchestrator-config.yml` is renamed
     `templates/yngorchestratorconfig.yml`; its header names the new
     path.
 3.  README, INSTALL, guide section 25 and its root-layout tree name
-    the R23 paths, and link to the folder's README (R26).
+    the R23 paths, and link to the folder's README (R26) through its
+    template, `templates/yngaiplaybookreadme.md`. Guide section 6
+    (*Gate 2 by policy*) names the config's R23 path too. INSTALL
+    tells the project's `.yngaiplaybook/` apart from the per-machine
+    playbook copy in `~/.yngaiplaybook`.
 4.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.5.0. Earlier CHANGELOG entries are history
     and keep their paths.

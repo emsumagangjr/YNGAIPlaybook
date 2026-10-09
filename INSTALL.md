@@ -9,7 +9,11 @@ your project. There are two ways:
 
 Both end in the same place. Nothing is committed to your project:
 everything goes in the project root, beside `.bare/`, outside every
-worktree (guide, section 25).
+worktree (guide, section 25). The playbook's files for your project
+(merge rules, run logs) live in `<root>/.yngaiplaybook/`, explained by
+the `README.md` the installer writes there
+([template](templates/yngaiplaybookreadme.md)). This folder is not the
+per-machine playbook copy in `~/.yngaiplaybook`.
 
 ------------------------------------------------------------------------
 
@@ -111,11 +115,19 @@ existing folder.
     cause; report it.
 
     The installer overwrites the skill and worker and keeps the config,
-    so a reinstall runs the same command. Upgrading from 1.1.0, when the
-    skill was `/orchestrate`, it also moves `<root>/.orchestrator/` to
-    `<root>/.yngorchestrator/` (config and run logs kept) and removes the
-    old skill folder, its links in every worktree and its exclude line.
-    When both folders exist it warns and leaves both: report it.
+    so a reinstall runs the same command. The project's playbook files
+    go in `<root>/.yngaiplaybook/`: the config
+    (`yngorchestratorconfig.yml`), the run logs and locks
+    (`yngorchestratorruns/`), and a `README.md` explaining them, which
+    the installer rewrites every time. Upgrading from 1.1.0-1.4.0, it
+    moves `<root>/.yngorchestrator/` (1.2.0-1.4.0) or
+    `<root>/.orchestrator/` (1.1.0) into `<root>/.yngaiplaybook/`, config
+    and run logs kept, one `moved` line per item; from 1.1.0, when the
+    skill was `/orchestrate`, it also removes the old skill folder, its
+    links in every worktree and its exclude line. When
+    `<root>/.yngaiplaybook/` already exists, or both old folders do, it
+    moves and writes nothing there and warns: report it, naming the
+    folders.
 
     It also installs `yngv`, the file viewer, for the person, in
     `~/.local/bin` (Windows: `yngv.ps1` and a `yngv.cmd` shim, with the
@@ -132,7 +144,8 @@ existing folder.
       add the PATH line first.
     - On a first install: their merge rules are all `required`. Ask
       whether they want any path set to `auto`, and edit
-      `<root>/.yngorchestrator/config.yml` only as they answer.
+      `<root>/.yngaiplaybook/yngorchestratorconfig.yml` only as they
+      answer.
     - The next steps from [After installing](#after-installing).
 
 ------------------------------------------------------------------------
@@ -204,9 +217,12 @@ clone until you have checked the new one:
 
 ## After installing
 
-1.  **Set your merge rules** in `<root>/.yngorchestrator/config.yml`. For
-    example, to let the orchestrator merge slices into the Epic and
-    keep `main` for you:
+1.  **Set your merge rules** in
+    `<root>/.yngaiplaybook/yngorchestratorconfig.yml`. The folder's
+    `README.md` lists every file there and every merge key
+    ([template](templates/yngaiplaybookreadme.md)). For example, to let
+    the orchestrator merge slices into the Epic and keep `main` for
+    you:
 
     ``` yaml
     merge:
