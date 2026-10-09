@@ -249,7 +249,7 @@ Slice: #16
 
 ## R9 Skill name
 
-Slice: (planned in Epic #21)
+Slice: #22
 
 1.  The skill is invoked as `/yngorchestrator`. It lives in
     `skills/yngorchestrator/`, and its frontmatter `name` is
@@ -259,7 +259,7 @@ Slice: (planned in Epic #21)
 
 ## R10 Skill identity
 
-Slice: (planned in Epic #21)
+Slice: #23
 
 1.  `SKILL.md` frontmatter identifies the skill: `name`,
     `description`, and a `metadata` block with its display name
@@ -270,7 +270,7 @@ Slice: (planned in Epic #21)
 
 ## R11 Run-state folder
 
-Slice: (planned in Epic #21)
+Slice: #24
 
 1.  The person's config and the run logs live in
     `<root>/.yngorchestrator/` (`config.yml`, `runs/<epic>.md`).
@@ -284,7 +284,7 @@ Slice: (planned in Epic #21)
 
 ## R12 Documentation naming
 
-Slice: (planned in Epic #21)
+Slice: #25
 
 1.  README, INSTALL, guide section 25, the config template and the
     specs name the product **YNG Orchestrator**, the command
