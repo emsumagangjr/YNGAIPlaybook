@@ -1,7 +1,7 @@
 # Merge by rule
 
 Gate 2 is a person's decision. They make it per pull request, or in
-advance per merge path, in `<root>/.orchestrator/config.yml` (see
+advance per merge path, in `<root>/.yngorchestrator/config.yml` (see
 *The project root* in [SKILL.md](SKILL.md)). This step reads
 that decision for one pull request and either merges or hands it to the
 person.
@@ -31,7 +31,7 @@ step 2 holds.
 
 ## 1. Read the rule
 
-Read `<root>/.orchestrator/config.yml` as it is now, every time. It
+Read `<root>/.yngorchestrator/config.yml` as it is now, every time. It
 lives outside every worktree and branch, so only the person edits it
 and no pull request can change it.
 
