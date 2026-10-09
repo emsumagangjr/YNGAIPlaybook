@@ -27,7 +27,7 @@ Agent → Slice Branch → Epic Branch → main
 
 ```text
 YNGAIPlaybook/
-├── INSTALL.md             ← install the orchestrator: by hand, or ask your agent
+├── INSTALL.md             ← install the YNG Orchestrator: by hand, or ask your agent
 ├── guides/
 │   └── epic-workflow.md   ← the main guide: Epics, slices, specs, gates, worktrees
 ├── templates/             ← copy these into your own project
@@ -36,13 +36,13 @@ YNGAIPlaybook/
 │   ├── orchestrator-config.yml ← merge rules (lives in your project root, uncommitted)
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
-│   └── orchestrate/       ← the dispatcher as an agent: plan, dispatch, track
+│   └── yngorchestrator/   ← YNG Orchestrator, the dispatcher as an agent: plan, dispatch, track
 ├── agents/
 │   └── slice-worker.md    ← the worker it dispatches: one slice, worktree to PR
 └── scripts/
     ├── yngv.ps1 / .sh       ← view files from the CLI (markdown rendered in the browser)
     ├── yngshared.ps1 / .sh  ← share private files (.env, secrets) across worktrees
-    └── yngorch.ps1 / .sh    ← install or upgrade the orchestrator in a project, uncommitted
+    └── yngorch.ps1 / .sh    ← install or upgrade the YNG Orchestrator in a project, uncommitted
 ```
 
 ## Quick start
@@ -61,15 +61,15 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/orchestrate <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/yngorchestrator <epic issue>` from the Epic worktree. It plans the slices, dispatches the ones you promote to parallel workers, and hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 
 ## Roadmap
 
-- **More skills** — reusable, agent-runnable plays for the remaining steps the guide describes (triage, diagnose, implement, code review, and more). The orchestrator is the first.
+- **More skills** — reusable, agent-runnable plays for the remaining steps the guide describes (triage, diagnose, implement, code review, and more). The YNG Orchestrator is the first.
 
 ## License
 
-- Guides and templates: [CC BY 4.0](LICENSE). Share and adapt freely, with credit to Emeterio M. Sumagang Jr. · YNGSoftware.
+- Guides, templates, skills and agents: [CC BY 4.0](LICENSE). Share and adapt freely, with credit to Emeterio M. Sumagang Jr. · YNGSoftware.
 - Scripts in `scripts/`: [MIT](LICENSE-CODE).
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.

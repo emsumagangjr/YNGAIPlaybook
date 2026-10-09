@@ -1,6 +1,6 @@
-# Installing the Orchestrator
+# Installing the YNG Orchestrator
 
-How to set up the orchestrator (`/orchestrate` and its slice worker) in
+How to set up the YNG Orchestrator (`/yngorchestrator` and its slice worker) in
 your project. There are two ways:
 
 - [**Ask your agent**](#ask-your-agent): give it this repository's URL and
@@ -36,14 +36,14 @@ Start Claude Code in your project folder, or in the folder where the
 project should go, and tell it:
 
 ``` text
-Install the orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
+Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
 ```
 
 To upgrade to the latest version, or to repair an install, say
 *reinstall*:
 
 ``` text
-Reinstall the orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
+Reinstall the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
 ```
 
 In place of the URL you can give a playbook clone you already have,
@@ -111,17 +111,18 @@ existing folder.
     cause; report it.
 
     The installer overwrites the skill and worker and keeps the config,
-    so a reinstall runs the same command. On a reinstall, also delete
-    the broken links left in each worktree's
-    `.claude/skills/orchestrate/`: they point at files the new version
-    no longer ships.
+    so a reinstall runs the same command. Upgrading from 1.1.0, when the
+    skill was `/orchestrate`, it also moves `<root>/.orchestrator/` to
+    `<root>/.yngorchestrator/` (config and run logs kept) and removes the
+    old skill folder, its links in every worktree and its exclude line.
+    When both folders exist it warns and leaves both: report it.
 
 5.  **Report.** Tell the person:
     - The project root, the playbook version (`VERSION`) installed, and
       what the installer created or kept.
     - On a first install: their merge rules are all `required`. Ask
       whether they want any path set to `auto`, and edit
-      `<root>/.orchestrator/config.yml` only as they answer.
+      `<root>/.yngorchestrator/config.yml` only as they answer.
     - The next steps from [After installing](#after-installing).
 
 ------------------------------------------------------------------------
@@ -187,7 +188,7 @@ clone until you have checked the new one:
 
 ## After installing
 
-1.  **Set your merge rules** in `<root>/.orchestrator/config.yml`. For
+1.  **Set your merge rules** in `<root>/.yngorchestrator/config.yml`. For
     example, to let the orchestrator merge slices into the Epic and
     keep `main` for you:
 
@@ -211,9 +212,9 @@ clone until you have checked the new one:
     and push (guide, section 9).
 
 3.  **Run it:** start Claude Code in the Epic worktree and run
-    `/orchestrate`. It plans the slices and waits for your approval.
+    `/yngorchestrator`. It plans the slices and waits for your approval.
     Promote the slices an agent may take to `workflow:ready-for-agent`
-    on GitHub yourself (Gate 1), then run `/orchestrate` again (guide,
+    on GitHub yourself (Gate 1), then run `/yngorchestrator` again (guide,
     section 25).
 
 To upgrade, update the playbook copy and run the installer again; it
