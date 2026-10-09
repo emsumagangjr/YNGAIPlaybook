@@ -244,3 +244,52 @@ Slice: #16
     checks the machine and the layout, proposes any layout change and
     waits for approval, installs, and reports; it never commits to the
     project or moves an existing folder.
+
+------------------------------------------------------------------------
+
+## R9 Skill name
+
+Slice: (planned in Epic #21)
+
+1.  The skill is invoked as `/yngorchestrator`. It lives in
+    `skills/yngorchestrator/`, and its frontmatter `name` is
+    `yngorchestrator`.
+2.  Every path that names the skill folder (the worker, the dispatch
+    prompt's `REPORT` field) points at `skills/yngorchestrator/`.
+
+## R10 Skill identity
+
+Slice: (planned in Epic #21)
+
+1.  `SKILL.md` frontmatter identifies the skill: `name`,
+    `description`, and a `metadata` block with its display name
+    (YNG Orchestrator), version (the playbook's `VERSION`), author,
+    company and homepage, and license.
+2.  The body opens with one line naming it: YNG Orchestrator, part of
+    YNGAIPlaybook, by YNGSoftware.
+
+## R11 Run-state folder
+
+Slice: (planned in Epic #21)
+
+1.  The person's config and the run logs live in
+    `<root>/.yngorchestrator/` (`config.yml`, `runs/<epic>.md`).
+2.  The installer writes there. When it finds an older
+    `<root>/.orchestrator/` and no `<root>/.yngorchestrator/`, it moves
+    the folder, keeping the config and run logs; when both exist it
+    leaves both and warns.
+3.  On upgrade, the installer removes what the old name left behind:
+    `<root>/.shared/.claude/skills/orchestrate/`, the links to it in
+    every worktree, and its `.bare/info/exclude` line.
+
+## R12 Documentation naming
+
+Slice: (planned in Epic #21)
+
+1.  README, INSTALL, guide section 25, the config template and the
+    specs name the product **YNG Orchestrator**, the command
+    `/yngorchestrator`, the folders `skills/yngorchestrator/` and
+    `<root>/.yngorchestrator/`. "The orchestrator" stays as the role's
+    name in running text.
+2.  The spec folder is `docs/specs/yngorchestrator/`.
+3.  CHANGELOG entry; `VERSION` and the guide header move to 1.2.0.
