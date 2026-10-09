@@ -45,6 +45,32 @@ YNGAIPlaybook/
     └── yngorch.ps1 / .sh    ← install or upgrade the YNG Orchestrator in a project, uncommitted, plus yngv for you
 ```
 
+## Prerequisites
+
+You need, once per machine:
+
+- **Git** — `git --version`.
+- **The CLI for your Git host, logged in.** The workflow reads issues and opens pull (merge) requests through it.
+- **An AI coding agent** that edits files and runs commands (Claude Code, Codex, Cursor, pi, ...). For the YNG Orchestrator: Claude Code (`claude --version`), and on Windows, Developer Mode for the links (see [INSTALL.md](INSTALL.md)).
+
+Known Git host CLIs:
+
+| Host | CLI | Check | Log in | Install: Windows | Install: macOS | Install: Linux |
+|------|-----|-------|--------|------------------|----------------|----------------|
+| GitHub | [`gh`](https://cli.github.com) | `gh auth status` | `gh auth login` | `winget install --id GitHub.cli -e` | `brew install gh` | [cli.github.com](https://github.com/cli/cli/blob/trunk/docs/install_linux.md) |
+| GitLab | [`glab`](https://gitlab.com/gitlab-org/cli) | `glab auth status` | `glab auth login` | `winget install --id GLab.GLab -e` | `brew install glab` | [gitlab.com/gitlab-org/cli](https://gitlab.com/gitlab-org/cli#installation) |
+| Azure DevOps | [`az`](https://learn.microsoft.com/cli/azure/) + `azure-devops` extension | `az account show` | `az login` | `winget install --id Microsoft.AzureCLI -e` | `brew install azure-cli` | [learn.microsoft.com](https://learn.microsoft.com/cli/azure/install-azure-cli-linux) |
+| Gitea, Forgejo, Codeberg | [`tea`](https://gitea.com/gitea/tea) | `tea login list` | `tea login add` | `winget install --id Gitea.tea -e` | `brew install tea` | [gitea.com/gitea/tea](https://gitea.com/gitea/tea/releases) |
+| Git itself | `git` | `git --version` | — | `winget install --id Git.Git -e` | `brew install git` | your package manager, e.g. `sudo apt install git` |
+
+For Azure DevOps, add the extension after installing: `az extension add --name azure-devops`.
+
+The guide works with any of these hosts. The YNG Orchestrator and its slice worker currently drive **GitHub** only, through `gh`.
+
+### For the agent
+
+Before the first step that needs Git or the host CLI, check both with the commands above, for the host of the project's `origin` (`git remote get-url origin`). When one is missing, tell the person which, offer to install it with the command for their platform, and install only after they say yes. Logging in is interactive: ask the person to run the log-in command themselves (in Claude Code, `! gh auth login`), then check again.
+
 ## Quick start
 
 1. **Read the guide:** [guides/epic-workflow.md](guides/epic-workflow.md).
