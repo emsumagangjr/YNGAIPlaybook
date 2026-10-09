@@ -330,11 +330,20 @@ Epic: #39
     `git rev-parse --git-common-dir` inside a worktree, and from the
     folder holding `.bare/` when the session started at the root,
     which is outside Git.
-4.  `yngshared` (`.ps1` and `.sh`) also links the files of
-    `<root>/.shared/.claude/` into `<root>/.claude/`, as it does into
-    each worktree, so a session started at the root lists the skill
-    and the worker. `<root>/.claude/` is outside every worktree, so no
-    exclude line is needed.
+4.  `yngshared` (`.ps1` and `.sh`) `-link` / `--link` also links every
+    file of `<root>/.shared/.claude/` into `<root>/.claude/`, one
+    relative symlink per file, by the same rules as a worktree, so a
+    session started at the root lists the skill and the worker:
+    -   only `.claude/` goes to the root; `.env` and other items do not;
+    -   re-running keeps existing links, and a real file is kept unless
+        `-Force` / `--force` backs it up and links over it;
+    -   `-Name` / `--name` and `-WhatIf` / `--what-if` apply as they do
+        to worktrees; `-copy` and `-unlink` leave the root alone;
+    -   `<root>/.claude/` is outside every worktree, so no exclude line
+        is written for it.
+
+    `yngorch` (`.ps1` and `.sh`) runs `yngshared -link -All`, so it
+    links the root along with every worktree.
 5.  Claude Code's docs do not say how it finds skills in a folder
     outside Git. 4 is accepted only once a person has started a
     session at the root and seen `/yngorchestrator` listed. If it is

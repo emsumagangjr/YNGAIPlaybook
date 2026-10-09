@@ -39,6 +39,14 @@
 #
 #   Nothing inside .shared/ is ever changed, moved or deleted.
 #
+# PROJECT ROOT
+#   --link also links every file of .shared/.claude/ into the project root's
+#   own .claude/ (for example .claude/agents/slice-worker.md), by the same
+#   rules as a worktree, so a Claude Code session started at the root finds
+#   the same skills and agents. Only .claude/ goes to the root; .env and the
+#   other items do not. The root is outside every worktree, so it needs no
+#   exclude line. --copy and --unlink leave the root alone.
+#
 # REQUIREMENTS
 #   - bash 3.2+ (the macOS default is fine) and standard tools: ln, cp, mv,
 #     cmp, diff, readlink.
@@ -51,7 +59,8 @@
 #   the project root, so it cannot be run from anywhere else.
 #
 # HOW TO RUN
-#   ./yngshared.sh --link main                 link every .shared file into main/
+#   ./yngshared.sh --link main                 link every .shared file into main/,
+#                                              and .shared/.claude/ into the root
 #   ./yngshared.sh --link main epic-auth       several worktrees at once
 #   ./yngshared.sh --link --all --what-if      preview every worktree
 #   ./yngshared.sh --copy agent-x --name .env  agent-x gets its own .env only
@@ -310,7 +319,7 @@ linked_parent() {   # linked_parent DEST WT_PATH
 
 invoke_item_action() {   # invoke_item_action ACTION DEST REL LABEL WT_PATH
     local action="$1" dest="$2" rel_in="$3" label="$4" wt="$5" item rel state place same bak linked
-    item="$SHARED/$rel_in"; rel="$label/$rel_in"
+    item="$SHARED/$rel_in"; rel="${label:+$label/}$rel_in"
     if linked=$(linked_parent "$dest" "$wt"); then
         report warn "$rel" "parent folder ${linked#"$wt"/} is a link (older version?); replace it with a real folder first"
         problem; return
@@ -457,6 +466,17 @@ for arg in "${TARGETS[@]+"${TARGETS[@]}"}"; do
         invoke_item_action "$ACTION" "$WT_PATH/$item" "$item" "$WT_LABEL" "$WT_PATH"
     done
 done
+
+# --link also links .shared/.claude/ into the project root's own .claude/, so
+# a Claude Code session started at the root finds the same skills and agents.
+# The root is outside every worktree, so no exclude line is needed.
+if [ "$ACTION" = link ]; then
+    for item in "${ITEMS[@]}"; do
+        case "$item" in
+            .claude/*) invoke_item_action link "$ROOT/$item" "$item" "" "$ROOT" ;;
+        esac
+    done
+fi
 
 [ "$WHATIF" -eq 1 ] && echo "WhatIf: nothing was changed."
 [ "$PROBLEMS" -gt 0 ] && exit 1
