@@ -35,6 +35,7 @@ person promotes every issue (Gate 1) and a person decides every merge
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
 skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
+skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
 skills/yngorchestrator/dispatch.md  step: dispatch (R4)
 skills/yngorchestrator/track.md     step: tracking (R5)
@@ -210,9 +211,8 @@ Slice: #14
     commented on it.
 5.  It merges with a merge commit and deletes the head branch, then
     runs the post-merge path of R5.2.
-6.  Workers never merge. `fix-to-main` is honoured whenever the
-    orchestrator holds a standalone-fix pull request; the orchestrator
-    does not yet dispatch standalone fixes.
+6.  Workers never merge. `fix-to-main` governs the pull request of a
+    standalone run (R20).
 
 ## R8 Standalone install
 
@@ -395,7 +395,7 @@ Slice: #43
 
 The procedure is `skills/yngorchestrator/worktree.md`, reached from
 `locate.md` for an Epic run. Slice (R19) and standalone (R20) runs
-reach it only after their Gate 1 check.
+reach it from `scoped.md`, only after their Gate 1 check.
 
 1.  Per the branch's state:
     -   **local, with a worktree**: fetch, and fast-forward it when it
@@ -448,30 +448,50 @@ Slice: #41
 
 ## R19 Slice run
 
-Epic: #39
+Slice: #45
+
+The procedure is `skills/yngorchestrator/scoped.md`, reached from
+`locate.md` for a slice or a standalone issue. It runs that one issue
+to its hand-back; the Epic run's planning and dispatch rounds do not
+run.
 
 1.  A run on a slice handles that slice only: Gate 1 provenance (R4),
     its `Depends on:` issues closed, one `slice-worker` dispatched,
     its report tracked (R5), and its pull request merged by the
-    `slice-to-epic` rule (R7).
+    `slice-to-epic` rule (R7). Both checks run before `worktree.md`
+    (R17), so no branch is created for a slice that fails them.
 2.  A failed Gate 1 check or an open dependency stops the run with the
-    reason. The orchestrator never applies `workflow:ready-for-agent`.
-3.  After the merge it names the slices the merge unblocked, and does
-    not dispatch them: that is an Epic run.
+    reason, naming who applied the label or each open dependency. The
+    orchestrator never applies `workflow:ready-for-agent`; a slice left
+    at `workflow:in-progress` by an ended run fails Gate 1 until a
+    person promotes it again.
+3.  After the merge it closes the slice and removes its worktree and
+    local branch (R5.2), for that slice only. It then names the
+    slices the merge unblocked (the Epic's open slices whose
+    `Depends on:` names it and whose dependencies are now all closed),
+    and does not dispatch them: that is an Epic run.
+4.  A run on an issue at `workflow:in-review` resumes from its pull
+    request: an open one goes to the merge rule, a merged one to the
+    post-merge step. A `required` path or a held merge ends the run at
+    `workflow:in-review`; once a person has merged, a new run on the
+    issue closes it.
 
 ## R20 Standalone run
 
-Epic: #39
+Slice: #45
 
 1.  A run on a standalone issue checks Gate 1 (R4), uses
     `fix/<n>-<name>` from `origin/main` and its worktree, and
     dispatches one `slice-worker` with `PR BASE: main` and
     `SPEC: none`: the issue's acceptance criteria are the whole
-    contract.
+    contract, and the worker edits no spec.
 2.  Its pull request merges by the `fix-to-main` rule in
     `<root>/.yngorchestrator/config.yml`: `auto` through `merge.md`,
     otherwise a person merges. A missing key means `required`, as for
     every path (R7).
+3.  After the merge it closes the issue, if no closing keyword already
+    did, naming `main`, and removes the `fix/` worktree and local
+    branch. R19.4's resume applies the same way.
 
 ## R21 Run log and lock
 

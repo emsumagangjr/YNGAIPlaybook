@@ -4,7 +4,10 @@ Two paths. **On a report** runs once per completion report as it
 arrives. **On a merge** runs at every start, after step 1 of
 [SKILL.md](SKILL.md), and whenever a person says a slice PR merged.
 
-`<n>` is the slice issue number, `<epic>` the Epic branch. Every
+`<n>` is the slice issue number, `<epic>` the Epic branch. In a
+standalone run ([scoped.md](scoped.md)), `<n>` is the standalone
+issue, `<epic>` reads as `main`, and the merge path is `fix-to-main`.
+Every
 command names its target by absolute path, and every `gh` command
 carries `-R <owner>/<repo>` (*The project root* in
 [SKILL.md](SKILL.md)), so it runs the same from any folder. Every
@@ -49,7 +52,7 @@ Open decisions:
 ```
 
 Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
-`slice-to-epic` path.
+`slice-to-epic` path (`fix-to-main` in a standalone run).
 
 **`blocked` / `failed`**: count the slice's `dispatched` and
 `re-dispatched` lines in the run log.

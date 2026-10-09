@@ -25,7 +25,8 @@ counts. It passes when all three hold:
 
 On a failure, leave the slice untouched: tell the person the issue, who
 applied the label and why it failed, log `refused` with that reason,
-and move to the next slice.
+and move to the next slice. A slice or standalone run
+([scoped.md](scoped.md)) has no next slice: it stops.
 
 This check sees accounts, not intent. When you act through the person's
 own token, a label you applied reads as theirs and passes, which is why
@@ -35,6 +36,9 @@ only from a person.
 Done when the slice has passed, or been refused and reported.
 
 ## 2. Create the worktree
+
+A slice or standalone run skips this step: [worktree.md](worktree.md)
+has already set up its branch and worktree.
 
 Name the branch `slice/<n>-<name>` and the directory
 `slice-<epic>-<name>`, where `<epic>` is the Epic worktree's name
@@ -89,6 +93,10 @@ PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       <absolute path of skills/yngorchestrator/report.md>
 ```
+
+A standalone run ([scoped.md](scoped.md)) fills `SPEC: none`,
+`PR BASE: main`, and its `fix/<n>-<name>` branch and worktree: the
+issue's acceptance criteria are the whole contract.
 
 `LEAD-IN` is `diagnose` for a bug, `design the seam` for a refactor and
 `none` otherwise, unless the issue's `Lead-in:` line (written by
