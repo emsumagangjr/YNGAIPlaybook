@@ -294,3 +294,25 @@ Slice: #25
     name in running text.
 2.  The spec folder is `docs/specs/yngorchestrator/`.
 3.  CHANGELOG entry; `VERSION` and the guide header move to 1.2.0.
+
+------------------------------------------------------------------------
+
+## R13 The yngv viewer
+
+Slices: #32 (Windows), #33 (macOS/Linux), #34 (docs)
+
+1.  The installer also installs `yngv`, the playbook's file viewer, for
+    the person running it, in the user folder `~/.local/bin`, which its
+    own help names as the install location:
+    -   `yngorch.ps1`: `$HOME\.local\bin\yngv.ps1` and a `yngv.cmd` shim
+        beside it, so a bare `yngv` resolves from cmd, PowerShell and
+        bash;
+    -   `yngorch.sh`: `~/.local/bin/yngv` (from `yngv.sh`), executable.
+2.  Re-running overwrites only those files: it is the upgrade path.
+3.  `yngorch.ps1` adds the folder to the user's PATH when it is
+    missing, and says to open a new terminal. `yngorch.sh` edits no
+    shell startup file: when the folder is not on PATH it prints the
+    `export PATH=...` line to add.
+4.  `-SkipViewer` / `--skip-viewer` skips this step.
+5.  Nothing inside the project changes for `yngv`; it is per user, not
+    per project.

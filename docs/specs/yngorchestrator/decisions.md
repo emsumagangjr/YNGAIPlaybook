@@ -44,3 +44,9 @@ Dated log of options refused, one line of why each.
 - **2026-10-09** Refused: renaming `slice-worker` and the `yngorch`
   installer. The installer already carries the prefix; the worker is
   out of this Epic's scope.
+- **2026-10-09** Refused: installing `yngv` into the project root beside
+  `yngshared`. It is a personal tool, used from any folder; per user on
+  PATH makes a bare `yngv` work as `templates/agents.md` advises.
+- **2026-10-09** Refused: `yngorch.sh` appending to `~/.bashrc` or
+  `~/.zshrc`. Shells differ (bash, zsh, fish) and a startup file is the
+  person's; it prints the line instead.
