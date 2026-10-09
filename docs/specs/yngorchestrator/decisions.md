@@ -50,3 +50,28 @@ Dated log of options refused, one line of why each.
 - **2026-10-09** Refused: `yngorch.sh` appending to `~/.bashrc` or
   `~/.zshrc`. Shells differ (bash, zsh, fish) and a startup file is the
   person's; it prints the line instead.
+- **2026-10-09** Refused: a user-level install to run from the project
+  root. A personal skill outranks a project one of the same name, so
+  every project would run the user's copy and drift from its own
+  install; the root gets a `.claude/` link instead (R14).
+- **2026-10-09** Refused: handing off to a new session in the target
+  worktree. The skill already works by absolute path from the root;
+  a hand-off breaks the one-command run.
+- **2026-10-09** Refused: re-running the full `yngorch` installer for a
+  new worktree. It needs the playbook's source path, unknown inside
+  another project; `<root>/yngshared` is always there once installed.
+- **2026-10-09** Refused: requiring an open issue with the `epic` label.
+  The orchestrator works within whichever issue it is given: an Epic,
+  a slice or a standalone issue.
+- **2026-10-09** Refused: refusing closed issues outright. The person
+  may want one reopened and resumed; the orchestrator asks.
+- **2026-10-09** Refused: classifying by label only, or by tracker
+  structure only. A new Epic has no sub-issues yet, and a label alone
+  cannot tell a slice.
+- **2026-10-09** Refused: a slice run continuing into its siblings. It
+  stays within the slice named; driving the Epic is an Epic run.
+- **2026-10-09** Refused: a log per invoked issue. A slice logged apart
+  from its Epic leaves the Epic's log stale and risks a second
+  dispatch.
+- **2026-10-09** Refused: a new `issue-to-main` merge path. The
+  template's `fix-to-main` already covers standalone work on `fix/*`.
