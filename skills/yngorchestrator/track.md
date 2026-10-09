@@ -4,10 +4,12 @@ Two paths. **On a report** runs once per completion report as it
 arrives. **On a merge** runs at every start, after step 1 of
 [SKILL.md](SKILL.md), and whenever a person says a slice PR merged.
 
-`<n>` is the slice issue number, `<epic>` the Epic branch. Run `gh`
-from the Epic worktree. Every action below appends one line to the run
-log, in the format `SKILL.md` defines; the event to write is given with
-each action.
+`<n>` is the slice issue number, `<epic>` the Epic branch. Every
+command names its target by absolute path, and every `gh` command
+carries `-R <owner>/<repo>` (*The project root* in
+[SKILL.md](SKILL.md)), so it runs the same from any folder. Every
+action below appends one line to the run log, in the format `SKILL.md`
+defines; the event to write is given with each action.
 
 You move labels, close issues and remove worktrees. Merging follows
 the person's merge rule (Gate 2): when a PR is ready, you label it and
@@ -32,15 +34,15 @@ Done when you hold a well-formed report, or have classed it `failed`.
 the slice branch:
 
 ``` bash
-gh pr view <PR> --json state,baseRefName,headRefName
+gh pr view <PR> -R <owner>/<repo> --json state,baseRefName,headRefName
 ```
 
 Expect `OPEN`, `<epic>`, and the report's BRANCH. On any mismatch,
 treat the report as `failed`, cause "PR not open into <epic>". Then:
 
 ``` bash
-gh issue edit <n> --add-label workflow:in-review --remove-label workflow:in-progress
-gh issue comment <n> --body "In review: <PR>
+gh issue edit <n> -R <owner>/<repo> --add-label workflow:in-review --remove-label workflow:in-progress
+gh issue comment <n> -R <owner>/<repo> --body "In review: <PR>
 
 Open decisions:
 <REVIEW RECORD, one per line, or none>"
@@ -65,8 +67,8 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 - Two attempts: hand back to a person.
 
   ``` bash
-  gh issue edit <n> --add-label workflow:ready-for-human --remove-label workflow:in-progress
-  gh issue comment <n> --body "Handed back after two attempts. Last report:
+  gh issue edit <n> -R <owner>/<repo> --add-label workflow:ready-for-human --remove-label workflow:in-progress
+  gh issue comment <n> -R <owner>/<repo> --body "Handed back after two attempts. Last report:
 
   <the full report>"
   ```
@@ -76,8 +78,8 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 **`needs-human`**:
 
 ``` bash
-gh issue edit <n> --add-label workflow:ready-for-human --remove-label workflow:in-progress
-gh issue comment <n> --body "Needs a person: <ISSUES>"
+gh issue edit <n> -R <owner>/<repo> --add-label workflow:ready-for-human --remove-label workflow:in-progress
+gh issue comment <n> -R <owner>/<repo> --body "Needs a person: <ISSUES>"
 ```
 
 Log `ready-for-human`.
@@ -90,11 +92,12 @@ is posted, and the run log has the line.
 ### 1. Find merged slices
 
 ``` bash
-gh pr list --base <epic> --state merged --json number,url,headRefName
+gh pr list -R <owner>/<repo> --base <epic> --state merged --json number,url,headRefName
 ```
 
 Each `headRefName` of the form `slice/<n>-<name>` maps to issue `<n>`.
-Keep those whose issue is still open (`gh issue view <n> --json state`).
+Keep those whose issue is still open
+(`gh issue view <n> -R <owner>/<repo> --json state`).
 
 Done when you have the list of merged slices with open issues, or know
 it is empty.
@@ -102,7 +105,7 @@ it is empty.
 ### 2. Refresh the Epic worktree
 
 ``` bash
-git -C <epic worktree> pull
+git -C "<epic worktree>" pull
 ```
 
 ### 3. Close each slice
@@ -112,20 +115,20 @@ Closing keywords fire only on the default branch (guide section 6,
 it landed on:
 
 ``` bash
-gh issue edit <n> --remove-label workflow:in-review
-gh issue close <n> --comment "Merged into \`<epic>\` by <PR url>. The code is on the Epic branch and reaches main with the Epic."
+gh issue edit <n> -R <owner>/<repo> --remove-label workflow:in-review
+gh issue close <n> -R <owner>/<repo> --comment "Merged into \`<epic>\` by <PR url>. The code is on the Epic branch and reaches main with the Epic."
 ```
 
 Log `closed`.
 
 ### 4. Clean up
 
-Find the slice worktree's path with `git --git-dir=.bare worktree list`,
-then, from the project root (the folder holding `.bare/`):
+Find the slice worktree's absolute path with
+`git --git-dir="<root>/.bare" worktree list`, then:
 
 ``` bash
-git --git-dir=.bare worktree remove <slice worktree>
-git --git-dir=.bare branch -d slice/<n>-<name>
+git --git-dir="<root>/.bare" worktree remove "<slice worktree>"
+git --git-dir="<root>/.bare" branch -d slice/<n>-<name>
 ```
 
 Log `worktree removed`. When either command refuses (uncommitted

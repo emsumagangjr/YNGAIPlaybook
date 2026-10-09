@@ -1,7 +1,9 @@
 # Dispatch a slice
 
 Run steps 1 to 3 for each slice in turn, then step 4 once for all of
-them. Work from the project root, the folder holding `.bare/`.
+them. Every command names its target by absolute path (*The project
+root* in [SKILL.md](SKILL.md)), so the session's own folder does not
+matter.
 
 ## 1. Check provenance (Gate 1)
 
@@ -40,8 +42,8 @@ without `epic-` and `<name>` is a short kebab-case form of the slice's
 outcome. Branch from the Epic branch and record the Epic on the branch:
 
 ``` bash
-git --git-dir=.bare worktree add -b slice/<n>-<name> slice-<epic>-<name> <epic branch>
-git --git-dir=.bare config branch.slice/<n>-<name>.epicid <epic n>
+git --git-dir="<root>/.bare" worktree add -b slice/<n>-<name> "<root>/slice-<epic>-<name>" <epic branch>
+git --git-dir="<root>/.bare" config branch.slice/<n>-<name>.epicid <epic n>
 ```
 
 When the project root has a `.shared/` folder, link its files into the
@@ -49,15 +51,16 @@ new worktree with the `yngshared` script beside `.bare/` (the guide's
 *Shared private files* section has the manual loop when it is absent):
 
 ``` powershell
-.\yngshared.ps1 -link slice-<epic>-<name>      # Windows
+& "<root>\yngshared.ps1" -link "<root>\slice-<epic>-<name>"     # Windows
 ```
 
 ``` bash
-./yngshared.sh --link slice-<epic>-<name>      # macOS/Linux
+"<root>/yngshared.sh" --link "<root>/slice-<epic>-<name>"       # macOS/Linux
 ```
 
-Done when `git --git-dir=.bare worktree list` shows the worktree on its
-slice branch and `git --git-dir=.bare config --get branch.slice/<n>-<name>.epicid`
+Done when `git --git-dir="<root>/.bare" worktree list` shows the
+worktree on its slice branch and
+`git --git-dir="<root>/.bare" config --get branch.slice/<n>-<name>.epicid`
 prints the Epic.
 
 ## 3. Hand it out
@@ -80,7 +83,7 @@ the issue and from step 2; the worker reads nothing else to start.
 ISSUE:        #<n> <title>
 CRITERIA:     <the issue's acceptance criteria, verbatim>
 SPEC:         docs/specs/<feature>/requirements.md, section <Rn>
-WORKTREE:     <absolute path of slice-<epic>-<name>>
+WORKTREE:     <root>/slice-<epic>-<name>, as an absolute path
 BRANCH:       slice/<n>-<name>
 PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
