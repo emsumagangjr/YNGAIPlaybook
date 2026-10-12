@@ -93,3 +93,15 @@ Dated log of options refused, one line of why each.
   overwrite keeps it true.
 - **2026-10-09** Refused: 2.0.0 for the move. The migration is
   automatic, as the 1.2.0 move from `.orchestrator/` was.
+- **2026-10-12** Refused: one issues repo serving several code repos.
+  Each issue would have to name its code repo, and a run would have to
+  find the matching project root; this Epic covers one project with
+  one issues repo.
+- **2026-10-12** Refused: recording the issues repo in `.bare`'s Git
+  config. It is hidden from the person and outside the folder's
+  README; the config file is theirs and already read every run.
+- **2026-10-12** Refused: inferring the issues repo from a URL
+  argument alone. A bare number stays ambiguous, and a mistyped URL
+  would be trusted.
+- **2026-10-12** Refused: trackers other than GitHub in this Epic. The
+  docs' "use its equivalent" note covers them.
