@@ -19,7 +19,7 @@
         |   `-- agents\slice-worker.md  the worker it dispatches
         |-- .yngaiplaybook\             the playbook's files for this project
         |   |-- README.md               the folder explained (rewritten every run)
-        |   |-- yngorchestratorconfig.yml  merge rules (written only if absent)
+        |   |-- yngorchestratorconfig.yml  merge rules, issues repo (written only if absent)
         |   `-- yngorchestratorruns\    one run log per Epic, and run locks
         |-- .claude\                    linked from .shared\.claude\, for a session at the root
         |-- yngshared.ps1               links .shared\ into the worktrees
@@ -30,10 +30,14 @@
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
       3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template,
          only if absent; yngorchestratorruns\; README.md from the template.
+         With -IssuesRepo, write the config's issues: key, only if it has
+         no value yet; an existing value is kept and reported.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree,
          and .shared\.claude\ into the root's own .claude\.
-      6. Create or update the workflow labels with gh, when gh is available.
+      6. Create or update the workflow labels with gh, when gh is available,
+         in the issues repo: -IssuesRepo, else the config's issues: value,
+         else origin's repo.
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
 
@@ -60,6 +64,12 @@
     Any folder inside the project: the root, or any worktree. Default: the
     current folder.
 
+.PARAMETER IssuesRepo
+    <owner>/<repo> of the GitHub repository holding this project's issues,
+    when they live apart from the code. Written into the config's issues:
+    key only when it has no value yet, and used for the labels. Any other
+    form stops the install before anything is written.
+
 .PARAMETER SkipLabels
     Do not touch the repository's labels.
 
@@ -75,10 +85,15 @@
 
 .EXAMPLE
     F:\YNGAIPlaybook\scripts\yngorch.ps1 -Project D:\code\myproject
+
+.EXAMPLE
+    F:\YNGAIPlaybook\scripts\yngorch.ps1 -IssuesRepo acme/tracker
+    Issues live in acme/tracker; code, branches and pull requests in origin.
 #>
 [CmdletBinding()]
 param(
     [string]$Project = (Get-Location).Path,
+    [string]$IssuesRepo,
     [switch]$SkipLabels,
     [switch]$SkipViewer,
     [string]$BinDir = (Join-Path $HOME '.local\bin')
@@ -88,6 +103,42 @@ $ErrorActionPreference = 'Stop'
 $playbook = Split-Path -Parent $PSScriptRoot
 
 function Step([string]$Status, [string]$Text) { Write-Host ("  {0,-8} {1}" -f $Status, $Text) }
+
+# The issues repo (spec R28, R31): <owner>/<repo>, checked before anything
+# is written.
+$repoPattern = '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'
+if ($PSBoundParameters.ContainsKey('IssuesRepo') -and $IssuesRepo -notmatch $repoPattern) {
+    throw "-IssuesRepo '$IssuesRepo' is not <owner>/<repo>; nothing was written."
+}
+
+# The config's top-level issues: value; '' when absent or empty.
+function Get-IssuesValue([string]$Path) {
+    if (-not (Test-Path $Path)) { return '' }
+    $m = [regex]::Match([IO.File]::ReadAllText($Path), '(?m)^issues:[ \t]*([^\r\n]*)')
+    if (-not $m.Success) { return '' }
+    $v = ($m.Groups[1].Value -replace '^#.*', '' -replace '\s+#.*$', '').Trim()
+    if ($v -match '^"(.*)"$' -or $v -match "^'(.*)'$") { $v = $Matches[1].Trim() }
+    return $v
+}
+
+# Writes "issues: <Value>" into the config: over its empty issues: line,
+# else just after the template's commented-out one, else at the end.
+function Set-IssuesValue([string]$Path, [string]$Value) {
+    $text = [IO.File]::ReadAllText($Path)
+    $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $line = "issues: $Value"
+    $m = [regex]::Match($text, '(?m)^issues:[^\r\n]*')
+    if ($m.Success) { $text = $text.Substring(0, $m.Index) + $line + $text.Substring($m.Index + $m.Length) }
+    else {
+        $m = [regex]::Match($text, '(?m)^#[ \t]*issues:[^\r\n]*')
+        if ($m.Success) { $at = $m.Index + $m.Length; $text = $text.Substring(0, $at) + $nl + $line + $text.Substring($at) }
+        else {
+            if ($text -and -not $text.EndsWith("`n")) { $text += $nl }
+            $text += $line + $nl
+        }
+    }
+    [IO.File]::WriteAllText($Path, $text, (New-Object Text.UTF8Encoding $false))
+}
 
 # 1. The project root: the folder holding .bare\. From the root itself git
 # fails; Windows PowerShell 5.1 turns that into a terminating error, hence try.
@@ -120,6 +171,7 @@ $hasYnga = Test-Path -PathType Container $ynga
 if ($olds -and ($hasYnga -or @($olds).Count -gt 1)) {
     $names = @(if ($hasYnga) { '.yngaiplaybook\' }) + @($olds | ForEach-Object { "$_\" })
     Step 'warning' "found $($names -join ' '); moved nothing and left each as it is: move what you need into .yngaiplaybook\ by hand"
+    if ($IssuesRepo) { Step 'skipped' "issues: $IssuesRepo not written (move .yngaiplaybook\ by hand first, then run again)" }
 }
 else {
     if ($olds) {
@@ -142,6 +194,15 @@ else {
     New-Item -ItemType Directory -Force (Join-Path $ynga 'yngorchestratorruns') | Out-Null
     if (Test-Path $config) { Step 'kept' '.yngaiplaybook\yngorchestratorconfig.yml (yours)' }
     else { Copy-Item (Join-Path $playbook 'templates\yngorchestratorconfig.yml') $config; Step 'created' '.yngaiplaybook\yngorchestratorconfig.yml (every path required)' }
+    $current = Get-IssuesValue $config
+    if ($IssuesRepo -and -not $current) {
+        Set-IssuesValue $config $IssuesRepo
+        Step 'wrote' "issues: $IssuesRepo into .yngaiplaybook\yngorchestratorconfig.yml"
+    }
+    elseif ($IssuesRepo -and $current -ne $IssuesRepo) {
+        Step 'kept' "issues: $current in .yngaiplaybook\yngorchestratorconfig.yml (yours; -IssuesRepo $IssuesRepo not written)"
+    }
+    elseif ($current) { Step 'kept' "issues: $current in .yngaiplaybook\yngorchestratorconfig.yml" }
     $version = ([IO.File]::ReadAllText((Join-Path $playbook 'VERSION'))).Trim()
     $readme = [IO.File]::ReadAllText((Join-Path $playbook 'templates\yngaiplaybookreadme.md')).Replace('{{VERSION}}', $version)
     [IO.File]::WriteAllText((Join-Path $ynga 'README.md'), $readme, (New-Object Text.UTF8Encoding $false))
@@ -185,14 +246,23 @@ $out | Where-Object { $_ -match '^(warn|error)\b' } | ForEach-Object { Write-Hos
 if ($LASTEXITCODE -ne 0) { Step 'warning' 'yngshared reported problems above (symlinks need Developer Mode or an elevated shell)' }
 else { Step 'linked' 'every worktree and the root .claude\ (yngshared -link -All)' }
 
-# 6. Labels, when gh is available.
+# 6. Labels, when gh is available, in the issues repo: -IssuesRepo, else
+# the config's issues: value, else origin's repo (spec R31.3).
+$configIssues = Get-IssuesValue $config
 if ($SkipLabels) { Step 'skipped' 'labels (-SkipLabels)' }
 elseif (-not (Get-Command gh -ErrorAction SilentlyContinue)) { Step 'skipped' 'labels (gh not found)' }
+elseif (-not $IssuesRepo -and $configIssues -and $configIssues -notmatch $repoPattern) {
+    Step 'warning' "labels skipped: the config's issues: '$configIssues' is not <owner>/<repo>"
+}
 else {
-    $url = try { & git --git-dir=$common remote get-url origin 2>$null } catch { $null }
-    if (-not $url) { Step 'skipped' 'labels (no origin remote)' }
+    $repo = if ($IssuesRepo) { $IssuesRepo }
+            elseif ($configIssues) { $configIssues }
+            else {
+                $url = try { & git --git-dir=$common remote get-url origin 2>$null } catch { $null }
+                if ($url) { $url -replace '\.git$', '' }
+            }
+    if (-not $repo) { Step 'skipped' 'labels (no origin remote)' }
     else {
-        $repo = $url -replace '\.git$', ''
         $labels = @(
             @('epic',                     '3e4b9e', 'Feature: tracker card plus integration branch'),
             @('workflow:needs-triage',    'fbca04', 'Triage fills in every label'),

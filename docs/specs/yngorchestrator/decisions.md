@@ -105,3 +105,7 @@ Dated log of options refused, one line of why each.
   would be trusted.
 - **2026-10-12** Refused: trackers other than GitHub in this Epic. The
   docs' "use its equivalent" note covers them.
+- **2026-10-13** Refused: stopping the install on a malformed `issues:`
+  value already in the config. Only the labels depend on it, so they
+  are skipped with a warning; the orchestrator stops the run on it
+  (R28.3).
