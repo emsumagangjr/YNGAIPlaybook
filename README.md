@@ -33,7 +33,7 @@ YNGAIPlaybook/
 ├── templates/             ← copy these into your own project
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
-│   ├── yngorchestratorconfig.yml ← merge rules (lives in your project root, uncommitted)
+│   ├── yngorchestratorconfig.yml ← merge rules (lives in your project's .yngaiplaybook/, uncommitted)
 │   ├── yngaiplaybookreadme.md ← the README yngorch writes into your project's .yngaiplaybook/
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
@@ -62,7 +62,7 @@ YNGAIPlaybook/
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree. On an Epic it plans the slices and dispatches the ones you promote to parallel workers; on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Its merge rules and run logs live in `.yngaiplaybook/` in your project root (`yngorchestratorconfig.yml`, `yngorchestratorruns/`), with a `README.md` that explains each file ([template](templates/yngaiplaybookreadme.md)). Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree. On an Epic it plans the slices and dispatches the ones you promote to parallel workers; on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 
 ## Roadmap
 

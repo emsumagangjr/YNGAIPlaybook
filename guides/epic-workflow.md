@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.4.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.5.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -432,9 +432,9 @@ on the board worth watching.
 A person may decide Gate 2 in advance for a whole kind of merge
 instead of for each merge request: slice into Epic, Epic into `main`,
 standalone fix into `main`. The decision lives in
-`.yngorchestrator/config.yml` in the project root, beside `.bare/` and
-outside every worktree, as `required` (a person merges) or `auto` (the
-orchestrator merges once the work reports done, every check passes and
+`.yngaiplaybook/yngorchestratorconfig.yml` in the project root, beside
+`.bare/` and outside every worktree, as `required` (a person merges)
+or `auto` (the orchestrator merges once the work reports done, every check passes and
 the review record holds no open decision). No branch or merge request
 can change it, and every path defaults to `required`. See section 25.
 
@@ -1439,7 +1439,8 @@ It keeps to both gates:
 
 It is **standalone**: nothing of it is committed to the project. Its
 files sit in the project root, beside `.bare/` and outside every
-worktree:
+worktree. The playbook's own files for the project, the config and the
+run logs and locks, live in `.yngaiplaybook/`:
 
 ``` text
 myproject/
@@ -1449,9 +1450,10 @@ myproject/
 │       ├── skills/yngorchestrator/
 │       └── agents/slice-worker.md
 ├── .claude/                     # linked from .shared/.claude/, for a session at the root
-├── .yngorchestrator/
-│   ├── config.yml               # merge rules
-│   └── runs/
+├── .yngaiplaybook/              # the playbook's files, never committed
+│   ├── README.md                # the folder explained, written by yngorch
+│   ├── yngorchestratorconfig.yml # merge rules
+│   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
 ├── main/
@@ -1465,10 +1467,17 @@ writer of issue state at a time: a run creates it only when absent,
 deletes it when it ends, and stops when it finds one, showing what it
 holds. A lock left by a crashed run is yours to delete.
 
+Every item in `.yngaiplaybook/` is named `<tool><purpose>`, with no
+separator, so tools sharing the folder cannot collide; a later playbook
+feature that keeps files in the root puts them there the same way. The
+folder's `README.md`, which `yngorch` rewrites on every install from
+[templates/yngaiplaybookreadme.md](../templates/yngaiplaybookreadme.md),
+says what each file is for, who owns it, and how to change it.
+
 ### Merge rules
 
-`.yngorchestrator/config.yml` in the project root records the person's
-Gate 2 decision per merge path:
+`.yngaiplaybook/yngorchestratorconfig.yml` in the project root records
+the person's Gate 2 decision per merge path:
 
 ``` yaml
 merge:
@@ -1513,19 +1522,25 @@ C:\path\to\YNGAIPlaybook\scripts\yngorch.ps1     # Windows
 ```
 
 It finds the project root, copies the skill and worker into
-`.shared/.claude/`, writes `.yngorchestrator/config.yml` with every path
-`required` (only if you have none), hides the links with
+`.shared/.claude/`, writes `.yngaiplaybook/yngorchestratorconfig.yml`
+with every path `required` (only if you have none) and
+`.yngaiplaybook/README.md`, hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree, and `.shared/.claude/` into the root's own `.claude/`,
 through `yngshared`, creates the workflow labels
 with `gh` when it is installed, and puts `yngv`, the file viewer, in
 your `~/.local/bin` (on Windows it also adds that folder to your user
 PATH; on macOS/Linux it prints the line to add when it is missing).
-Then set your merge rules in `.yngorchestrator/config.yml`.
+Then set your merge rules in `.yngaiplaybook/yngorchestratorconfig.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
-link it; it never overwrites your config. The orchestrator links the
-worktrees it creates itself. `-Project <path>` / `--project
+link it; it never overwrites your config. Upgrading from 1.1.0-1.4.0,
+it moves the older `.yngorchestrator/` (or `.orchestrator/`) into
+`.yngaiplaybook/`, config and run logs kept, one line per item; when
+`.yngaiplaybook/` already exists, or both old folders do, it moves and
+writes nothing there and warns. A root with an old folder and no
+`.yngaiplaybook/` stops `/yngorchestrator`, which names `yngorch` to
+run. The orchestrator links the worktrees it creates itself. `-Project <path>` / `--project
 <path>` installs into a project other than the current folder, and
 `-SkipLabels` / `--skip-labels` leaves the labels alone, and
 `-SkipViewer` / `--skip-viewer` leaves `yngv` out.
