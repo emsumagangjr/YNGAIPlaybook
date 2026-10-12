@@ -32,7 +32,7 @@ person promotes every issue (Gate 1) and a person decides every merge
 ## Deliverables
 
 ``` text
-skills/yngorchestrator/SKILL.md     the orchestrator: role, run log, the step sequence
+skills/yngorchestrator/SKILL.md     the orchestrator: role, two repositories, run log, the step sequence
 skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15, R25, R29)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
@@ -98,7 +98,11 @@ Slice: #3
 3.  Updates the spec on the Epic branch in the same change as the code
     it describes.
 4.  Pushes the slice branch and opens a pull request into the Epic
-    branch. Never merges. Never changes labels.
+    branch. Never merges. Never changes labels. Reads the issue, and
+    names it in commits and the pull request, by the full reference
+    the dispatch prompt carries (R29.5); a fix pull request into
+    `main` opens with `Closes <owner>/<repo>#<n>`, a slice's with
+    `Implements <owner>/<repo>#<n>` (R30).
 5.  Stops with `needs-human` on anything in *Never promoted to
     `ready-for-agent`* that surfaces during the work. Unsure means
     human.
@@ -149,8 +153,9 @@ Slice: #5
     project has a `.shared/` folder.
 4.  Launches one slice worker per slice. Independent slices launch in
     parallel; a dependent slice waits for its inputs to merge into the
-    Epic branch. Each prompt is self-contained: issue number and
-    acceptance criteria, worktree path, branch, spec section.
+    Epic branch. Each prompt is self-contained: the issue's full
+    reference (R29.5) and acceptance criteria, worktree path, branch,
+    spec section.
 5.  Sets `workflow:in-progress` when it hands the slice out.
 
 ## R5 Tracking
@@ -356,9 +361,10 @@ Slices: #41 (items 1-3)
 
 Slice: #41
 
-1.  The issue must exist in `origin`'s repository. A URL to another
-    repository, or a number with no issue, stops the run with the
-    reason; so does a pull request's number or URL.
+1.  The issue must exist in the issues repo (R28, R29), which is
+    `origin`'s repository unless the config names another. A URL to
+    another repository, or a number with no issue, stops the run with
+    the reason; so does a pull request's number or URL.
 2.  The orchestrator classifies the issue:
     -   **Epic**: it carries the `epic` label, or has sub-issues;
     -   **slice**: it has a parent issue;
@@ -442,7 +448,7 @@ Slice: #41
     `git --git-dir=<root>/.bare`, the spec read from
     `<worktree>/docs/specs/...`, `WORKTREE:` given to workers as an
     absolute path. Every `gh` command names the repository with
-    `-R <owner>/<repo>`, taken from `origin`.
+    `-R`: the issues repo or the code repo (R29).
 2.  Nothing depends on the session's own folder, so a run started at
     the root, in `main/`, or in the target worktree behaves the same.
 
@@ -634,7 +640,7 @@ Epic: #54 · Slice: #57
 
 ## R28 The issues repo setting
 
-Epic: #66
+Epic: #66 · Slices: #69 (items 1-3), #67 (item 4)
 
 1.  A project may keep its issues in a separate GitHub repository, its
     **issues repo**, while code, branches and pull requests stay in
@@ -651,14 +657,19 @@ Epic: #66
     the code repo: every project without the key behaves as before.
 3.  The orchestrator reads the key fresh at the start of every run,
     as `merge:` is read at every merge (R7). A value that is not
-    `<owner>/<repo>` stops the run before the lock, naming the value.
+    `<owner>/<repo>` (two non-empty parts of letters, digits, `-`,
+    `_` and `.`, joined by one `/`) stops the run before the lock,
+    naming the value.
 4.  The config template documents the key, commented out, and the
     folder's README (R26) gives it a line: its purpose, its owner (the
     person), and that `yngorch` writes it only when absent.
 
 ## R29 Two repositories in a run
 
-Epic: #66
+Epic: #66 · Slice: #69
+
+The procedure is *Two repositories* in `skills/yngorchestrator/SKILL.md`
+and step 3 of `locate.md`.
 
 1.  Every issue command targets the issues repo: reading an issue, its
     parent and sub-issues, labels, comments, closing and reopening,
@@ -680,7 +691,7 @@ Epic: #66
 
 ## R30 Linking across repositories
 
-Epic: #66
+Epic: #66 · Slice: #69
 
 1.  A fix pull request (R20) and the Epic's pull request into `main`
     name their issue as `Closes <owner>/<repo>#<n>`, the full

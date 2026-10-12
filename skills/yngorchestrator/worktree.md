@@ -2,8 +2,9 @@
 
 You find the issue's branch, bring it and its worktree to a known
 state, and link the skill into a worktree you create. You arrive from
-[locate.md](locate.md) holding `<root>`, `<owner>/<repo>`, the issue
-`<n>`, its title, its kind and, for a slice, its parent. An Epic run
+[locate.md](locate.md) holding `<root>`, `<code repo>`,
+`<issues repo>`, the issue `<n>`, its title, its kind and, for a
+slice, its parent. An Epic run
 comes straight from locate.md; a slice run (R19) and a standalone run
 (R20) come from [scoped.md](scoped.md), only after their Gate 1
 check, so no branch is created for an issue a person has not promoted.
@@ -11,7 +12,9 @@ They run steps 1 to 4 and return there.
 
 Every command names its target by absolute path, as in locate.md: `git
 --git-dir="<root>/.bare"` or `git -C <worktree>`, and `gh` with
-`-R <owner>/<repo>`. The session's own folder does not matter.
+`-R <issues repo>` (*Two repositories* in [SKILL.md](SKILL.md)). The
+session's own folder does not matter. Branch names carry the issues
+repo's number; the branches themselves are the code repo's.
 
 The run already holds its lock (*The lock* in [SKILL.md](SKILL.md)).
 When a step stops the run, tell the person the reason in one sentence,
@@ -39,7 +42,7 @@ Then find the branch, in this order:
    backticks or spaces. With a name, skip 2 and 3:
 
    ``` bash
-   gh api "repos/<owner>/<repo>/issues/<n>" --jq .body \
+   gh api "repos/<issues repo>/issues/<n>" --jq .body \
      | sed -n 's/^Branch:[[:space:]]*`\{0,1\}\([^`[:space:]]*\).*/\1/p' | head -n 1
    ```
 
@@ -229,7 +232,7 @@ exists on the Epic branch.
 ## 6. Hand on
 
 - **Epic**: go on with step 1 of [SKILL.md](SKILL.md), holding
-  `<root>`, `<owner>/<repo>`, the Epic `<n>`, `<epic branch>`,
+  `<root>`, `<code repo>`, `<issues repo>`, the Epic `<n>`, `<epic branch>`,
   `<epic worktree>` and the spec folder
   `<epic worktree>/docs/specs/<feature>/`;
 - **slice**, **standalone**: hold `<branch>` and `<worktree>` for the
