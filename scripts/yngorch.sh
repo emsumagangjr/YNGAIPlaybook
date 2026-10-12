@@ -14,9 +14,10 @@
 #   |-- .shared/.claude/
 #   |   |-- skills/yngorchestrator/ the orchestrator skill
 #   |   `-- agents/slice-worker.md  the worker it dispatches
-#   |-- .yngorchestrator/
-#   |   |-- config.yml              merge rules (written only if absent)
-#   |   `-- runs/                   one run log per Epic
+#   |-- .yngaiplaybook/             the playbook's files for this project
+#   |   |-- README.md               the folder explained (rewritten every run)
+#   |   |-- yngorchestratorconfig.yml  merge rules (written only if absent)
+#   |   `-- yngorchestratorruns/    one run log per Epic, and run locks
 #   |-- .claude/                    linked from .shared/.claude/, for a session at the root
 #   |-- yngshared.sh                links .shared/ into the worktrees
 #   `-- main/, epic-.../, ...       worktrees, linked file by file
@@ -24,7 +25,8 @@
 # Steps, all safe to repeat:
 #   1. Find the project root from --project (default: the current folder).
 #   2. Copy the skill and worker into .shared/.claude/ (upgrades in place).
-#   3. Write .yngorchestrator/config.yml from the template, only if absent.
+#   3. Fill .yngaiplaybook/: yngorchestratorconfig.yml from the template,
+#      only if absent; yngorchestratorruns/; README.md from the template.
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
 #   5. Copy yngshared.sh into the project root and link every worktree,
 #      and .shared/.claude/ into the root's own .claude/.
@@ -33,10 +35,15 @@
 #      Per user, not per project. When that folder is not on PATH it prints
 #      the line to add to your shell's startup file; it edits none itself.
 #
-# Upgrading from 1.1.0 (the skill was named "orchestrate"): step 3 moves
-# .orchestrator/ to .yngorchestrator/, keeping your config and run logs
-# (when both exist it leaves both and warns), and steps 2, 4 and 5 remove
-# the old skill folder, its exclude line and its links in every worktree.
+# Upgrading from 1.1.0-1.4.0: step 3 moves .yngorchestrator/ (1.2.0-1.4.0)
+# or .orchestrator/ (1.1.0) into .yngaiplaybook/, one line per item:
+# config.yml becomes yngorchestratorconfig.yml, runs/ becomes
+# yngorchestratorruns/, any other file keeps its name, and the emptied old
+# folder goes. When .yngaiplaybook/ already exists, or both old folders do,
+# it moves nothing, leaves each folder as it is, and warns: move what you
+# need by hand. From 1.1.0 (the skill was named "orchestrate"), steps 2, 4
+# and 5 also remove the old skill folder, its exclude line and its links in
+# every worktree.
 #
 # Run it again after creating a worktree, or to upgrade: it re-links every
 # worktree and never overwrites your config.
@@ -47,7 +54,7 @@
 
 set -euo pipefail
 
-usage() { sed -n '2,46p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,53p' "$0" | sed 's/^# \{0,1\}//'; }
 
 project=$PWD
 skip_labels=0
@@ -88,15 +95,43 @@ if [ -d "$root/.shared/.claude/skills/orchestrate" ]; then
     rm -rf "$root/.shared/.claude/skills/orchestrate"; step removed ".shared/.claude/skills/orchestrate/ (renamed yngorchestrator)"
 fi
 
-# 3. Config, only if absent; run logs folder. A 1.1.0 .orchestrator/ moves here.
-if [ -d "$root/.orchestrator" ]; then
-    if [ -d "$root/.yngorchestrator" ]; then step warning "both .orchestrator/ and .yngorchestrator/ exist; left both, move what you need by hand"
-    else mv "$root/.orchestrator" "$root/.yngorchestrator"; step moved ".orchestrator/ -> .yngorchestrator/ (config and run logs kept)"; fi
+# 3. The playbook's root folder, .yngaiplaybook/ (spec R23-R26). An older
+# .yngorchestrator/ (1.2.0-1.4.0) or .orchestrator/ (1.1.0) moves into it
+# first, item by item; when that is ambiguous, nothing moves or is created.
+ynga="$root/.yngaiplaybook"
+config="$ynga/yngorchestratorconfig.yml"
+olds=""
+for d in .yngorchestrator .orchestrator; do [ -d "$root/$d" ] && olds="$olds $d"; done
+set -- $olds
+if [ $# -gt 0 ] && { [ -d "$ynga" ] || [ $# -gt 1 ]; }; then
+    names=""; [ -d "$ynga" ] && names=" .yngaiplaybook/"
+    for d in "$@"; do names="$names $d/"; done
+    step warning "found${names}; moved nothing and left each as it is: move what you need into .yngaiplaybook/ by hand"
+else
+    if [ $# -eq 1 ]; then
+        old=$1
+        mkdir -p "$ynga"
+        for item in "$root/$old"/* "$root/$old"/.[!.]* "$root/$old"/..?*; do
+            [ -e "$item" ] || [ -L "$item" ] || continue
+            name=$(basename "$item")
+            case "$name" in
+                config.yml) dest=yngorchestratorconfig.yml ;;
+                runs) dest=yngorchestratorruns ;;
+                *) dest=$name ;;
+            esac
+            s=""; [ -d "$item" ] && s=/
+            mv "$item" "$ynga/$dest"; step moved "$old/$name$s -> .yngaiplaybook/$dest$s"
+        done
+        if rmdir "$root/$old" 2>/dev/null; then step removed "$old/ (empty)"
+        else step warning "$old/ is not empty; left in place"; fi
+    fi
+    mkdir -p "$ynga/yngorchestratorruns"
+    if [ -f "$config" ]; then step kept ".yngaiplaybook/yngorchestratorconfig.yml (yours)"
+    else cp "$playbook/templates/yngorchestratorconfig.yml" "$config"; step created ".yngaiplaybook/yngorchestratorconfig.yml (every path required)"; fi
+    version=$(tr -d '\r\n' < "$playbook/VERSION")
+    sed "s/{{VERSION}}/$version/g" "$playbook/templates/yngaiplaybookreadme.md" > "$ynga/README.md"
+    step wrote ".yngaiplaybook/README.md (the folder explained, $version)"
 fi
-mkdir -p "$root/.yngorchestrator/runs"
-config="$root/.yngorchestrator/config.yml"
-if [ -f "$config" ]; then step kept ".yngorchestrator/config.yml (yours)"
-else cp "$playbook/templates/orchestrator-config.yml" "$config"; step created ".yngorchestrator/config.yml (every path required)"; fi
 
 # 4. Exclude lines, only if missing; the 1.1.0 line goes.
 exclude="$root/.bare/info/exclude"

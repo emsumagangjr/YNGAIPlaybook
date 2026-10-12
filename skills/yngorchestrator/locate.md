@@ -28,7 +28,29 @@ Check `"$root/.bare"` is a folder. When `root` is unset, or Git's
 common dir is not a `.bare` folder, stop: the session is not inside a
 project laid out as the guide's bare repository and worktrees.
 
-Done when `<root>` is an absolute path whose `.bare/` exists.
+Then check the root has been migrated to `<root>/.yngaiplaybook/`
+(R25). Test only whether the folders exist; open nothing in them:
+
+``` bash
+if [ ! -d "$root/.yngaiplaybook" ] &&
+   { [ -d "$root/.yngorchestrator" ] || [ -d "$root/.orchestrator" ]; }; then
+  echo "unmigrated"
+fi
+```
+
+On `unmigrated`, stop before the lock, before reading the issue, and
+before touching anything. Name the old folder you found, and tell the
+person to re-run `yngorch` (`.ps1` or `.sh`) from the playbook: it
+moves the config and the run logs into `<root>/.yngaiplaybook/`. Then
+they start the run again. Never move, copy or read the old folder
+yourself.
+
+A root with neither folder is a fresh install: go on. The config is
+then absent (every merge path `required`), and the lock step creates
+`yngorchestratorruns/`.
+
+Done when `<root>` is an absolute path whose `.bare/` exists, and the
+root holds `.yngaiplaybook/` or no older folder.
 
 ## 2. Read the argument
 
