@@ -4,6 +4,15 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.6.0] — 2026-10-12
+
+Agents tell specs from context, and flag spec decisions that should become project rules.
+
+### Added
+- `templates/agents.md` gains a **Specs and Context** section. `context.md` is the project's standing brief; `docs/specs/<feature>/` (`requirements.md`, `decisions.md`) is one feature's contract, and only an Epic needs one. Agents never edit `context.md`: a decision that should hold project-wide ends its `decisions.md` entry with `→ context` and is listed under **Promote to context** in the pull request, for the owner to promote at the Epic's spec-level review.
+
+---
+
 ## [1.5.0] — 2026-10-09
 
 The playbook's files in your project root live in one folder, `.yngaiplaybook/`.
