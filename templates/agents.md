@@ -55,6 +55,17 @@ See the [Epic Workflow guide](https://github.com/emsumagangjr/YNGAIPlaybook/blob
 
 ---
 
+## Specs and Context
+
+Two kinds of project document, kept apart:
+
+- **[context.md](context.md)** is the project's standing brief: goals, roles, rules, stack, file map. Every agent reads it every session, so it holds only what stays true across features. Keep feature detail out of it; point to the spec instead.
+- **`docs/specs/<feature>/`** is one feature's contract: `requirements.md` (numbered sections, `Rn`, that slices implement and the Epic is reviewed against) and `decisions.md` (dated options refused, one line of why each). An Epic gets a spec. A standalone fix needs none: its issue's acceptance criteria are the contract.
+
+**Promoting a rule.** Never edit `context.md` yourself; it is the orchestrator's. When a decision you record should hold project-wide, end its `decisions.md` entry with `→ context`, and list it under **Promote to context** in your pull request description. The orchestrator reviews these at the Epic's spec-level review and copies the ones they accept into `context.md`'s Custom Instructions. The spec keeps the history; context keeps the rule.
+
+---
+
 ## Viewing Files
 
 Use the `yngv` command to view files from the CLI instead of dumping raw text: [yngv.ps1](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.ps1) on Windows, [yngv.sh](https://github.com/emsumagangjr/YNGAIPlaybook/blob/main/scripts/yngv.sh) on macOS/Linux (e.g. `yngv notes.md`). It detects the file extension and renders accordingly — markdown opens rendered in the browser by default (falling back to a styled console view), and any unrecognized file type is shown as plain text. The YNG Orchestrator installer (`yngorch`) puts it in `~/.local/bin` on your PATH. See the script's own help (`Get-Help ./yngv.ps1 -Full`, or `yngv.sh -h`) for requirements, install steps, and usage.
