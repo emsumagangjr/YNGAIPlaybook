@@ -19,7 +19,7 @@
         |   `-- agents\slice-worker.md  the worker it dispatches
         |-- .yngaiplaybook\             the playbook's files for this project
         |   |-- README.md               the folder explained (rewritten every run)
-        |   |-- yngorchestratorconfig.yml  merge rules, issues repo (written only if absent)
+        |   |-- yngorchestratorconfig.yml  issues repo, auto-promote, merge rules (written only if absent)
         |   `-- yngorchestratorruns\    one run log per Epic, and run locks
         |-- .claude\                    linked from .shared\.claude\, for a session at the root
         |-- yngshared.ps1               links .shared\ into the worktrees
@@ -267,7 +267,7 @@ else {
             @('epic',                     '3e4b9e', 'Feature: tracker card plus integration branch'),
             @('workflow:needs-triage',    'fbca04', 'Triage fills in every label'),
             @('workflow:needs-info',      'd876e3', 'A person must answer before work starts'),
-            @('workflow:ready-for-agent', '0e8a16', 'Gate 1 passed: an agent may pick it up (set by a person only)'),
+            @('workflow:ready-for-agent', '0e8a16', 'Gate 1 passed: an agent may pick it up (set by a person, or by plan approval if auto-promote: yes)'),
             @('workflow:ready-for-human', '1d76db', 'Gate 1 passed: a person picks it up'),
             @('workflow:in-progress',     'c5def5', 'Being worked; no PR yet (set by the dispatcher)'),
             @('workflow:in-review',       '5319e7', 'PR open, waiting for a person (set by the dispatcher)'))

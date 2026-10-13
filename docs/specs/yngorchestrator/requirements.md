@@ -612,7 +612,7 @@ Epic: #54 · Slice: #55
     -   one section per feature with files here (today
         `yngorchestrator`): each file's purpose, its owner (the person
         or the playbook), whether `yngorch` overwrites it, and how to
-        change it (the `merge` keys and their values);
+        change it (every config key, as R37.4 sets out);
     -   links to the playbook's INSTALL and guide section 25;
     -   the installed playbook version.
 
@@ -738,7 +738,7 @@ Epic: #66 · Slice: #68
 
 ## R33 The auto-promote setting
 
-Epic: #74
+Epic: #74 · Slice: #75 (item 1, the template)
 
 1.  The config (R23) decides Gate 1 in advance with a top-level
     yes/no key, as `merge:` decides Gate 2 (R7). The template carries
@@ -817,7 +817,7 @@ Epic: #74
 
 ## R37 The config, documented
 
-Epic: #74
+Epic: #74 · Slice: #75
 
 1.  `templates/yngorchestratorconfig.yml` documents every key it
     holds, `issues:`, `auto-promote:` and each `merge:` path, each with:
@@ -838,6 +838,18 @@ Epic: #74
 4.  The folder's README (R26) gives every key the same facts in its
     `yngorchestrator` section, as a table, and the two examples.
 5.  Every key added later is documented the same way, in both files.
+6.  The documentation is written for a person reading the file cold:
+    plain words, and each term (Epic, slice, plan, Gate 1, Gate 2) is
+    glossed in the template's header and above the README's table.
+    The template stays valid YAML with the defaults unchanged, and
+    the worked examples stay commented, so only the live keys are
+    read.
+7.  No comment line other than the `# issues: <owner>/<repo>`
+    placeholder begins with `# issues:`, so `yngorch -IssuesRepo`
+    writes the key just after that placeholder (R31.2).
+8.  The `workflow:ready-for-agent` label that `yngorch` creates is
+    described as set by a person, or by plan approval when
+    `auto-promote: yes` (R36), in both `.ps1` and `.sh`.
 
 ## R38 Documentation and version
 
