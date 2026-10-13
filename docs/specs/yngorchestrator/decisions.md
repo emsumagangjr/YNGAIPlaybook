@@ -109,3 +109,24 @@ Dated log of options refused, one line of why each.
   value already in the config. Only the labels depend on it, so they
   are skipped with a warning; the orchestrator stops the run on it
   (R28.3).
+- **2026-10-13** Refused: a fully automatic mode with no plan approval.
+  No person would see the scope before code is written.
+- **2026-10-13** Refused: the orchestrator applying
+  `workflow:ready-for-agent` with no record. Through the person's own
+  token it reads as theirs, and Gate 1 could no longer be checked.
+- **2026-10-13** Refused: invoking the run on a standalone issue
+  counting as its promotion. Promotion stays a deliberate act.
+- **2026-10-13** Refused: auto-promoting any open issue. Anyone who can
+  open an issue could put an agent to work.
+- **2026-10-13** Refused: plan approval overriding the guide's
+  Never-promoted list. The list stays absolute.
+- **2026-10-13** Refused: a separate `workflow:plan-approved` label.
+  The comment and run-log line carry the record without another label
+  to install and explain.
+- **2026-10-13** Refused: recording a plan promotion in the run log
+  only. Nothing on the issue would show who promoted it.
+- **2026-10-13** Refused: one `mode` switch setting both gates. It
+  couples two gates and hides which one was loosened.
+- **2026-10-13** Refused: a per-Epic `Promote:` line in the issue body.
+  Anyone who can edit the Epic could switch Gate 1 off; the config is
+  the person's alone.
