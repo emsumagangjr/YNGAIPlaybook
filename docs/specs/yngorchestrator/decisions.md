@@ -130,3 +130,6 @@ Dated log of options refused, one line of why each.
 - **2026-10-13** Refused: a per-Epic `Promote:` line in the issue body.
   Anyone who can edit the Epic could switch Gate 1 off; the config is
   the person's alone.
+- **2026-10-13** Refused: `promote: label | plan`. The values name the
+  mechanism, not the outcome; a yes/no `auto-promote:` with its
+  description says what turning it on does, and where it still stops.

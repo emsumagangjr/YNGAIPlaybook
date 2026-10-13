@@ -736,37 +736,42 @@ Epic: #66 · Slice: #68
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.7.0.
 
-## R33 The promote setting
+## R33 The auto-promote setting
 
 Epic: #74
 
-1.  The config (R23) decides Gate 1 in advance with a top-level key,
-    as `merge:` decides Gate 2 (R7):
+1.  The config (R23) decides Gate 1 in advance with a top-level
+    yes/no key, as `merge:` decides Gate 2 (R7). The template carries
+    it with this description, word for word:
 
     ``` yaml
-    promote: label    # label | plan
+    # Promote approved slices to Agent-Ready automatically.
+    #   no   You promote each slice (label workflow:ready-for-agent)
+    #        before an agent may start it. (default)
+    #   yes  Approving the Epic's plan promotes its agent slices, and
+    #        work starts at once. The run still stops whenever your
+    #        attention is required: approving the plan, slices only a
+    #        person may do, open review decisions, merges you keep, and
+    #        repeated failures.
+    auto-promote: no
     ```
 
-    | Value   | A slice reaches a worker when                              |
-    |---------|------------------------------------------------------------|
-    | `label` | a person applied `workflow:ready-for-agent` (the default)  |
-    | `plan`  | a person approved the plan that created it (R34)           |
-
-2.  An absent key, or any value other than `plan`, means `label`:
-    every project without the key behaves as before.
+2.  `yes` (or `true`, any case) turns it on. An absent key, or any
+    other value, means `no`: every project without the key behaves
+    as before.
 3.  The orchestrator reads the key fresh at the start of every run.
-4.  `promote:` and `merge:` stay separate: each gate keeps its own
-    advance decision. A hands-off Epic is `promote: plan` with
+4.  `auto-promote:` and `merge:` stay separate: each gate keeps its
+    own advance decision. A hands-off Epic is `auto-promote: yes` with
     `slice-to-epic: auto`; `epic-to-main` stays as the person set it.
 
 ## R34 Plan approval promotes
 
 Epic: #74
 
-1.  With `promote: plan`, planning (R3) is unchanged up to the
+1.  With `auto-promote: yes`, planning (R3) is unchanged up to the
     person's approval of the plan table. That approval is the
     promotion: the plan table says so above it ("Approving this plan
-    promotes the slices routed to an agent: `promote: plan`").
+    promotes the slices routed to an agent: `auto-promote: yes`").
 2.  Each slice routed to an agent is created labelled
     `workflow:ready-for-agent` instead of `workflow:needs-triage`.
 3.  The run goes straight on to dispatch (R4) in the same run, with no
@@ -778,7 +783,7 @@ Epic: #74
 
 Epic: #74
 
-1.  With `promote: plan`, a slice routed to a person (the guide's
+1.  With `auto-promote: yes`, a slice routed to a person (the guide's
     *Never promoted to `ready-for-agent`* list, or the planner unsure)
     is created labelled `workflow:ready-for-human`, never
     `workflow:ready-for-agent`. Plan approval cannot override the
@@ -794,28 +799,28 @@ Epic: #74
 
 1.  Each slice promoted by plan approval gets, when it is created:
     -   the label `workflow:ready-for-agent`;
-    -   a comment: `Promoted by plan approval (promote: plan), <date>.
+    -   a comment: `Promoted by plan approval (auto-promote: yes), <date>.
         Plan approved by the person in the orchestrator session.`;
     -   a run-log line: `<date> #<n> promoted by plan approval`.
 2.  Dispatch's Gate 1 check (R4) accepts a slice when either holds:
     -   the last `workflow:ready-for-agent` was applied by a person,
         as today; or
-    -   the config says `promote: plan` now, the slice is a sub-issue
+    -   the config says `auto-promote: yes` now, the slice is a sub-issue
         of the Epic being run, and the Epic's run log has its
         `promoted by plan approval` line.
 3.  A standalone issue, or a slice created by hand, has no such line:
     it reaches a worker only through a person's label, whatever
-    `promote:` says. A slice or standalone run (R19, R20) checks the
+    `auto-promote:` says. A slice or standalone run (R19, R20) checks the
     same way.
-4.  With `promote: label`, the run-log line counts for nothing: a
-    plan promotion made under `plan` does not survive switching back.
+4.  With `auto-promote: no`, the run-log line counts for nothing: a
+    plan promotion made under `yes` does not survive switching to `no`.
 
 ## R37 The config, documented
 
 Epic: #74
 
 1.  `templates/yngorchestratorconfig.yml` documents every key it
-    holds, `issues:`, `promote:` and each `merge:` path, each with:
+    holds, `issues:`, `auto-promote:` and each `merge:` path, each with:
     -   what it decides, and which gate (Gate 1, Gate 2) or concern;
     -   every allowed value and what it does;
     -   the default, and what an absent key or unknown value means;
@@ -828,7 +833,7 @@ Epic: #74
     fresh each run.
 3.  The template ends with two worked examples, commented: the
     default (every gate with a person) and hands-off
-    (`promote: plan`, `slice-to-epic: auto`), each listing where the
+    (`auto-promote: yes`, `slice-to-epic: auto`), each listing where the
     run still stops for a person.
 4.  The folder's README (R26) gives every key the same facts in its
     `yngorchestrator` section, as a table, and the two examples.
@@ -840,7 +845,7 @@ Epic: #74
 
 1.  Guide section 6 names Gate 1 *by plan approval* beside *Gate 2 by
     policy*: what it allows, what it never allows (R35, R36.3), and
-    its record (R36). Section 25 shows the `promote:` key.
-2.  README and INSTALL mention `promote:` where they mention `merge:`.
+    its record (R36). Section 25 shows the `auto-promote:` key.
+2.  README and INSTALL mention `auto-promote:` where they mention `merge:`.
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.8.0.
