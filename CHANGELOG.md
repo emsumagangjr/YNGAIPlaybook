@@ -18,7 +18,7 @@ A person can give Gate 1 by approving an Epic's plan, when the config says so.
 - Plan approval never promotes a slice on the guide's *Never promoted to `ready-for-agent`* list (it is created `workflow:ready-for-human` and listed in the hand-back ahead of what it holds up), a standalone issue, or a slice created by hand. Switching back to `no` withdraws every plan promotion.
 - `templates/yngorchestratorconfig.yml` documents every key (what it decides, its values, default, when it is read, who changes it), glosses its terms, and ends with two worked examples: the default and hands-off. The folder's README template gives every key the same facts as a table.
 - `yngorch` describes the `workflow:ready-for-agent` label as set by a person or by plan approval, and its closing lines name `auto-promote` beside the merge rules.
-- Guide section 6 gains *Gate 1 by plan approval*, beside *Gate 2 by policy*; section 25 gains *Auto-promote*. README and INSTALL mention `auto-promote:` where they mention `merge:`. The spec gains R33-R38.
+- Guide section 6 gains *Gate 1 by plan approval*, beside *Gate 2 by policy*; section 25 gains *Auto-promote*. README and INSTALL mention `auto-promote:` where they mention `merge:`, and `templates/agents.md` names plan approval as the second way a person promotes. The spec gains R33-R38.
 
 ---
 
