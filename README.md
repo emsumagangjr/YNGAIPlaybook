@@ -33,7 +33,7 @@ YNGAIPlaybook/
 ├── templates/             ← copy these into your own project
 │   ├── agents.md          ← agent onboarding: who you are, your rules
 │   ├── context.md         ← per-project context
-│   ├── yngorchestratorconfig.yml ← merge rules (lives in your project's .yngaiplaybook/, uncommitted)
+│   ├── yngorchestratorconfig.yml ← merge rules and issues repo (lives in your project's .yngaiplaybook/, uncommitted)
 │   ├── yngaiplaybookreadme.md ← the README yngorch writes into your project's .yngaiplaybook/
 │   └── claude.md          ← entry point for Claude, defers to agents.md
 ├── skills/
@@ -89,6 +89,7 @@ Before the first step that needs Git or the host CLI, check both with the comman
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
 6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Its merge rules and run logs live in `.yngaiplaybook/` in your project root (`yngorchestratorconfig.yml`, `yngorchestratorruns/`), with a `README.md` that explains each file ([template](templates/yngaiplaybookreadme.md)). Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree. On an Epic it plans the slices and dispatches the ones you promote to parallel workers; on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+7. **Keep issues in their own repository** (optional): when your issues belong apart from the code (a public tracker for a private codebase, say), name that GitHub repository in the config's `issues:` key as `<owner>/<repo>`, or install with `-IssuesRepo <owner>/<repo>` (`--issues-repo` in `yngorch.sh`), which writes the key only when it has no value yet. The orchestrator then works the issues in that repository and the code, branches and pull requests in `origin`'s, and names every issue by its full reference, `<owner>/<repo>#<n>`, so links from the code repository reach the right issue ([guide, section 25](guides/epic-workflow.md#25-running-the-dispatcher-as-the-yng-orchestrator)).
 
 ## Roadmap
 

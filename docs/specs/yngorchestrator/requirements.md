@@ -727,7 +727,7 @@ Epic: #66 · Slice: #67
 
 ## R32 Documentation and version
 
-Epic: #66
+Epic: #66 · Slice: #68
 
 1.  Every script change lands in both `.ps1` and `.sh`.
 2.  README, INSTALL and guide section 25 describe the issues repo:

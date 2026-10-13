@@ -4,6 +4,22 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.7.0] — 2026-10-13
+
+A project can keep its issues in a separate GitHub repository from its code.
+
+### Added
+- The config gains a top-level `issues: <owner>/<repo>` key naming the project's **issues repo**; code, branches and pull requests stay in `origin`'s repository, the **code repo**. Absent, empty, or naming the code repo, the two are one repository, as before. `templates/yngorchestratorconfig.yml` documents it, commented out, and `templates/yngaiplaybookreadme.md` gives it a line.
+- `yngorch` takes `-IssuesRepo <owner>/<repo>` (`.ps1`) and `--issues-repo <owner>/<repo>` (`.sh`). It writes the `issues:` key only when the config has no value yet, and reports an existing value without overwriting it. Any other form, a URL included, stops the install before anything is written.
+
+### Changed
+- `yngorch` creates the labels in the issues repo: the flag's value, else the config's `issues:` value, else `origin`'s repository. A malformed config value, with no flag, skips the labels with a warning.
+- `/yngorchestrator` reads the `issues:` key at the start of every run and stops before the lock on a value that is not `<owner>/<repo>`. Every issue command targets the issues repo and every code command the code repo, each `gh` call naming its repository with `-R`. A URL argument must name the issues repo.
+- Issues are named by full reference, `<owner>/<repo>#<n>`, wherever the code repo's side names them, with or without the `issues:` key: the dispatch prompt's `ISSUE` field, commits, and pull requests. A slice's pull request says `Implements <owner>/<repo>#<n>`; a fix pull request and the Epic's pull request into `main` say `Closes <owner>/<repo>#<n>`.
+- README, INSTALL and guide section 25 describe the issues repo: when to use one, the key, the install flag, and full references across the two repositories. The spec gains R28-R32.
+
+---
+
 ## [1.6.0] — 2026-10-12
 
 Agents tell specs from context, and flag spec decisions that should become project rules.
