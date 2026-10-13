@@ -694,18 +694,25 @@ Epic: #66
 
 ## R31 Install with an issues repo
 
-Epic: #66
+Epic: #66 · Slice: #67
 
 1.  `yngorch` takes `-IssuesRepo <owner>/<repo>` (`.ps1`) and
     `--issues-repo <owner>/<repo>` (`.sh`).
 2.  With it, `yngorch` writes the `issues:` key into the config only
     when the config has no `issues:` value yet, and says so; an
     existing value is kept and reported, never overwritten (R8.5).
+    The line goes over an empty `issues:` line, else just after the
+    template's commented-out `# issues:` line, else at the end of the
+    file; the file's line endings are kept. When R24's move is
+    ambiguous and moves nothing, the key is not written either, and
+    `yngorch` says so.
 3.  Labels (`epic` and `workflow:*`) are created in the issues repo:
     the flag's value, else the config's `issues:` value, else
-    `origin`'s repo.
+    `origin`'s repo. A config value that is not `<owner>/<repo>`,
+    with no flag, skips the labels with a warning naming it.
 4.  A value that is not `<owner>/<repo>` stops the install before
-    anything is written.
+    anything is written. `<owner>` is letters, digits and `-`;
+    `<repo>` adds `.` and `_`; a URL is refused.
 
 ## R32 Documentation and version
 
