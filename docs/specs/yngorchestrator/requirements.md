@@ -248,7 +248,8 @@ Slice: #16
     or `scripts/yngorch.sh` (macOS/Linux), run from anywhere inside the
     project. It performs 1-4, links every worktree through `yngshared`,
     and creates or updates the workflow labels when `gh` is available.
-    Re-running is safe; it never overwrites the config. (Slice #18.)
+    Re-running is safe; it never overwrites the config, and only adds
+    the settings it lacks (R39). (Slice #18.)
 6.  `INSTALL.md` gives the whole path two ways: by hand, or by a person
     pointing their agent at this repository. The agent's procedure
     checks the machine and the layout, proposes any layout change and
@@ -842,8 +843,9 @@ Epic: #74 · Slice: #75
     -   who changes it (the person) and whether `yngorch` writes it.
 2.  The template's header is accurate: where the file lives, that it
     is never committed and no branch can change it, that `yngorch`
-    writes it only when absent, and that the orchestrator reads it
-    fresh each run.
+    writes it whole only when absent and otherwise only adds the
+    settings it lacks (R39), and that the orchestrator reads it fresh
+    each run.
 3.  The template ends with two worked examples, commented: the
     default (every gate with a person) and hands-off
     (`auto-promote: yes`, `slice-to-epic: auto`), each listing where the
@@ -878,3 +880,121 @@ Epic: #74 · Slice: #77
     `auto-promote` beside the merge rules: the config it creates is
     `auto-promote: no` with every merge path `required`, and the next
     step is to set both.
+
+## R39 Config upgrade on reinstall
+
+Epic: #82
+
+1.  When a config file that `yngorch` installs from a template (R41)
+    already exists, `yngorch` brings it up to date with its template:
+    every setting the template has and the file lacks is added.
+    Nothing already in the file is changed, removed or reordered:
+    values, comments, blank lines, encoding and line endings stay as
+    they are. A file that is absent is still written whole from the
+    template (R8.5).
+2.  A **setting** is a section of the template that starts at a
+    `# --- Setting: <name> ---` header line and runs to the line before
+    the next such header, the worked-examples banner, or the end of the
+    file. `<name>`, the header's first word after `Setting:`, is the
+    setting's top-level key. A section is a setting whether its key is
+    active or ships commented out (`# issues: <owner>/<repo>`).
+3.  The **worked-examples banner** is the first line beginning
+    `# ====`. Everything from it to the end of the template is
+    documentation: never a setting, never added.
+4.  A **nested key** is an active key indented under an active key
+    whose value is a block, one key per line (`merge:` holding
+    `slice-to-epic:`). It is named by its path, `merge.slice-to-epic`.
+    The same rule applies level by level, at any depth.
+5.  **Present** means:
+    -   a setting: its key is active at the start of a line
+        (`<name>:`), or its `# --- Setting: <name> ---` header is in
+        the file. A key commented out under a kept header is present
+        and stays commented out. A section the person deleted, header
+        and key, is missing and comes back at its template value,
+        which behaves as the absent key did.
+    -   a nested key: an active key of that name in its parent's block.
+        A commented-out line (`# <key>:`) is not an active key.
+6.  A missing setting is inserted whole, its section's lines exactly as
+    in the template, just above the file's worked-examples banner; in
+    a file with no banner, at the end, after a final line break if the
+    file lacks one. Several missing settings go in template order.
+7.  A missing nested key is inserted just after the last key line of
+    its parent's block, at the indentation of that block's keys,
+    carrying its template line's trailing comment. A parent that is
+    missing comes with its whole section (6), its keys included. A
+    parent that is present but not active (its key commented out) gets
+    no keys added.
+8.  A nested key is not inserted, and is reported with a warning
+    (R40.4), when its parent cannot be extended line by line:
+    -   the parent's value is written on the parent's own line (`merge: {slice-to-epic: auto}`);
+    -   the block's indentation holds a tab, or its keys are not all
+        at one indentation;
+    -   the parent key is active more than once at its level.
+
+    The warning names the key, the reason, and the exact line to paste
+    by hand. Every other missing setting and key is still added.
+9.  Inserted lines use the file's line endings, CRLF or LF, taken from
+    its first line break; a file with none takes the template's.
+10. It runs after the migration (R24) and before the `issues:` write
+    (R31.2). When R24.2 holds and nothing is created in
+    `.yngaiplaybook/`, it changes nothing either, and says so.
+11. Re-running adds nothing: after one run the file holds every
+    setting and key it can, and a second run reports nothing new.
+
+## R40 Backup and report
+
+Epic: #82
+
+1.  Before its first change to a file, `yngorch` copies the file to
+    `<file>.bak` beside it
+    (`.yngaiplaybook/yngorchestratorconfig.yml.bak`), replacing an
+    older backup. When nothing is added, no backup is written and an
+    existing one is left as it is.
+2.  It reports, one line each, in the install's step format:
+    -   the backup: `backed up .yngaiplaybook/yngorchestratorconfig.yml -> yngorchestratorconfig.yml.bak`;
+    -   each setting added: `added .yngaiplaybook/yngorchestratorconfig.yml: <name> (new in the template)`;
+    -   each nested key added: `added .yngaiplaybook/yngorchestratorconfig.yml: <path>: <value> (new in the template)`;
+    -   nothing added: `kept .yngaiplaybook/yngorchestratorconfig.yml (yours, nothing new)`.
+3.  Every active key in the file, top-level or nested, that the
+    template does not have, active or commented out, gets a note:
+    `note .yngaiplaybook/yngorchestratorconfig.yml: <path> is not in the template; the orchestrator ignores it`.
+    The key is left as it is. A note is not a warning.
+4.  A key skipped by R39.8 is a warning, counted with the install's
+    other warnings, so an agent doing the install reports it
+    (INSTALL, *For the agent doing the install*).
+
+## R41 Every config file
+
+Epic: #82
+
+1.  The upgrade (R39, R40) is one routine in each script, taking a
+    template and its target file. `yngorch` runs it for every config
+    file it installs from a template, from one list of pairs. Today the
+    list holds one pair: `templates/yngorchestratorconfig.yml` ->
+    `.yngaiplaybook/yngorchestratorconfig.yml`. A config file added
+    later is one more pair, with no new upgrade code.
+2.  Every config template follows the layout the routine relies on:
+    one `# --- Setting: <name> ---` header above each top-level key;
+    block values one key per line, indented with spaces; worked
+    examples, if any, commented, below a `# ====` banner line.
+3.  A config file added later is named by R23.2 and documented as
+    R37 sets out.
+4.  Both `yngorch.ps1` and `yngorch.sh` behave the same and print the
+    same lines (R27.1).
+
+## R42 Documentation and version
+
+Epic: #82
+
+1.  The template's header (R37.2) says `yngorch` writes the file whole
+    only when absent, and on a reinstall adds the settings and keys it
+    lacks without changing any line, after backing it up to
+    `<file>.bak`. Each setting's *Changed by* line says `yngorch` adds
+    the key when missing and never changes it.
+2.  The folder's README (R26) says the same in its `yngorchestrator`
+    section, and its layout tree (R23.2) shows
+    `yngorchestratorconfig.yml.bak`.
+3.  INSTALL's reinstall text and guide section 25 say a reinstall keeps
+    every setting the person has and adds new ones, with the backup.
+4.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.9.0.
