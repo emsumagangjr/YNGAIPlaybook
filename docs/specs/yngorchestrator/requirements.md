@@ -759,14 +759,17 @@ Epic: #74 · Slice: #75 (item 1, the template)
 2.  `yes` (or `true`, any case) turns it on. An absent key, or any
     other value, means `no`: every project without the key behaves
     as before.
-3.  The orchestrator reads the key fresh at the start of every run.
+3.  The orchestrator reads the key fresh at the start of every run,
+    beside `issues:` (locate.md step 3), and holds it to the run's
+    end. It takes the value as it takes `issues:` (no trailing comment,
+    quotes or spaces); a bad value never stops the run.
 4.  `auto-promote:` and `merge:` stay separate: each gate keeps its
     own advance decision. A hands-off Epic is `auto-promote: yes` with
     `slice-to-epic: auto`; `epic-to-main` stays as the person set it.
 
 ## R34 Plan approval promotes
 
-Epic: #74
+Epic: #74 · Slice: #76
 
 1.  With `auto-promote: yes`, planning (R3) is unchanged up to the
     person's approval of the plan table. That approval is the
@@ -781,7 +784,7 @@ Epic: #74
 
 ## R35 Human-routed slices stay with a person
 
-Epic: #74
+Epic: #74 · Slice: #76
 
 1.  With `auto-promote: yes`, a slice routed to a person (the guide's
     *Never promoted to `ready-for-agent`* list, or the planner unsure)
@@ -795,7 +798,7 @@ Epic: #74
 
 ## R36 The record of a plan promotion
 
-Epic: #74
+Epic: #74 · Slice: #76
 
 1.  Each slice promoted by plan approval gets, when it is created:
     -   the label `workflow:ready-for-agent`;
@@ -808,6 +811,15 @@ Epic: #74
     -   the config says `auto-promote: yes` now, the slice is a sub-issue
         of the Epic being run, and the Epic's run log has its
         `promoted by plan approval` line.
+
+    The application the orchestrator makes at creation is judged by
+    the second route only, even when it reads on the timeline as the
+    person's (the orchestrator acting through their token): for a
+    slice with the log line, the first application never counts as a
+    person's. The second route holds only while that first application
+    is the only one; a label applied again later, after a dispatch or
+    a hand-back, must come from a person. A pass by the second route
+    logs `gate 1 by plan approval`.
 3.  A standalone issue, or a slice created by hand, has no such line:
     it reaches a worker only through a person's label, whatever
     `auto-promote:` says. A slice or standalone run (R19, R20) checks the

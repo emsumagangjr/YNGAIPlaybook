@@ -1,8 +1,16 @@
 # Plan the slices
 
 You split the Epic into slices, show the plan to the person, and create
-the slice issues once they approve it. Planning ends at
-`workflow:needs-triage`: promotion is the person's (Gate 1).
+the slice issues once they approve it. Promotion is the person's
+(Gate 1), and `<auto-promote>` (step 3 of [locate.md](locate.md))
+says when they give it:
+
+| `<auto-promote>` | The person promotes                  | Planning ends at                                   |
+|------------------|--------------------------------------|----------------------------------------------------|
+| `no`             | each slice, by its label, after planning | `workflow:needs-triage`                        |
+| `yes`            | the agent slices, by approving the plan (R34) | agent slices at `workflow:ready-for-agent`, human slices at `workflow:ready-for-human`, and dispatch in the same run |
+
+Plan approval never promotes a slice routed to a person (R35).
 
 ## 1. Read
 
@@ -47,7 +55,15 @@ slices that can run in parallel is noted.
 
 ## 3. Present
 
-Show the person the whole plan as one table, then the open questions:
+Show the person the whole plan as one table, then the open questions.
+With `<auto-promote>` `yes`, put this line above the table, so the
+person knows what their approval does:
+
+``` text
+Approving this plan promotes the slices routed to an agent: `auto-promote: yes`.
+```
+
+With `no`, the table has no such line.
 
 ``` text
 | #  | Slice (outcome)                     | Spec | Depends on | Files              | Lead-in  | Route          |
@@ -67,11 +83,24 @@ Done when the person has approved the plan in so many words.
 Create the issues in dependency order, so each `Depends on` can name a
 real issue number. On a re-plan, create only the new slices; an
 existing issue keeps its labels, and its body changes only where the
-person approved the change. For each new slice:
+person approved the change. For each new slice, `<label>` comes from
+`<auto-promote>` and the slice's route:
+
+| `<auto-promote>` | Route | `<label>`                  |
+|------------------|-------|----------------------------|
+| `no`             | any   | `workflow:needs-triage`    |
+| `yes`            | agent | `workflow:ready-for-agent` |
+| `yes`            | human | `workflow:ready-for-human` |
 
 ``` bash
-gh issue create -R <issues repo> --title "<outcome>" --label "workflow:needs-triage" --body-file <file>
+gh issue create -R <issues repo> --title "<outcome>" --label "<label>" --body-file <file>
 ```
+
+A slice routed to a person is never created `workflow:ready-for-agent`,
+whatever the config says: plan approval cannot override the guide's
+*Never promoted to `ready-for-agent`* list (R35). On a re-plan, only
+the new slices the person approved get a promoting label; an existing
+slice keeps its labels (R34.4).
 
 The body, with the optional lines only when they apply:
 
@@ -101,12 +130,39 @@ gh api -X POST "repos/<issues repo>/issues/<epic>/sub_issues" -F sub_issue_id="$
 
 Append `<date> #<n> planned` to the run log for each.
 
+With `<auto-promote>` `yes`, record each slice created
+`workflow:ready-for-agent` as promoted by plan approval (R36.1), once
+it is attached to the Epic. Comment on it:
+
+``` bash
+gh issue comment <n> -R <issues repo> --body "Promoted by plan approval (auto-promote: yes), <date>.
+Plan approved by the person in the orchestrator session."
+```
+
+and append `<date> #<n> promoted by plan approval` to the run log.
+That line is what step 1 of [dispatch.md](dispatch.md) checks, so
+write it only for a slice the person approved in this plan, created
+`workflow:ready-for-agent` by this run and attached to this Epic. A
+slice routed to a person gets neither.
+
 Done when every approved slice is an open sub-issue of the Epic
-labelled `workflow:needs-triage`, and each has its run log line.
+labelled `<label>`, each has its `planned` line and, with `yes`, each
+agent slice has its comment and its `promoted by plan approval` line.
 
 ## 5. Hand to Gate 1
 
-Tell the person, in one list, which slices are ready to promote:
+With `<auto-promote>` `yes`, the person's approval was Gate 1 for the
+agent slices. Tell them, in one list, which slices were promoted by it
+and which wait for a person (`workflow:ready-for-human`), each with
+its reason and the slices whose `Depends on:` waits on it. Then go
+straight on to step 3 of [SKILL.md](SKILL.md) in this run: no second
+invocation is needed (R34.3).
+
+Done, with `yes`, when the person has the list and the run has gone on
+to dispatch.
+
+With `no`, tell the person, in one list, which slices are ready to
+promote:
 
 - to `workflow:ready-for-agent`: the slices routed to an agent, those
   with no dependencies first;
@@ -116,4 +172,4 @@ Tell the person, in one list, which slices are ready to promote:
 Promotion is theirs. Every label beyond `workflow:needs-triage` is set
 by the person, so a slice reaches dispatch only through their hands.
 
-Done when the person has the list.
+Done, with `no`, when the person has the list.

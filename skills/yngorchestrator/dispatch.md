@@ -9,7 +9,9 @@ matter. Every command here is an issue command: `gh` carries
 ## 1. Check provenance (Gate 1)
 
 The issue must carry `workflow:ready-for-agent` now, and a person must
-have applied it. Read who applied it from the issue timeline:
+have promoted it: by applying the label, or, with `<auto-promote>`
+`yes`, by approving the plan that created it ([plan.md](plan.md)).
+Read who applied the label from the issue timeline:
 
 ``` bash
 gh api repos/<issues repo>/issues/<n>/timeline --paginate \
@@ -18,11 +20,44 @@ gh api repos/<issues repo>/issues/<n>/timeline --paginate \
 ```
 
 Events come oldest first, so the last line is the application that
-counts. It passes when all three hold:
+counts. It passes when either route holds.
+
+**A person's label.** All three hold:
 
 - `actor.type` is `User`;
 - the login is no bot account (none ending in `[bot]`);
 - `performed_via_github_app` is empty (`-`).
+
+When the run log `<log>` has a `promoted by plan approval` line for
+`#<n>`, the first application on the timeline is the one this
+orchestrator made when it created the slice, not a person's, even
+though it may read as theirs. This route then counts only a later
+application.
+
+**Plan approval** (R36.2). All four hold:
+
+- `<auto-promote>` is `yes` now, as read at the start of this run;
+- the issue is a sub-issue of the Epic being run, so its parent is
+  `<log>` (the parent is read as in step 4 of [locate.md](locate.md);
+  a standalone run's `<log>` is the issue itself, which has no
+  parent);
+- `<root>/.yngaiplaybook/yngorchestratorruns/<log>.md` has the line
+  `<date> #<n> promoted by plan approval`:
+
+  ``` bash
+  grep -Eq "^[^ ]+ #<n> promoted by plan approval$" \
+    "<root>/.yngaiplaybook/yngorchestratorruns/<log>.md"
+  ```
+
+- the timeline shows exactly one application of the label: the one
+  made at creation. A label applied again later, after a dispatch or
+  a hand-back, is judged by the person's-label route alone.
+
+A standalone issue, or a slice created by hand, has no such line: it
+passes only by a person's label, whatever `<auto-promote>` says. With
+`<auto-promote>` `no`, this route is closed and the line counts for
+nothing (R36.3-4). On a pass by plan approval, log
+`gate 1 by plan approval`.
 
 On a failure, leave the slice untouched: tell the person the issue, who
 applied the label and why it failed, log `refused` with that reason,
@@ -32,7 +67,10 @@ and move to the next slice. A slice or standalone run
 This check sees accounts, not intent. When you act through the person's
 own token, a label you applied reads as theirs and passes, which is why
 you never apply `workflow:ready-for-agent` yourself: that label comes
-only from a person.
+only from a person. The one exception is [plan.md](plan.md) creating
+an approved agent slice with `<auto-promote>` `yes`, and that
+application passes only by the plan-approval route above, never as a
+person's label.
 
 Done when the slice has passed, or been refused and reported.
 

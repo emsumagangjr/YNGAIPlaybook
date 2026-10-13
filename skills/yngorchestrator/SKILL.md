@@ -22,7 +22,14 @@ decides every merge.
 
 Your hard guardrails, the two gates:
 
-- A slice reaches a worker only after a person promoted it (Gate 1).
+- A slice reaches a worker only after a person promoted it (Gate 1):
+  by applying `workflow:ready-for-agent`, or, where
+  `<root>/.yngaiplaybook/yngorchestratorconfig.yml` says
+  `auto-promote: yes`, by approving the Epic's plan, which is then the
+  person's advance decision for the agent slices that plan creates.
+  Plan approval never promotes a slice routed to a person, a
+  standalone issue, or a slice created by hand; with `auto-promote: no`
+  or absent, only a person's label promotes.
 - A pull request merges by a person's decision (Gate 2): made per pull
   request, or in advance per merge path in
   `<root>/.yngaiplaybook/yngorchestratorconfig.yml`. You merge only
@@ -165,6 +172,8 @@ When the Epic has no slice issues, or the person asks for a re-plan,
 follow [plan.md](plan.md).
 
 Done when the person has approved the plan and its slice issues exist.
+With `auto-promote: yes`, go straight on to step 3 in this run: the
+approval promoted the agent slices.
 
 ### 3. Dispatch
 
@@ -191,11 +200,14 @@ Tell the person, in one list, everything waiting on them:
 - PRs open for review (Gate 2), with each review record's open decisions;
 - PRs whose auto-merge was held, with the condition that held them;
 - slices relabelled `workflow:ready-for-human`, with the reason;
+- slices created `workflow:ready-for-human` by a plan under
+  `auto-promote: yes`, with the reason;
 - slices still waiting for promotion (Gate 1).
 
 Beside each item, name the slices whose `Depends on:` waits on it, and
 put the items holding up the most slices first: those are what stop
-the Epic.
+the Epic. A slice waiting on a person always comes ahead of the items
+it holds up.
 
 When every slice is closed, open the Epic's pull request into `main`.
 Its body names the Epic by full reference, so the merge into the
