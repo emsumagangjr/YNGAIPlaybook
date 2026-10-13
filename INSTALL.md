@@ -10,7 +10,7 @@ your project. There are two ways:
 Both end in the same place. Nothing is committed to your project:
 everything goes in the project root, beside `.bare/`, outside every
 worktree (guide, section 25). The playbook's files for your project
-(merge rules, run logs) live in `<root>/.yngaiplaybook/`, explained by
+(merge rules, issues repo, run logs) live in `<root>/.yngaiplaybook/`, explained by
 the `README.md` the installer writes there
 ([template](templates/yngaiplaybookreadme.md)). This folder is not the
 per-machine playbook copy in `~/.yngaiplaybook`.
@@ -27,6 +27,10 @@ You need these once per machine:
 | GitHub CLI, logged in | `gh auth status` |
 | Claude Code | `claude --version` |
 | Windows only: Developer Mode, for the links | Settings → System → For developers |
+
+When the project keeps its issues in a separate GitHub repository (its
+*issues repo*, see [After installing](#after-installing)), the account
+`gh` is logged in with needs access to both repositories.
 
 Your project must use the playbook's layout: a bare repository in
 `.bare/`, with one folder per worktree (guide, sections 7 and 8). Both
@@ -53,7 +57,8 @@ Reinstall the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlayboo
 In place of the URL you can give a playbook clone you already have,
 such as `F:\YNGAIPlaybook\main`; the agent uses it exactly as it is. For
 a new project, add your repository: `...into a new project for
-https://github.com/you/myproject`.
+https://github.com/you/myproject`. When the project's issues live in a
+separate repository, name it too: `...; its issues are in you/tracker`.
 
 It checks your setup, tells you what it will change, waits for your
 approval, installs, and reports back. Reinstalling keeps your merge
@@ -137,9 +142,18 @@ existing folder.
     file alone. When the person does not want `yngv`, add `-SkipViewer`
     / `--skip-viewer`.
 
+    When the person named an issues repo, add `-IssuesRepo
+    <owner>/<repo>` / `--issues-repo <owner>/<repo>`, in that form, not
+    a URL. The installer writes the config's `issues:` key only when it
+    has no value yet (a `wrote` line for `issues:`); a `kept` line for
+    `issues:` naming a different repository means the config already holds one,
+    which the installer never overwrites: report both to the person,
+    and change the config only as they answer. The labels go to the
+    flag's repository either way.
+
 5.  **Report.** Tell the person:
     - The project root, the playbook version (`VERSION`) installed, and
-      what the installer created or kept.
+      what the installer created or kept, the issues repo included.
     - Where `yngv` went, and whether they must open a new terminal or
       add the PATH line first.
     - On a first install: their merge rules are all `required`. Ask
@@ -180,7 +194,9 @@ existing folder.
     it adds that folder to your user PATH; on macOS/Linux it prints the
     `export PATH=...` line to add when the folder is not on PATH. Open a
     new terminal afterwards. Add `-SkipViewer` / `--skip-viewer` to
-    leave `yngv` out.
+    leave `yngv` out, and `-IssuesRepo <owner>/<repo>` /
+    `--issues-repo <owner>/<repo>` when your issues live in a separate
+    repository ([After installing](#after-installing)).
 
 Then continue with [After installing](#after-installing).
 
@@ -231,7 +247,28 @@ clone until you have checked the new one:
       fix-to-main: required
     ```
 
-2.  **Start an Epic:** create its issue with the `epic` label. Start
+    **Name your issues repo**, only when the issues live apart from the
+    code: a public tracker for a private codebase, say, or a code
+    repository with its issues turned off. Code, branches and pull
+    requests stay in `origin`'s repository; the issues, their labels and
+    Gate 1 go to the issues repo. Add the top-level key, or install
+    with `-IssuesRepo` / `--issues-repo`, which writes it when it has no
+    value yet and creates the labels there:
+
+    ``` yaml
+    issues: you/tracker   # <owner>/<repo>; absent or empty: origin's repo
+    ```
+
+    Issue numbers, and the `<n>` in every branch name, are then the
+    issues repo's. From the code repository, the orchestrator and its
+    workers name every issue by full reference, `you/tracker#42`, with
+    or without the key: a fix pull request says `Closes you/tracker#42`
+    and closes the issue when it merges into `main`. A value that is
+    not `<owner>/<repo>` stops the next run, naming it (guide, section
+    25).
+
+2.  **Start an Epic:** create its issue, in the issues repo when you
+    have one, with the `epic` label. Start
     Claude Code anywhere in the project, at its root or in any
     worktree, and run `/yngorchestrator <n>`. It proposes the Epic
     branch, `epic/<n>-<name>` from `origin/main`, and creates it with

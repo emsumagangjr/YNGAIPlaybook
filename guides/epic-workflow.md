@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.6.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.7.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1404,7 +1404,7 @@ skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
 skills/yngorchestrator/report.md    the completion report every worker ends with
 agents/slice-worker.md              the worker: one slice, worktree to PR
-templates/yngorchestratorconfig.yml the project's config, starting at all-required
+templates/yngorchestratorconfig.yml the project's config: merge rules at all-required, issues repo
 templates/yngaiplaybookreadme.md    the README of the project's .yngaiplaybook/ folder
 ```
 
@@ -1452,7 +1452,7 @@ myproject/
 ├── .claude/                     # linked from .shared/.claude/, for a session at the root
 ├── .yngaiplaybook/              # the playbook's files, never committed
 │   ├── README.md                # the folder explained, written by yngorch
-│   ├── yngorchestratorconfig.yml # merge rules
+│   ├── yngorchestratorconfig.yml # merge rules, issues repo
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
@@ -1506,6 +1506,56 @@ wait for a person. Every change to `main` still passes a person.
 `main`, which the orchestrator's worker opens from a `fix/` branch
 (see *Run* below).
 
+### Issues repo
+
+A project may keep its issues in a separate GitHub repository, its
+**issues repo**, while code, branches and pull requests stay in
+`origin`'s repository, its **code repo**. Use one when the issues
+belong apart from the code: a public tracker for a private codebase,
+issues that people without access to the code must reach, or a code
+repo with its issues turned off. A project has one issues repo; one
+issues repo serving several code repos is not supported.
+
+The same config file names it with a top-level key:
+
+``` yaml
+issues: acme/tracker   # <owner>/<repo>; absent or empty: origin's repo
+merge:
+  ...
+```
+
+Absent, empty, or naming the code repo itself, the issues repo is the
+code repo, and the project works as before. The orchestrator reads the
+key fresh at the start of every run; a value that is not
+`<owner>/<repo>` stops the run before it takes the lock. The key is
+yours: the installer writes it only when it has no value yet (see
+*Install* below).
+
+In a run, every issue command (reading the issue, its parent and
+sub-issues, labels, comments, closing and reopening, creating slice
+issues, the Gate 1 timeline) targets the issues repo, and every code
+command (fetching, branches, worktrees, pull requests, their checks,
+merges) targets the code repo. Each `gh` call names its repository
+with `-R`. Issue numbers, run logs and branch names
+(`slice/<n>-<name>`) are the issues repo's.
+
+From the code repo's side, an issue is always named by its **full
+reference**, `<owner>/<repo>#<n>`, so a link never lands on the code
+repo's own `#<n>`. This holds with or without the `issues:` key:
+
+-   the worker's dispatch prompt, commits and pull requests name the
+    issue as `acme/tracker#42`;
+-   a slice's pull request into the Epic says `Implements
+    acme/tracker#42`; the orchestrator closes the slice after its
+    merge, as before, since closing keywords fire only on the default
+    branch;
+-   a fix pull request, and the Epic's pull request into `main`, say
+    `Closes acme/tracker#42`, so merging into `main` closes the issue
+    in the issues repo;
+-   a URL given to `/yngorchestrator` must name the issues repo; a URL
+    naming any other repository, the code repo included, stops the
+    run.
+
 ### Install
 
 [INSTALL.md](../INSTALL.md) has the whole path, by hand or by asking
@@ -1528,7 +1578,7 @@ with every path `required` (only if you have none) and
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree, and `.shared/.claude/` into the root's own `.claude/`,
 through `yngshared`, creates the workflow labels
-with `gh` when it is installed, and puts `yngv`, the file viewer, in
+with `gh` when it is installed, in the issues repo, and puts `yngv`, the file viewer, in
 your `~/.local/bin` (on Windows it also adds that folder to your user
 PATH; on macOS/Linux it prints the line to add when it is missing).
 Then set your merge rules in `.yngaiplaybook/yngorchestratorconfig.yml`.
@@ -1545,6 +1595,16 @@ run. The orchestrator links the worktrees it creates itself. `-Project <path>` /
 `-SkipLabels` / `--skip-labels` leaves the labels alone, and
 `-SkipViewer` / `--skip-viewer` leaves `yngv` out.
 
+`-IssuesRepo <owner>/<repo>` / `--issues-repo <owner>/<repo>` sets the
+issues repo. It writes `issues: <owner>/<repo>` into the config only
+when the config has no `issues:` value yet; an existing value is kept
+and reported, never overwritten. A value that is not `<owner>/<repo>`,
+a URL included, stops the install before anything is written. The
+labels go to the flag's repository, else the config's `issues:` value,
+else `origin`'s repository. A flag that differs from a kept config
+value still sends the labels to the flag's repository, while the runs
+follow the config: edit the config if the flag was the one you meant.
+
 These are Claude Code's folders. Another agent that supports skills and
 subagents takes the same files in its own folders. The commands inside
 are written for GitHub (`gh`); on another tracker, use its equivalents.
@@ -1555,7 +1615,8 @@ Start the agent anywhere in the project, at its root or in any
 worktree, and run `/yngorchestrator <issue>`, where `<issue>` is a
 number, `#<n>` or the issue's URL. With no argument inside a worktree,
 it takes the Epic recorded on the current branch. It checks that the
-issue belongs to `origin`'s repository and tells its kind: an Epic
+issue belongs to the issues repo (`origin`'s repository unless the
+config names another) and tells its kind: an Epic
 (the `epic` label, or sub-issues), a slice (it has a parent issue), or
 a standalone issue (neither). A closed issue is shown with its branch
 and pull requests, and reopened only when you say yes.
