@@ -10,7 +10,7 @@ your project. There are two ways:
 Both end in the same place. Nothing is committed to your project:
 everything goes in the project root, beside `.bare/`, outside every
 worktree (guide, section 25). The playbook's files for your project
-(merge rules, issues repo, run logs) live in `<root>/.yngaiplaybook/`, explained by
+(issues repo, auto-promote, merge rules, run logs) live in `<root>/.yngaiplaybook/`, explained by
 the `README.md` the installer writes there
 ([template](templates/yngaiplaybookreadme.md)). This folder is not the
 per-machine playbook copy in `~/.yngaiplaybook`.
@@ -61,8 +61,8 @@ https://github.com/you/myproject`. When the project's issues live in a
 separate repository, name it too: `...; its issues are in you/tracker`.
 
 It checks your setup, tells you what it will change, waits for your
-approval, installs, and reports back. Reinstalling keeps your merge
-rules and run logs. Next, set your merge rules and start an Epic
+approval, installs, and reports back. Reinstalling keeps your config
+and run logs. Next, set `auto-promote:` and your merge rules, and start an Epic
 ([After installing](#after-installing)).
 
 ### For the agent doing the install
@@ -156,8 +156,10 @@ existing folder.
       what the installer created or kept, the issues repo included.
     - Where `yngv` went, and whether they must open a new terminal or
       add the PATH line first.
-    - On a first install: their merge rules are all `required`. Ask
-      whether they want any path set to `auto`, and edit
+    - On a first install: `auto-promote:` is `no` and their merge
+      rules are all `required`. Ask whether they want plan approval to
+      promote the agent slices (`auto-promote: yes`) and any merge path
+      set to `auto`, and edit
       `<root>/.yngaiplaybook/yngorchestratorconfig.yml` only as they
       answer.
     - The next steps from [After installing](#after-installing).
@@ -233,19 +235,27 @@ clone until you have checked the new one:
 
 ## After installing
 
-1.  **Set your merge rules** in
-    `<root>/.yngaiplaybook/yngorchestratorconfig.yml`. The folder's
-    `README.md` lists every file there and every merge key
-    ([template](templates/yngaiplaybookreadme.md)). For example, to let
-    the orchestrator merge slices into the Epic and keep `main` for
-    you:
+1.  **Set your gates** in
+    `<root>/.yngaiplaybook/yngorchestratorconfig.yml`: `auto-promote:`
+    for Gate 1 and the `merge:` rules for Gate 2. The file documents
+    every key, with worked examples
+    ([config template](templates/yngorchestratorconfig.yml)), and the
+    folder's `README.md` lists every file there and every key
+    ([template](templates/yngaiplaybookreadme.md)). For example, to have
+    your approval of an Epic's plan start its agent slices, let the
+    orchestrator merge slices into the Epic, and keep `main` for you:
 
     ``` yaml
+    auto-promote: yes
     merge:
       slice-to-epic: auto
       epic-to-main: required
       fix-to-main: required
     ```
+
+    Plan approval never promotes a slice only a person may do, a
+    standalone issue, or a slice created by hand (guide, section 6,
+    *Gate 1 by plan approval*).
 
     **Name your issues repo**, only when the issues live apart from the
     code: a public tracker for a private codebase, say, or a code
@@ -282,6 +292,9 @@ clone until you have checked the new one:
     project. It plans the slices and waits for your approval. Promote
     the slices an agent may take to `workflow:ready-for-agent` on
     GitHub yourself (Gate 1), then run `/yngorchestrator <n>` again.
+    With `auto-promote: yes`, your approval of the plan is that
+    promotion for the agent slices, and the run dispatches them at
+    once.
 
     The command takes any issue: `<n>`, `#<n>` or the issue's URL.
     Inside a worktree, with no argument, it takes the Epic recorded on

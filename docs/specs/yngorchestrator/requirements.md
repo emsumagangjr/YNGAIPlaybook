@@ -26,7 +26,8 @@ automatically.
 ```
 
 Neither the orchestrator nor any worker passes a people-only gate: a
-person promotes every issue (Gate 1) and a person decides every merge
+person promotes every issue (Gate 1), by its label or in advance by
+approving the plan (R34), and a person decides every merge
 (Gate 2), per pull request or in advance per merge path (R7).
 
 ## Deliverables
@@ -612,7 +613,7 @@ Epic: #54 · Slice: #55
     -   one section per feature with files here (today
         `yngorchestrator`): each file's purpose, its owner (the person
         or the playbook), whether `yngorch` overwrites it, and how to
-        change it (the `merge` keys and their values);
+        change it (every config key, as R37.4 sets out);
     -   links to the playbook's INSTALL and guide section 25;
     -   the installed playbook version.
 
@@ -735,3 +736,145 @@ Epic: #66 · Slice: #68
     issues and code are named by full reference across the two.
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.7.0.
+
+## R33 The auto-promote setting
+
+Epic: #74 · Slice: #75 (item 1, the template)
+
+1.  The config (R23) decides Gate 1 in advance with a top-level
+    yes/no key, as `merge:` decides Gate 2 (R7). The template carries
+    it with this description, word for word:
+
+    ``` yaml
+    # Promote approved slices to Agent-Ready automatically.
+    #   no   You promote each slice (label workflow:ready-for-agent)
+    #        before an agent may start it. (default)
+    #   yes  Approving the Epic's plan promotes its agent slices, and
+    #        work starts at once. The run still stops whenever your
+    #        attention is required: approving the plan, slices only a
+    #        person may do, open review decisions, merges you keep, and
+    #        repeated failures.
+    auto-promote: no
+    ```
+
+2.  `yes` (or `true`, any case) turns it on. An absent key, or any
+    other value, means `no`: every project without the key behaves
+    as before.
+3.  The orchestrator reads the key fresh at the start of every run,
+    beside `issues:` (locate.md step 3), and holds it to the run's
+    end. It takes the value as it takes `issues:` (no trailing comment,
+    quotes or spaces); a bad value never stops the run.
+4.  `auto-promote:` and `merge:` stay separate: each gate keeps its
+    own advance decision. A hands-off Epic is `auto-promote: yes` with
+    `slice-to-epic: auto`; `epic-to-main` stays as the person set it.
+
+## R34 Plan approval promotes
+
+Epic: #74 · Slice: #76
+
+1.  With `auto-promote: yes`, planning (R3) is unchanged up to the
+    person's approval of the plan table. That approval is the
+    promotion: the plan table says so above it ("Approving this plan
+    promotes the slices routed to an agent: `auto-promote: yes`").
+2.  Each slice routed to an agent is created labelled
+    `workflow:ready-for-agent` instead of `workflow:needs-triage`.
+3.  The run goes straight on to dispatch (R4) in the same run, with no
+    second invocation.
+4.  On a re-plan, only the new slices the person approved are
+    promoted; existing slices keep their labels.
+
+## R35 Human-routed slices stay with a person
+
+Epic: #74 · Slice: #76
+
+1.  With `auto-promote: yes`, a slice routed to a person (the guide's
+    *Never promoted to `ready-for-agent`* list, or the planner unsure)
+    is created labelled `workflow:ready-for-human`, never
+    `workflow:ready-for-agent`. Plan approval cannot override the
+    list.
+2.  The run works on every slice that does not wait on it; slices
+    whose `Depends on:` names it wait.
+3.  The hand-back lists it with its reason, ahead of the items it
+    holds up (SKILL.md step 5).
+
+## R36 The record of a plan promotion
+
+Epic: #74 · Slice: #76
+
+1.  Each slice promoted by plan approval gets, when it is created:
+    -   the label `workflow:ready-for-agent`;
+    -   a comment: `Promoted by plan approval (auto-promote: yes), <date>.
+        Plan approved by the person in the orchestrator session.`;
+    -   a run-log line: `<date> #<n> promoted by plan approval`.
+2.  Dispatch's Gate 1 check (R4) accepts a slice when either holds:
+    -   the last `workflow:ready-for-agent` was applied by a person,
+        as today; or
+    -   the config says `auto-promote: yes` now, the slice is a sub-issue
+        of the Epic being run, and the Epic's run log has its
+        `promoted by plan approval` line.
+
+    The application the orchestrator makes at creation is judged by
+    the second route only, even when it reads on the timeline as the
+    person's (the orchestrator acting through their token): for a
+    slice with the log line, the first application never counts as a
+    person's. The second route holds only while that first application
+    is the only one; a label applied again later, after a dispatch or
+    a hand-back, must come from a person. A pass by the second route
+    logs `gate 1 by plan approval`.
+3.  A standalone issue, or a slice created by hand, has no such line:
+    it reaches a worker only through a person's label, whatever
+    `auto-promote:` says. A slice or standalone run (R19, R20) checks the
+    same way.
+4.  With `auto-promote: no`, the run-log line counts for nothing: a
+    plan promotion made under `yes` does not survive switching to `no`.
+
+## R37 The config, documented
+
+Epic: #74 · Slice: #75
+
+1.  `templates/yngorchestratorconfig.yml` documents every key it
+    holds, `issues:`, `auto-promote:` and each `merge:` path, each with:
+    -   what it decides, and which gate (Gate 1, Gate 2) or concern;
+    -   every allowed value and what it does;
+    -   the default, and what an absent key or unknown value means;
+    -   when the orchestrator reads it (start of every run, or each
+        merge);
+    -   who changes it (the person) and whether `yngorch` writes it.
+2.  The template's header is accurate: where the file lives, that it
+    is never committed and no branch can change it, that `yngorch`
+    writes it only when absent, and that the orchestrator reads it
+    fresh each run.
+3.  The template ends with two worked examples, commented: the
+    default (every gate with a person) and hands-off
+    (`auto-promote: yes`, `slice-to-epic: auto`), each listing where the
+    run still stops for a person.
+4.  The folder's README (R26) gives every key the same facts in its
+    `yngorchestrator` section, as a table, and the two examples.
+5.  Every key added later is documented the same way, in both files.
+6.  The documentation is written for a person reading the file cold:
+    plain words, and each term (Epic, slice, plan, Gate 1, Gate 2) is
+    glossed in the template's header and above the README's table.
+    The template stays valid YAML with the defaults unchanged, and
+    the worked examples stay commented, so only the live keys are
+    read.
+7.  No comment line other than the `# issues: <owner>/<repo>`
+    placeholder begins with `# issues:`, so `yngorch -IssuesRepo`
+    writes the key just after that placeholder (R31.2).
+8.  The `workflow:ready-for-agent` label that `yngorch` creates is
+    described as set by a person, or by plan approval when
+    `auto-promote: yes` (R36), in both `.ps1` and `.sh`.
+
+## R38 Documentation and version
+
+Epic: #74 · Slice: #77
+
+1.  Guide section 6 names Gate 1 *by plan approval* beside *Gate 2 by
+    policy*: what it allows, what it never allows (R35, R36.3), and
+    its record (R36). Section 25 shows the `auto-promote:` key.
+2.  README and INSTALL mention `auto-promote:` where they mention `merge:`.
+3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.8.0.
+4.  `yngorch`'s closing lines, in both `.ps1` and `.sh`, name
+    `auto-promote` beside the merge rules: the config it creates is
+    `auto-promote: no` with every merge path `required`, and the next
+    step is to set both.

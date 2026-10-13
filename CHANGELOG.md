@@ -4,6 +4,24 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.8.0] — 2026-10-13
+
+A person can give Gate 1 by approving an Epic's plan, when the config says so.
+
+### Added
+- The config gains a top-level `auto-promote: yes | no` key, Gate 1's advance decision, beside the `merge:` rules for Gate 2. Absent, or any value other than `yes` or `true` (any case), it is `no`, and every project without the key works as before. The orchestrator reads it fresh at the start of every run.
+- With `auto-promote: yes`, approving an Epic's plan promotes the slices it routes to an agent: they are created `workflow:ready-for-agent` and dispatched in the same run, with no second invocation. The plan table says so above it. On a re-plan, only the new slices the person approved are promoted.
+- Each slice promoted by plan approval gets a comment (`Promoted by plan approval (auto-promote: yes), <date>. ...`) and a run-log line (`<date> #<n> promoted by plan approval`).
+
+### Changed
+- Dispatch's Gate 1 check passes a slice by either route: a person applied the last `workflow:ready-for-agent`; or `auto-promote:` is `yes` now, the slice is a sub-issue of the Epic being run, and the Epic's run log has its plan-promotion line. The label the orchestrator set at creation never counts as a person's, and a plan promotion is used once: a slice labelled again later needs a person's label. A pass by plan approval logs `gate 1 by plan approval`.
+- Plan approval never promotes a slice on the guide's *Never promoted to `ready-for-agent`* list (it is created `workflow:ready-for-human` and listed in the hand-back ahead of what it holds up), a standalone issue, or a slice created by hand. Switching back to `no` withdraws every plan promotion.
+- `templates/yngorchestratorconfig.yml` documents every key (what it decides, its values, default, when it is read, who changes it), glosses its terms, and ends with two worked examples: the default and hands-off. The folder's README template gives every key the same facts as a table.
+- `yngorch` describes the `workflow:ready-for-agent` label as set by a person or by plan approval, and its closing lines name `auto-promote` beside the merge rules.
+- Guide section 6 gains *Gate 1 by plan approval*, beside *Gate 2 by policy*; section 25 gains *Auto-promote*. README and INSTALL mention `auto-promote:` where they mention `merge:`, and `templates/agents.md` names plan approval as the second way a person promotes. The spec gains R33-R38.
+
+---
+
 ## [1.7.0] — 2026-10-13
 
 A project can keep its issues in a separate GitHub repository from its code.

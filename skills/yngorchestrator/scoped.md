@@ -3,7 +3,7 @@
 A run on a slice handles that slice only (R19); a run on a standalone
 issue handles that issue only (R20). You arrive from
 [locate.md](locate.md) holding `<root>`, `<code repo>`,
-`<issues repo>`, the issue `<n>`, its title, its kind and, for a
+`<issues repo>`, `<auto-promote>`, the issue `<n>`, its title, its kind and, for a
 slice, its parent `<parent>`.
 The run holds its lock (*The lock* in [SKILL.md](SKILL.md)) and writes
 its log; this file carries it to its end, and SKILL.md's steps 2 to 5
@@ -51,7 +51,11 @@ Done when you know which step the run starts at.
 ## 2. Check Gate 1
 
 Run step 1 of [dispatch.md](dispatch.md) for `<n>`: the issue carries
-`workflow:ready-for-agent`, and a person applied it.
+`workflow:ready-for-agent`, and a person applied it or, with
+`<auto-promote>` `yes`, approved the plan that created it. `<log>` is
+the run's log: the parent's for a slice, so a slice an Epic run's plan
+promoted passes here too; the issue's own for a standalone issue, which
+passes only by a person's label.
 
 A failure stops the run, before any branch exists: name who applied
 the label, or that the issue does not carry it, and log `refused` with

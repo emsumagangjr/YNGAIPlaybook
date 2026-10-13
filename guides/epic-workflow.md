@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.7.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.8.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -36,8 +36,8 @@ A person decides what an agent works on and how what it produces is
 merged: by hand, or by a rule the person configured. Either way, people
 stay in control. The two human gates are described in section 6:
 
-> **Gate 1: a person promotes the issue. Gate 2: a person decides the
-> merge, by hand or by config.**
+> **Gate 1: a person promotes the issue, by its label or by approving
+> the plan. Gate 2: a person decides the merge, by hand or by config.**
 
 Terminology used throughout: an **Epic** is a feature (a tracker card
 plus an integration branch). A **slice** is one independently
@@ -348,7 +348,7 @@ no workflow label          Inbox
 workflow::needs-triage     triage fills in every label
         │
         ▼
-GATE 1  a person promotes  move the card, or approve the triage
+GATE 1  a person promotes  move the card, approve the triage, or approve the plan
         │
         ├──────────────────────────┐
         ▼                          ▼
@@ -400,7 +400,9 @@ creating a worktree, the dispatcher reads the issue's activity history,
 confirms `ready-for-agent` was applied by a human account, and refuses
 to dispatch if a bot applied it. A bot can still set the label, but
 nothing acts on it, and a bot-applied promotion becomes a visible
-anomaly in the activity log instead of silently producing code.
+anomaly in the activity log instead of silently producing code. The one
+other way through the check is *Gate 1 by plan approval* (below), which
+leaves its own record.
 
 ### Who moves the labels
 
@@ -412,7 +414,7 @@ as an agent: the *YNG Orchestrator*.
 | Transition                      | Set by             | When                                            |
 |---------------------------------|--------------------|-------------------------------------------------|
 | to `needs-triage`               | triage agent       | it has filled in the other labels               |
-| to `ready-for-agent` / `-human` | a person           | Gate 1                                          |
+| to `ready-for-agent` / `-human` | a person           | Gate 1; or the dispatcher, at a plan the person approved (*Gate 1 by plan approval*) |
 | to `in-progress`                | dispatcher         | it hands the work out, after the provenance check |
 | to `in-review`                  | dispatcher         | the MR opens                                    |
 | closed                          | dispatcher         | the slice MR merges into the Epic branch        |
@@ -427,6 +429,50 @@ time and would show nothing anyone can act on. With `in-review` meaning
 "your turn", its length is the review backlog, which is the one number
 on the board worth watching.
 
+### Gate 1 by plan approval
+
+A person may also decide Gate 1 in advance, for the slices of an
+Epic's plan: the dispatcher proposes the plan, the person approves it,
+and that approval is the promotion. The choice to work this way lives
+in the same config as *Gate 2 by policy* below, as `auto-promote: yes`.
+Absent, or any value other than `yes` or `true`, it is `no`, and every
+slice waits for a person's label as above.
+
+What it allows:
+
+-   each slice the approved plan routes to an agent is created at
+    `ready-for-agent`, and dispatch starts in the same run;
+-   on a re-plan, only the new slices the person approved are promoted;
+    existing slices keep their labels.
+
+What it never allows:
+
+-   promoting a slice on the *Never promoted to `ready-for-agent`*
+    list, or one the planner was unsure about: it is created at
+    `ready-for-human`. Plan approval cannot override the list;
+-   promoting a standalone issue, or a slice created by hand: those
+    reach an agent only through a person's label, whatever the config
+    says;
+-   outliving a switch back to `no`: a slice promoted under `yes` then
+    waits for a person's label.
+
+Its record, since the dispatcher applies the label through the
+person's own token and the timeline alone would read it as theirs:
+
+-   a comment on the slice: `Promoted by plan approval (auto-promote:
+    yes), <date>. Plan approved by the person in the orchestrator
+    session.`;
+-   a line in the Epic's run log: `<date> #<n> promoted by plan
+    approval`.
+
+The provenance check then passes a slice by either route: a person
+applied the last `ready-for-agent`, as above; or the config says `yes`
+now, the slice is a sub-issue of the Epic being run, and the Epic's
+run log has its line. The label the dispatcher set at creation never
+counts as a person's, and a plan promotion is used once: a slice put
+back to `ready-for-agent` later, after a dispatch or a hand-back,
+needs a person's label. See section 25.
+
 ### Gate 2 by policy
 
 A person may decide Gate 2 in advance for a whole kind of merge
@@ -436,7 +482,9 @@ standalone fix into `main`. The decision lives in
 `.bare/` and outside every worktree, as `required` (a person merges)
 or `auto` (the orchestrator merges once the work reports done, every check passes and
 the review record holds no open decision). No branch or merge request
-can change it, and every path defaults to `required`. See section 25.
+can change it, and every path defaults to `required`. The two gates
+keep separate keys, so loosening one never loosens the other. See
+section 25.
 
 ### Slice completion
 
@@ -821,8 +869,10 @@ MAIN
 10. Only a completed, reviewed, and validated Epic branch may merge into
     `main`.
 11. Repository protection should reject direct pushes to `main`.
-12. Agents never promote an issue to `ready-for-agent`. An agent merges
-    only as the orchestrator, on a path a person set to `auto`.
+12. Agents never promote an issue to `ready-for-agent` on their own: the
+    orchestrator sets it only on the slices of a plan a person approved,
+    with `auto-promote: yes`. An agent merges only as the orchestrator,
+    on a path a person set to `auto`.
 13. The spec lives on the Epic branch and is updated in the same change
     as the code it describes.
 
@@ -1404,7 +1454,7 @@ skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
 skills/yngorchestrator/report.md    the completion report every worker ends with
 agents/slice-worker.md              the worker: one slice, worktree to PR
-templates/yngorchestratorconfig.yml the project's config: merge rules at all-required, issues repo
+templates/yngorchestratorconfig.yml the project's config: issues repo, auto-promote: no, merge rules at all-required
 templates/yngaiplaybookreadme.md    the README of the project's .yngaiplaybook/ folder
 ```
 
@@ -1430,7 +1480,10 @@ It keeps to both gates:
 
 -   **Gate 1.** It creates slice issues at `workflow:needs-triage` and
     dispatches only issues a person labelled `workflow:ready-for-agent`,
-    checking the issue timeline for who applied the label.
+    checking the issue timeline for who applied the label. With
+    `auto-promote: yes`, the person's approval of the plan promotes its
+    agent slices instead, with a record on each (see *Auto-promote*
+    below).
 -   **Gate 2.** Workers open pull requests; the orchestrator labels them
     `workflow:in-review` and applies the merge rule for the path (see
     *Merge rules* below). On `required` it tells the person; after a
@@ -1452,7 +1505,7 @@ myproject/
 ├── .claude/                     # linked from .shared/.claude/, for a session at the root
 ├── .yngaiplaybook/              # the playbook's files, never committed
 │   ├── README.md                # the folder explained, written by yngorch
-│   ├── yngorchestratorconfig.yml # merge rules, issues repo
+│   ├── yngorchestratorconfig.yml # issues repo, auto-promote, merge rules
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
@@ -1474,10 +1527,36 @@ folder's `README.md`, which `yngorch` rewrites on every install from
 [templates/yngaiplaybookreadme.md](../templates/yngaiplaybookreadme.md),
 says what each file is for, who owns it, and how to change it.
 
-### Merge rules
+### Auto-promote
 
 `.yngaiplaybook/yngorchestratorconfig.yml` in the project root records
-the person's Gate 2 decision per merge path:
+the person's Gate 1 decision in advance, as one top-level key:
+
+``` yaml
+auto-promote: no   # yes | no
+```
+
+-   `no`: the person promotes each slice by its label, after planning.
+    This is the default for a missing file, a missing key, or any value
+    other than `yes` or `true` (any case).
+-   `yes`: approving an Epic's plan promotes the slices it routes to an
+    agent, and the run goes straight on to dispatch them. The run still
+    stops for the person: to approve the plan, for slices only a person
+    may do, for open review decisions, for merges they keep, and for a
+    slice that failed twice.
+
+What plan approval allows, what it never allows, and the record it
+leaves are in section 6, *Gate 1 by plan approval*. The orchestrator
+reads the key fresh at the start of every run; `yngorch` writes it
+only as part of the template, when the file is absent. A hands-off
+Epic is `auto-promote: yes` with `slice-to-epic: auto`, and
+`epic-to-main` stays as you set it. The
+[config template](../templates/yngorchestratorconfig.yml) documents
+every key, with both setups as worked examples.
+
+### Merge rules
+
+The same file records the person's Gate 2 decision per merge path:
 
 ``` yaml
 merge:
@@ -1581,7 +1660,8 @@ through `yngshared`, creates the workflow labels
 with `gh` when it is installed, in the issues repo, and puts `yngv`, the file viewer, in
 your `~/.local/bin` (on Windows it also adds that folder to your user
 PATH; on macOS/Linux it prints the line to add when it is missing).
-Then set your merge rules in `.yngaiplaybook/yngorchestratorconfig.yml`.
+Then set `auto-promote:` and your merge rules in
+`.yngaiplaybook/yngorchestratorconfig.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
 link it; it never overwrites your config. Upgrading from 1.1.0-1.4.0,
@@ -1631,7 +1711,9 @@ confirm the name.
     the Epic branch; with none, it stops and names where the spec
     belongs. With no slice issues yet, it plans first and waits for
     you to approve the plan; afterwards, promote the slices you want an
-    agent to take, and run it again.
+    agent to take, and run it again. With `auto-promote: yes`, your
+    approval promoted the agent slices, and it dispatches them in the
+    same run.
 -   **A slice.** The run handles that slice only: Gate 1, its
     `Depends on:` issues closed, one worker, its pull request merged by
     the `slice-to-epic` rule, then the slice closed. It names the
@@ -1674,8 +1756,8 @@ reviewed, tested, and validated Epic branch (work with no Epic follows
 the standalone-fix path).
 
 Two people-only gates govern the flow: a person promotes an issue before
-an agent may start it, and a person decides every merge, by hand or by
-config. The Epic is a feature of roughly two weeks or less, its slices
+an agent may start it, by its label or by approving the plan, and a
+person decides every merge, by hand or by config. The Epic is a feature of roughly two weeks or less, its slices
 are named for outcomes, and its spec is versioned on the Epic branch
 beside the code.
 

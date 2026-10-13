@@ -13,7 +13,7 @@ committed: no branch or pull request can change what is in it.
 ``` text
 .yngaiplaybook/
 ├── README.md                       this file
-├── yngorchestratorconfig.yml       merge rules and issues repo for /yngorchestrator
+├── yngorchestratorconfig.yml       your settings for /yngorchestrator: issues repo, Gate 1, Gate 2
 └── yngorchestratorruns/
     ├── <epic>.md                   run log, one per Epic or standalone issue
     └── <n>.lock                    run lock, present while a run writes issue state
@@ -32,27 +32,72 @@ section below.
 | File | Purpose | Owner | Overwritten by `yngorch` |
 |------|---------|-------|--------------------------|
 | `README.md` | this file | the playbook | yes, on every install |
-| `yngorchestratorconfig.yml` | who merges each kind of pull request, and where the issues live | you | no: written only when absent, and `issues:` only when it has no value |
+| `yngorchestratorconfig.yml` | your settings: where the issues live, whether plan approval promotes slices, who merges each kind of pull request | you | no: written only when absent, and `issues:` only when it has no value |
 | `yngorchestratorruns/<epic>.md` | what each run did, so a later run resumes | the orchestrator | no |
 | `yngorchestratorruns/<n>.lock` | one writer of issue state at a time | the orchestrator | no |
 
-To change who merges, edit `yngorchestratorconfig.yml`. Each key under
-`merge:` takes `required` (a person merges, the default) or `auto` (the
-orchestrator merges once the work is done, every check passed and no
-decision is open). A missing key, or any other value, means `required`.
+### The settings in `yngorchestratorconfig.yml`
 
-| Key | Pull request |
-|-----|--------------|
-| `slice-to-epic` | `slice/*` into its Epic branch |
-| `epic-to-main` | `epic/*` into `main` |
-| `fix-to-main` | `fix/*` into `main` (standalone fixes) |
+The config tells the orchestrator which decisions it may take on its own
+and which stay with you. It is yours: edit it by hand. `yngorch` writes
+it from the playbook's template only when it is absent and never
+overwrites it, except to fill in an empty `issues:` when you pass
+`-IssuesRepo`. No branch or pull request can change it. The
+orchestrator reads it as it is now, at the start of every run and again
+before every merge, so an edit counts from the next read. A missing file
+means every default below. The file itself explains each setting the
+same way.
 
-The top-level `issues:` key names the GitHub repository holding this
-project's issues, as `<owner>/<repo>`, when they live apart from the
-code; absent or empty, the issues are in `origin`'s repository. It is
-yours to set. `yngorch -IssuesRepo <owner>/<repo>` (`--issues-repo` in
-`yngorch.sh`) writes it only when it has no value yet, and never
-overwrites it.
+Gate 1 is the decision that an issue is ready for an agent to start
+(its mark is the label `workflow:ready-for-agent`); Gate 2 is the
+decision to merge a pull request. An Epic is one feature, built on an
+`epic/*` branch out of smaller issues called slices, each merged into
+the Epic branch through its own pull request. The plan is the table of
+slices the orchestrator proposes for an Epic, for you to approve before
+any slice is created.
+
+| Key | Decides | Values | Default, absent or unknown | Read | Changed by |
+|-----|---------|--------|----------------------------|------|------------|
+| `issues:` | Where this project's issues live (not a gate). Code, branches and pull requests stay in `origin`'s repository. | `<owner>/<repo>`: the issues live in that GitHub repository. No value: they live in `origin`'s repository. | No value. Absent, empty, or `origin`'s own repository: the default. A value that is not `<owner>/<repo>` stops the run before it touches anything, and `yngorch` skips the labels with a warning. | Start of every run | You. `yngorch -IssuesRepo <owner>/<repo>` (`--issues-repo` in `yngorch.sh`) writes it only when it has no value yet, never over a value. |
+| `auto-promote:` | Gate 1 in advance, for the slices the orchestrator plans for an Epic. | `no`: you promote each slice (label `workflow:ready-for-agent`). `yes` (or `true`, any case): approving the Epic's plan promotes the slices it routes to an agent, and work starts at once. | `no`. Absent, or any value other than `yes` or `true`: `no`. Under any value, a slice only a person may do, a standalone issue and a slice created by hand still need your label. Switching back to `no` undoes earlier plan promotions. | Start of every run | You. `yngorch` never writes it; it arrives with the template. |
+| `merge:` `slice-to-epic:` | Gate 2 in advance for a slice's pull request (`slice/*`) into its Epic branch. | `required`: you merge. `auto`: the orchestrator merges once the agent reported the work done, the pull request is open and mergeable between the expected branches, every check passed and its review record holds no open decision; otherwise it stays with you, with a comment naming why. | `required`. Absent, or any value other than `auto`: `required`. | Before every merge | You. `yngorch` writes it only with the template, when the file is absent. |
+| `merge:` `epic-to-main:` | Gate 2 in advance for an Epic's pull request (`epic/*`) into `main`, which delivers the feature. | As `slice-to-epic:`, and `auto` also waits until every slice issue of the Epic is closed. | `required`. Absent, or any value other than `auto`: `required`. | Before every merge | You. `yngorch` writes it only with the template, when the file is absent. |
+| `merge:` `fix-to-main:` | Gate 2 in advance for a standalone fix's pull request (`fix/*`) into `main`: an issue worked alone, with no Epic. | As `slice-to-epic:`. | `required`. Absent, or any value other than `auto`: `required`. | Before every merge | You. `yngorch` writes it only with the template, when the file is absent. |
+
+#### Example: the default, every gate with you
+
+``` yaml
+auto-promote: no
+merge:
+  slice-to-epic: required
+  epic-to-main: required
+  fix-to-main: required
+```
+
+The run stops for you to approve the Epic's plan; promote each slice
+before an agent starts it, then run the orchestrator again; do the
+slices only a person may do; answer open decisions in a pull request's
+review record; merge every pull request; and take over a slice that
+failed twice.
+
+#### Example: hands-off, plan approval carries the Epic
+
+``` yaml
+auto-promote: yes
+merge:
+  slice-to-epic: auto
+  epic-to-main: required
+  fix-to-main: required
+```
+
+The run still stops for you to approve the Epic's plan (that approval
+promotes its agent slices, and work starts at once); do the slices only
+a person may do, while the slices that depend on them wait; answer open
+decisions in a pull request's review record, since such a pull request
+is not merged; merge a slice's pull request that fails a merge
+condition, such as a failed check or a conflict; merge the Epic into
+`main`, since `epic-to-main` stays `required`; and take over a slice
+that failed twice.
 
 A lock left by a crashed run stays until you delete it; the orchestrator
 never deletes a lock it did not create.
