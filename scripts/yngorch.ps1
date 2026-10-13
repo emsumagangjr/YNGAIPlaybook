@@ -224,10 +224,10 @@ function Add-MissingKeys($Ctx, [int]$Tp, [int[]]$Fps, [string]$Path) {
     $tChildren = @($tBlock | Where-Object { $tk[$_].Indent.Length -eq $tIndent.Length })
     $parent = $tk[$Tp].Name
     $have = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
-    $reason = if ($Fps.Count -gt 1) { "${parent}: is set more than once" } else { '' }
+    $flow = $false; $tab = $false; $mixed = $false
     foreach ($fp in $Fps) {
         if ($fk[$fp].Value) {
-            if (-not $reason) { $reason = "${parent}: has its value on its own line" }
+            $flow = $true
             foreach ($m in [regex]::Matches($fk[$fp].Value, '[{,][ \t]*["'']?([A-Za-z0-9_][A-Za-z0-9_.-]*)["'']?[ \t]*:')) {
                 $have[$m.Groups[1].Value] = @()
             }
@@ -239,17 +239,21 @@ function Add-MissingKeys($Ctx, [int]$Tp, [int[]]$Fps, [string]$Path) {
         $last = $null
         foreach ($q in $block) {
             $k = $fk[$q]
-            if ($k.Indent.Contains("`t") -and -not $reason) { $reason = "${parent}:'s keys are indented with a tab" }
+            if ($k.Indent.Contains("`t")) { $tab = $true }
             if ($k.Indent.Length -eq $bi) {
                 $last = $k
                 if (-not $have.ContainsKey($k.Name)) { $have[$k.Name] = @() }
                 $have[$k.Name] += $q
             }
-            elseif (($k.Indent.Length -lt $bi -or $last.Value) -and -not $reason) {
-                $reason = "${parent}:'s keys are not all at one indentation"
-            }
+            elseif ($k.Indent.Length -lt $bi -or $last.Value) { $mixed = $true }
         }
     }
+    # The first reason that holds, in this order (R39.8).
+    $reason = if ($Fps.Count -gt 1) { "$parent is set more than once" }
+              elseif ($flow) { "$parent has its value on the same line" }
+              elseif ($tab) { "the keys under $parent are indented with a tab" }
+              elseif ($mixed) { "the keys under $parent are not all at one indentation" }
+              else { '' }
     if (-not $reason) {
         foreach ($tc in $tChildren) {
             $name = $tk[$tc].Name
@@ -261,7 +265,7 @@ function Add-MissingKeys($Ctx, [int]$Tp, [int[]]$Fps, [string]$Path) {
         if ($have.ContainsKey($name)) { continue }
         $keyLine = $Ctx.TLines[$tk[$tc].Index].TrimStart()
         if ($reason) {
-            $Ctx.Warnings.Add("$($Ctx.Display): $Path.$name not added ($reason); add it by hand: $keyLine")
+            $Ctx.Warnings.Add("$($Ctx.Display): $Path.$name not added, $reason; add it by hand under ${parent}: as `"$keyLine`"")
             continue
         }
         $block = Get-Block $fk $Fps[0]
