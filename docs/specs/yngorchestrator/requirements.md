@@ -26,7 +26,8 @@ automatically.
 ```
 
 Neither the orchestrator nor any worker passes a people-only gate: a
-person promotes every issue (Gate 1) and a person decides every merge
+person promotes every issue (Gate 1), by its label or in advance by
+approving the plan (R34), and a person decides every merge
 (Gate 2), per pull request or in advance per merge path (R7).
 
 ## Deliverables
@@ -865,7 +866,7 @@ Epic: #74 · Slice: #75
 
 ## R38 Documentation and version
 
-Epic: #74
+Epic: #74 · Slice: #77
 
 1.  Guide section 6 names Gate 1 *by plan approval* beside *Gate 2 by
     policy*: what it allows, what it never allows (R35, R36.3), and
@@ -873,3 +874,7 @@ Epic: #74
 2.  README and INSTALL mention `auto-promote:` where they mention `merge:`.
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.8.0.
+4.  `yngorch`'s closing lines, in both `.ps1` and `.sh`, name
+    `auto-promote` beside the merge rules: the config it creates is
+    `auto-promote: no` with every merge path `required`, and the next
+    step is to set both.
