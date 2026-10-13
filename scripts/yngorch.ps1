@@ -19,7 +19,7 @@
         |   `-- agents\slice-worker.md  the worker it dispatches
         |-- .yngaiplaybook\             the playbook's files for this project
         |   |-- README.md               the folder explained (rewritten every run)
-        |   |-- yngorchestratorconfig.yml  issues repo, auto-promote, merge rules (written only if absent)
+        |   |-- yngorchestratorconfig.yml  issues repo, auto-promote, merge rules (yours; new settings added)
         |   `-- yngorchestratorruns\    one run log per Epic, and run locks
         |-- .claude\                    linked from .shared\.claude\, for a session at the root
         |-- yngshared.ps1               links .shared\ into the worktrees
@@ -28,8 +28,11 @@
     Steps, all safe to repeat:
       1. Find the project root from -Project (default: the current folder).
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
-      3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template,
-         only if absent; yngorchestratorruns\; README.md from the template.
+      3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template
+         when absent; when present, add the settings and keys the template
+         has and it lacks, changing no line, after a backup to
+         yngorchestratorconfig.yml.bak; yngorchestratorruns\; README.md from
+         the template.
          With -IssuesRepo, write the config's issues: key, only if it has
          no value yet; an existing value is kept and reported.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
@@ -52,7 +55,8 @@
     every worktree.
 
     Run it again after creating a worktree, or to upgrade: it re-links every
-    worktree and never overwrites your config.
+    worktree, never overwrites your config, and adds to it only the settings
+    a newer template brings.
 
     REQUIREMENTS
     - Windows PowerShell 5.1 or PowerShell 7+, on Windows.
@@ -140,6 +144,220 @@ function Set-IssuesValue([string]$Path, [string]$Value) {
     [IO.File]::WriteAllText($Path, $text, (New-Object Text.UTF8Encoding $false))
 }
 
+# The config files yngorch installs from a template (spec R41.1), one pair
+# each: the template, its target in .yngaiplaybook\, and what a new file
+# holds. A config file added later is one more pair.
+$configPairs = @(
+    @{ Template = 'templates\yngorchestratorconfig.yml'; Target = 'yngorchestratorconfig.yml'
+       Created = 'auto-promote: no, every merge path required' }
+)
+
+# Config upgrade on reinstall (spec R39-R41). Files are read and written as
+# Latin-1, one character per byte, so every byte yngorch does not insert is
+# written back as it was, whatever the file's encoding.
+$keyPattern = '^([ \t]*)([A-Za-z0-9_][A-Za-z0-9_.-]*):(?:[ \t](.*))?$'
+$headerPattern = '^# --- Setting: (\S+)'
+
+# $Text's lines, each with its own line ending.
+function Split-Lines([string]$Text) {
+    $segs = New-Object System.Collections.Generic.List[string]
+    foreach ($m in [regex]::Matches($Text, '[^\n]*\n|[^\n]+$')) { $segs.Add($m.Value) }
+    return ,$segs
+}
+
+# The index of the worked-examples banner (R39.3), else the line count.
+function Find-Banner([string[]]$Lines) {
+    for ($i = 0; $i -lt $Lines.Count; $i++) { if ($Lines[$i].StartsWith('# ====')) { return $i } }
+    return $Lines.Count
+}
+
+# The active key lines among the first $End lines: indentation, name and
+# value, its trailing comment dropped. A comment line is never one.
+function Get-Keys([string[]]$Lines, [int]$End) {
+    $keys = New-Object System.Collections.Generic.List[object]
+    for ($i = 0; $i -lt $End; $i++) {
+        $m = [regex]::Match($Lines[$i], $keyPattern)
+        if (-not $m.Success) { continue }
+        $keys.Add([pscustomobject]@{
+            Index = $i; Pos = $keys.Count; Indent = $m.Groups[1].Value; Name = $m.Groups[2].Value
+            Value = ($m.Groups[3].Value -replace '(^|[ \t])#.*$', '').Trim() })
+    }
+    return ,$keys
+}
+
+# The positions of the keys in key $P's block: each key after it indented
+# deeper, up to the first one that is not.
+function Get-Block($Keys, [int]$P) {
+    $block = New-Object System.Collections.Generic.List[int]
+    $len = $Keys[$P].Indent.Length
+    for ($q = $P + 1; $q -lt $Keys.Count -and $Keys[$q].Indent.Length -gt $len; $q++) { $block.Add($q) }
+    return ,$block
+}
+
+# Each key's dotted path, merge.slice-to-epic, from the indentation.
+function Get-KeyPaths($Keys) {
+    $paths = New-Object System.Collections.Generic.List[string]
+    $stack = New-Object System.Collections.Generic.List[object]
+    foreach ($k in $Keys) {
+        while ($stack.Count -and $stack[$stack.Count - 1].Indent.Length -ge $k.Indent.Length) { $stack.RemoveAt($stack.Count - 1) }
+        $stack.Add($k)
+        $paths.Add((@($stack | ForEach-Object { $_.Name }) -join '.'))
+    }
+    return ,$paths
+}
+
+function Add-Insert($Ctx, [int]$After, [string]$Line) {
+    if (-not $Ctx.Inserts.ContainsKey($After)) { $Ctx.Inserts[$After] = New-Object System.Collections.Generic.List[string] }
+    $Ctx.Inserts[$After].Add($Line)
+}
+
+# The nested keys (R39.4) under template key $Tp that the file's
+# occurrences $Fps of the same key lack: inserted after the block's last key
+# line (R39.7), or, when the block cannot be extended line by line, a
+# warning (R39.8). Present keys are compared level by level first, so a
+# deeper key lands before a sibling inserted at the same line.
+function Add-MissingKeys($Ctx, [int]$Tp, [int[]]$Fps, [string]$Path) {
+    $tk = $Ctx.TKeys; $fk = $Ctx.FKeys
+    $tBlock = Get-Block $tk $Tp
+    if ($tBlock.Count -eq 0 -or $Fps.Count -eq 0) { return }
+    $tIndent = $tk[$tBlock[0]].Indent
+    $tChildren = @($tBlock | Where-Object { $tk[$_].Indent.Length -eq $tIndent.Length })
+    $parent = $tk[$Tp].Name
+    $have = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+    $flow = $false; $tab = $false; $mixed = $false
+    foreach ($fp in $Fps) {
+        if ($fk[$fp].Value) {
+            $flow = $true
+            foreach ($m in [regex]::Matches($fk[$fp].Value, '[{,][ \t]*["'']?([A-Za-z0-9_][A-Za-z0-9_.-]*)["'']?[ \t]*:')) {
+                $have[$m.Groups[1].Value] = @()
+            }
+            continue
+        }
+        $block = Get-Block $fk $fp
+        if ($block.Count -eq 0) { continue }
+        $bi = $fk[$block[0]].Indent.Length
+        $last = $null
+        foreach ($q in $block) {
+            $k = $fk[$q]
+            if ($k.Indent.Contains("`t")) { $tab = $true }
+            if ($k.Indent.Length -eq $bi) {
+                $last = $k
+                if (-not $have.ContainsKey($k.Name)) { $have[$k.Name] = @() }
+                $have[$k.Name] += $q
+            }
+            elseif ($k.Indent.Length -lt $bi -or $last.Value) { $mixed = $true }
+        }
+    }
+    # The first reason that holds, in this order (R39.8).
+    $reason = if ($Fps.Count -gt 1) { "$parent is set more than once" }
+              elseif ($flow) { "$parent has its value on the same line" }
+              elseif ($tab) { "the keys under $parent are indented with a tab" }
+              elseif ($mixed) { "the keys under $parent are not all at one indentation" }
+              else { '' }
+    if (-not $reason) {
+        foreach ($tc in $tChildren) {
+            $name = $tk[$tc].Name
+            if ($have.ContainsKey($name)) { Add-MissingKeys $Ctx $tc ([int[]]$have[$name]) "$Path.$name" }
+        }
+    }
+    foreach ($tc in $tChildren) {
+        $name = $tk[$tc].Name
+        if ($have.ContainsKey($name)) { continue }
+        $keyLine = $Ctx.TLines[$tk[$tc].Index].TrimStart()
+        if ($reason) {
+            $Ctx.Warnings.Add("$($Ctx.Display): $Path.$name not added, $reason; add it by hand under ${parent}: as `"$keyLine`"")
+            continue
+        }
+        $block = Get-Block $fk $Fps[0]
+        if ($block.Count) { $after = $fk[$block[$block.Count - 1]].Index; $indent = $fk[$block[0]].Indent }
+        else { $after = $fk[$Fps[0]].Index; $indent = $fk[$Fps[0]].Indent + $tIndent.Substring($tk[$Tp].Indent.Length) }
+        $tSub = Get-Block $tk $tc
+        $tEnd = if ($tSub.Count) { $tk[$tSub[$tSub.Count - 1]].Index } else { $tk[$tc].Index }
+        for ($i = $tk[$tc].Index; $i -le $tEnd; $i++) {
+            $line = $Ctx.TLines[$i]
+            if ($line.StartsWith($tIndent)) { $line = $indent + $line.Substring($tIndent.Length) }
+            Add-Insert $Ctx $after $line
+        }
+        $Ctx.Added.Add("$($Ctx.Display): $Path.${name}: $($tk[$tc].Value) (new in the template)")
+    }
+}
+
+# Installs $Target from $Template when absent; otherwise adds every setting
+# (R39.2) and nested key the template has and the file lacks, backing the
+# file up first (R40.1), and reports each (R40.2-R40.4).
+function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display, [string]$Created) {
+    if (-not (Test-Path -LiteralPath $Target)) {
+        Copy-Item -LiteralPath $Template $Target
+        Step 'created' "$Display ($Created)"
+        return
+    }
+    $latin = [Text.Encoding]::GetEncoding(28591)
+    $tText = $latin.GetString([IO.File]::ReadAllBytes($Template))
+    if ($tText.StartsWith("$([char]0xEF)$([char]0xBB)$([char]0xBF)")) { $tText = $tText.Substring(3) }
+    $fText = $latin.GetString([IO.File]::ReadAllBytes($Target))
+    $tLines = [string[]]@((Split-Lines $tText) | ForEach-Object { $_ -replace '\r?\n$', '' })
+    $fSegs = Split-Lines $fText
+    $fLines = [string[]]@($fSegs | ForEach-Object { $_ -replace '\r?\n$', '' })
+
+    # Inserted lines take the file's line ending, else the template's (R39.9).
+    $source = if ($fText.Contains("`n")) { $fText } else { $tText }
+    $at = $source.IndexOf("`n")
+    $nl = if ($at -gt 0 -and $source[$at - 1] -eq "`r") { "`r`n" } else { "`n" }
+
+    $tBanner = Find-Banner $tLines
+    $fBanner = Find-Banner $fLines
+    $ctx = @{
+        Display = $Display; TLines = $tLines; TKeys = (Get-Keys $tLines $tBanner); FKeys = (Get-Keys $fLines $fLines.Count)
+        Inserts = @{}; Added = (New-Object System.Collections.Generic.List[string])
+        Warnings = (New-Object System.Collections.Generic.List[string]) }
+    $fHeaders = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($line in $fLines) { if ($line -cmatch $headerPattern) { $fHeaders[$Matches[1]] = $true } }
+    $known = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($p in (Get-KeyPaths $ctx.TKeys)) { $known[$p] = $true }
+
+    # Settings in template order (R39.2, R39.5, R39.6).
+    $headers = @(for ($i = 0; $i -lt $tBanner; $i++) { if ($tLines[$i] -cmatch $headerPattern) { $i } })
+    $sections = New-Object System.Collections.Generic.List[string]
+    for ($h = 0; $h -lt $headers.Count; $h++) {
+        $start = $headers[$h]
+        $end = if ($h + 1 -lt $headers.Count) { $headers[$h + 1] } else { $tBanner }
+        $null = $tLines[$start] -cmatch $headerPattern
+        $name = $Matches[1]
+        $known[$name] = $true
+        $fTop = [int[]]@($ctx.FKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name } | ForEach-Object { $_.Pos })
+        $tTop = @($ctx.TKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name -and $_.Index -ge $start -and $_.Index -lt $end })
+        if (-not $fTop.Count -and -not $fHeaders.ContainsKey($name)) {
+            for ($i = $start; $i -lt $end; $i++) { $sections.Add($tLines[$i]) }
+            $ctx.Added.Add("${Display}: $name (new in the template)")
+        }
+        elseif ($tTop.Count) { Add-MissingKeys $ctx $tTop[0].Pos $fTop $name }
+    }
+    foreach ($line in $sections) { Add-Insert $ctx ($fBanner - 1) $line }
+
+    if ($ctx.Added.Count) {
+        $sb = New-Object Text.StringBuilder
+        if ($ctx.Inserts.ContainsKey(-1)) { foreach ($line in $ctx.Inserts[-1]) { [void]$sb.Append($line + $nl) } }
+        for ($i = 0; $i -lt $fSegs.Count; $i++) {
+            [void]$sb.Append($fSegs[$i])
+            if (-not $ctx.Inserts.ContainsKey($i)) { continue }
+            if (-not $fSegs[$i].EndsWith("`n")) { [void]$sb.Append($nl) }
+            foreach ($line in $ctx.Inserts[$i]) { [void]$sb.Append($line + $nl) }
+        }
+        Copy-Item -LiteralPath $Target "$Target.bak" -Force
+        Step 'backed up' "$Display -> $(Split-Path -Leaf $Target).bak"
+        [IO.File]::WriteAllBytes($Target, $latin.GetBytes($sb.ToString()))
+        foreach ($a in $ctx.Added) { Step 'added' $a }
+    }
+    else { Step 'kept' "$Display (yours, nothing new)" }
+    foreach ($w in $ctx.Warnings) { Step 'warning' $w }
+    $noted = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+    foreach ($p in (Get-KeyPaths $ctx.FKeys)) {
+        if ($known.ContainsKey($p) -or $noted.ContainsKey($p)) { continue }
+        $noted[$p] = $true
+        Step 'note' "${Display}: $p is not in the template; the orchestrator ignores it"
+    }
+}
+
 # 1. The project root: the folder holding .bare\. From the root itself git
 # fails; Windows PowerShell 5.1 turns that into a terminating error, hence try.
 $common = try { & git -C $Project rev-parse --path-format=absolute --git-common-dir 2>$null } catch { $null }
@@ -171,6 +389,7 @@ $hasYnga = Test-Path -PathType Container $ynga
 if ($olds -and ($hasYnga -or @($olds).Count -gt 1)) {
     $names = @(if ($hasYnga) { '.yngaiplaybook\' }) + @($olds | ForEach-Object { "$_\" })
     Step 'warning' "found $($names -join ' '); moved nothing and left each as it is: move what you need into .yngaiplaybook\ by hand"
+    foreach ($pair in $configPairs) { Step 'skipped' ".yngaiplaybook\$($pair.Target) not upgraded (move .yngaiplaybook\ by hand first, then run again)" }
     if ($IssuesRepo) { Step 'skipped' "issues: $IssuesRepo not written (move .yngaiplaybook\ by hand first, then run again)" }
 }
 else {
@@ -192,8 +411,11 @@ else {
         else { Remove-Item -Force $oldDir; Step 'removed' "$old\ (empty)" }
     }
     New-Item -ItemType Directory -Force (Join-Path $ynga 'yngorchestratorruns') | Out-Null
-    if (Test-Path $config) { Step 'kept' '.yngaiplaybook\yngorchestratorconfig.yml (yours)' }
-    else { Copy-Item (Join-Path $playbook 'templates\yngorchestratorconfig.yml') $config; Step 'created' '.yngaiplaybook\yngorchestratorconfig.yml (auto-promote: no, every merge path required)' }
+    # Each config file: written whole when absent, else upgraded (R39-R41),
+    # after the migration and before the issues: write (R39.10).
+    foreach ($pair in $configPairs) {
+        Update-ConfigFile (Join-Path $playbook $pair.Template) (Join-Path $ynga $pair.Target) ".yngaiplaybook\$($pair.Target)" $pair.Created
+    }
     $current = Get-IssuesValue $config
     if ($IssuesRepo -and -not $current) {
         Set-IssuesValue $config $IssuesRepo
