@@ -57,21 +57,21 @@ Done when you hold `required` or `auto` for this pull request. On
   expected base, and is mergeable:
 
   ``` bash
-  gh pr view <PR> -R <owner>/<repo> --json state,headRefName,baseRefName,mergeable
+  gh pr view <PR> -R <code repo> --json state,headRefName,baseRefName,mergeable
   ```
 
   expecting `OPEN`, the branch, the base, and `MERGEABLE`;
 - every check passed, or the pull request has none:
 
   ``` bash
-  gh pr checks <PR> -R <owner>/<repo>
+  gh pr checks <PR> -R <code repo>
   ```
 
 - the review record is "none": an open decision is the person's.
 
 When any one fails, the pull request is `required` after all. Comment
 the reason on it
-(`gh pr comment <PR> -R <owner>/<repo> --body "Auto-merge held: <condition>"`), log
+(`gh pr comment <PR> -R <code repo> --body "Auto-merge held: <condition>"`), log
 `merge held <condition>`, and stop.
 
 Done when every condition holds, or the pull request is held with its
@@ -83,7 +83,7 @@ Merge with a merge commit (the guide merges rather than rebases shared
 branches) and delete the head branch:
 
 ``` bash
-gh pr merge <PR> -R <owner>/<repo> --merge --delete-branch
+gh pr merge <PR> -R <code repo> --merge --delete-branch
 ```
 
 Log `merged <PR> auto`. In an Epic run, for a slice, run the *On a

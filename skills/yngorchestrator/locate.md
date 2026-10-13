@@ -1,8 +1,9 @@
 # Locate the issue
 
-You find the project root, check that the issue belongs to this
-project, and tell what kind of issue it is. Nothing here changes a
-branch, a worktree or an issue, except a reopen the person said yes to.
+You find the project root, resolve its code repo and issues repo,
+check that the issue belongs to this project, and tell what kind of
+issue it is. Nothing here changes a branch, a worktree or an issue,
+except a reopen the person said yes to.
 
 The session may have started at the project root, in any worktree, or
 in any folder below one. It stays there: every command below names its
@@ -63,7 +64,8 @@ root holds `.yngaiplaybook/` or no older folder.
 | URL            | `https://github.com/<owner>/<repo>/issues/39` | `39`         |
 
 Anything else stops the run, a pull request URL (`/pull/39`) included:
-the orchestrator runs on issues.
+the orchestrator runs on issues. A number is the issues repo's; step 3
+checks the repository a URL names.
 
 With no argument, and the session inside a worktree, the issue is the
 Epic recorded on the current branch:
@@ -77,39 +79,80 @@ for the issue.
 
 Done when you hold an issue number `<n>`.
 
-## 3. Check the repository
+## 3. Resolve the repositories
 
-`origin`'s repository is the project's:
+The run works in two repositories (*Two repositories* in
+[SKILL.md](SKILL.md)). Resolve both here, before the lock, and hold
+them for the run.
+
+**The code repo** is `origin`'s repository:
 
 ``` bash
 git --git-dir="<root>/.bare" remote get-url origin
 ```
 
-Take `<owner>/<repo>` from it: the last two path parts, without
-`.git`, from either `https://github.com/<owner>/<repo>.git` or
-`git@github.com:<owner>/<repo>.git`. Every `gh` command of the run
-carries `-R <owner>/<repo>`.
+Take `<code repo>` from it: the last two path parts, without `.git`,
+from either `https://github.com/<owner>/<repo>.git` or
+`git@github.com:<owner>/<repo>.git`.
 
-A URL argument must name the same `<owner>/<repo>` (compare without
-case). Another repository stops the run, naming both.
+**The issues repo** is the config's top-level `issues:` key, read now,
+at the start of every run, from
+`<root>/.yngaiplaybook/yngorchestratorconfig.yml` and no other file.
+Take the value without a trailing comment, surrounding quotes or
+spaces:
+
+``` bash
+issues=$(sed -n 's/^issues:[[:space:]]*//p' \
+    "<root>/.yngaiplaybook/yngorchestratorconfig.yml" 2>/dev/null | head -n 1 |
+  sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//; s/^["'\'']\(.*\)["'\'']$/\1/')
+```
+
+| `issues:`                                   | `<issues repo>`               |
+|---------------------------------------------|-------------------------------|
+| no file, no key, or an empty value          | `<code repo>`                 |
+| `<code repo>` itself (compared without case) | `<code repo>`                 |
+| any other `<owner>/<repo>`                  | that value                    |
+| anything else                               | stop                          |
+
+`<owner>/<repo>` means two non-empty parts joined by one `/`, each of
+letters, digits, `-`, `_` and `.`:
+
+``` bash
+printf '%s\n' "$issues" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+```
+
+A value that fails this stops the run before the lock, before reading
+the issue, and before touching anything: name the value and the config
+file, and tell the person to correct or remove the key.
+
+From here every issue command carries `-R <issues repo>` and every code
+command `-R <code repo>`; no `gh` call is left to its default. Without
+an `issues:` value the two are the same repository, and the run is
+what it was before the key existed.
+
+**A URL argument** must name the issues repo (compare without case).
+A URL naming any other repository, the code repo included when it
+differs, stops the run, naming both the URL's repository and the
+issues repo.
 
 Read the issue:
 
 ``` bash
-gh api "repos/<owner>/<repo>/issues/<n>" \
+gh api "repos/<issues repo>/issues/<n>" \
   --jq '{state, state_reason, title, labels: [.labels[].name], pr: (.pull_request != null), subs: .sub_issues_summary.total}'
 ```
 
-A `404` stops the run: issue `<n>` does not exist in `<owner>/<repo>`.
+A `404` stops the run: issue `<n>` does not exist in `<issues repo>`.
 `pr: true` stops it too: `<n>` is a pull request, not an issue.
 
-Done when the issue exists in `origin`'s repository and you hold its
-state, state reason, title, labels and sub-issue count.
+Done when you hold `<code repo>` and `<issues repo>`, the issue exists
+in the issues repo, and you hold its state, state reason, title,
+labels and sub-issue count.
 
 ## 4. Tell the kind
 
 ``` bash
-parent=$(gh api "repos/<owner>/<repo>/issues/<n>/parent" --jq .number 2>/dev/null) || parent=
+parent=$(gh api "repos/<issues repo>/issues/<n>/parent" --jq .number 2>/dev/null) || parent=
 ```
 
 Judge by the exit status, not the output: on a `404` (no parent),
@@ -145,7 +188,7 @@ A closed issue is not refused. Show the person its state:
   deleted, so match the name, not the ref):
 
   ``` bash
-  gh pr list -R <owner>/<repo> --state all --limit 1000 \
+  gh pr list -R <code repo> --state all --limit 1000 \
     --json number,state,headRefName,url \
     --jq '.[] | select(.headRefName | test("^[^/]+/<n>-")) | [.number, .state, .headRefName, .url] | @tsv'
   ```
@@ -154,7 +197,7 @@ A closed Epic whose slices are still open is inconsistent. Say so, and
 list those slices:
 
 ``` bash
-gh api "repos/<owner>/<repo>/issues/<n>/sub_issues" --paginate \
+gh api "repos/<issues repo>/issues/<n>/sub_issues" --paginate \
   --jq '.[] | select(.state == "open") | [.number, .title] | @tsv'
 ```
 
@@ -162,7 +205,7 @@ Then ask whether to reopen the issue and continue. Only on the
 person's yes:
 
 ``` bash
-gh issue reopen <n> -R <owner>/<repo>
+gh issue reopen <n> -R <issues repo>
 ```
 
 Any other answer ends the run with the issue left closed.
@@ -174,18 +217,18 @@ Done when the issue is open, or the run has ended with it closed.
 The run stays within the issue's boundary:
 
 - **Epic**: the run drives the Epic. Follow
-  [worktree.md](worktree.md), holding `<root>`, `<owner>/<repo>`, the
-  Epic `<n>` and its title: it finds or creates the Epic branch and
-  worktree, checks the spec, and hands on to step 1 of
-  [SKILL.md](SKILL.md);
+  [worktree.md](worktree.md), holding `<root>`, `<code repo>`,
+  `<issues repo>`, the Epic `<n>` and its title: it finds or creates
+  the Epic branch and worktree, checks the spec, and hands on to step
+  1 of [SKILL.md](SKILL.md);
 - **slice**: the run handles that slice only (R19);
 - **standalone**: the run handles that issue only (R20).
 
 For a slice or a standalone issue, follow [scoped.md](scoped.md),
-holding `<root>`, `<owner>/<repo>`, `<n>`, its title, its kind and,
-for a slice, its parent. It checks Gate 1 before it reaches
-[worktree.md](worktree.md), so no branch is created for an issue a
-person has not promoted.
+holding `<root>`, `<code repo>`, `<issues repo>`, `<n>`, its title,
+its kind and, for a slice, its parent. It checks Gate 1 before it
+reaches [worktree.md](worktree.md), so no branch is created for an
+issue a person has not promoted.
 
 Done when the run continues as an Epic run, a slice run or a
 standalone run.

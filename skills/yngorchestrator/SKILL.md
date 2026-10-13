@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.5.0
+  version: 1.7.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -43,9 +43,9 @@ one.
 The session stays where it started. Every command on the target names
 it by absolute path: `git -C <worktree>` or `git --git-dir=<root>/.bare`,
 files read from `<worktree>/docs/specs/...`, and `gh` with
-`-R <owner>/<repo>`. Every `<... worktree>` in these steps is an
-absolute path below `<root>`, so a run behaves the same from wherever
-it started.
+`-R <issues repo>` or `-R <code repo>` (*Two repositories* below).
+Every `<... worktree>` in these steps is an absolute path below
+`<root>`, so a run behaves the same from wherever it started.
 
 `<root>/.yngaiplaybook/` holds the playbook's files for the project.
 Yours are the person's config (`yngorchestratorconfig.yml`) and your
@@ -58,6 +58,26 @@ An older root keeps them in `<root>/.yngorchestrator/` or
 them: `yngorch` migrates them. Step 1 of [locate.md](locate.md) stops
 a run on a root that has not been migrated, before anything is
 touched.
+
+## Two repositories
+
+A project may keep its issues in a separate GitHub repository. Step 3
+of [locate.md](locate.md) resolves both repositories before the lock,
+and the run holds them to its end:
+
+| Name            | What it is                                        | Its commands |
+|-----------------|---------------------------------------------------|--------------|
+| `<code repo>`   | `origin`'s `<owner>/<repo>`                       | fetching, branches, worktrees, pull requests, their checks, merges |
+| `<issues repo>` | the config's `issues:` value, else `<code repo>`  | reading an issue, its parent and sub-issues, labels, comments, closing, reopening, creating and attaching slice issues, the Gate 1 timeline |
+
+Every `gh` call names one of them with `-R`; none is left to `gh`'s
+default. Issue numbers, the run log's `#<issue>` and branch names
+(`slice/<n>-<name>`) are the issues repo's. Wherever an issue is named
+from the code repo's side (a dispatch prompt, a commit, a pull
+request), it is named by full reference, `<issues repo>#<n>`, so a
+link never lands on the code repo's own `#<n>`. Without an `issues:`
+value the two are one repository, and every command targets it as
+before.
 
 ## Run log
 
@@ -118,9 +138,10 @@ rm -f "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 
 The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
 `#39` or the issue's URL. Follow [locate.md](locate.md): it finds
-`<root>`, checks the issue is in `origin`'s repository, tells its kind
-and handles a closed issue. Once it has told the kind, take the lock
-(*The lock* above) before going on.
+`<root>`, resolves the code repo and the issues repo, checks the issue
+is in the issues repo, tells its kind and handles a closed issue. Once
+it has told the kind, take the lock (*The lock* above) before going
+on.
 
 For a slice or a standalone issue, locate.md hands on to
 [scoped.md](scoped.md), which runs that one issue to its hand-back;
@@ -176,9 +197,16 @@ Beside each item, name the slices whose `Depends on:` waits on it, and
 put the items holding up the most slices first: those are what stop
 the Epic.
 
-When every slice is closed, open the Epic's pull request into `main`
-(`gh pr create -R <owner>/<repo> --base main --head <epic branch>`)
-and follow [merge.md](merge.md) for the `epic-to-main` path. On
+When every slice is closed, open the Epic's pull request into `main`.
+Its body names the Epic by full reference, so the merge into the
+default branch closes it in the issues repo:
+
+``` bash
+gh pr create -R <code repo> --base main --head <epic branch> \
+  --title "<Epic title>" --body "Closes <issues repo>#<epic>"
+```
+
+Then follow [merge.md](merge.md) for the `epic-to-main` path. On
 `required`, say the Epic is ready for the person's spec-level review
 against `requirements.md`.
 

@@ -16,7 +16,7 @@
 #   |   `-- agents/slice-worker.md  the worker it dispatches
 #   |-- .yngaiplaybook/             the playbook's files for this project
 #   |   |-- README.md               the folder explained (rewritten every run)
-#   |   |-- yngorchestratorconfig.yml  merge rules (written only if absent)
+#   |   |-- yngorchestratorconfig.yml  merge rules, issues repo (written only if absent)
 #   |   `-- yngorchestratorruns/    one run log per Epic, and run locks
 #   |-- .claude/                    linked from .shared/.claude/, for a session at the root
 #   |-- yngshared.sh                links .shared/ into the worktrees
@@ -27,10 +27,14 @@
 #   2. Copy the skill and worker into .shared/.claude/ (upgrades in place).
 #   3. Fill .yngaiplaybook/: yngorchestratorconfig.yml from the template,
 #      only if absent; yngorchestratorruns/; README.md from the template.
+#      With --issues-repo, write the config's issues: key, only if it has
+#      no value yet; an existing value is kept and reported.
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
 #   5. Copy yngshared.sh into the project root and link every worktree,
 #      and .shared/.claude/ into the root's own .claude/.
-#   6. Create or update the workflow labels with gh, when gh is available.
+#   6. Create or update the workflow labels with gh, when gh is available,
+#      in the issues repo: --issues-repo, else the config's issues: value,
+#      else origin's repo.
 #   7. Copy yngv, the file viewer, to <bin-dir>/yngv (default ~/.local/bin).
 #      Per user, not per project. When that folder is not on PATH it prints
 #      the line to add to your shell's startup file; it edits none itself.
@@ -48,21 +52,29 @@
 # Run it again after creating a worktree, or to upgrade: it re-links every
 # worktree and never overwrites your config.
 #
-# Usage: yngorch.sh [--project <path>] [--skip-labels] [--skip-viewer]
-#                   [--bin-dir <path>]
+# Usage: yngorch.sh [--project <path>] [--issues-repo <owner>/<repo>]
+#                   [--skip-labels] [--skip-viewer] [--bin-dir <path>]
+#
+#   --issues-repo  the GitHub repository holding this project's issues, when
+#                  they live apart from the code. Written into the config's
+#                  issues: key only when it has no value yet, and used for the
+#                  labels. Any other form stops the install before anything
+#                  is written.
 # Requires: bash, git. Optional: gh, authenticated, for the labels.
 
 set -euo pipefail
 
-usage() { sed -n '2,53p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,63p' "$0" | sed 's/^# \{0,1\}//'; }
 
 project=$PWD
+issues_repo=""
 skip_labels=0
 skip_viewer=0
 bin_dir="$HOME/.local/bin"
 while [ $# -gt 0 ]; do
     case "$1" in
         --project) project=${2:?--project needs a path}; shift 2 ;;
+        --issues-repo) issues_repo=${2:?--issues-repo needs <owner>/<repo>}; shift 2 ;;
         --skip-labels) skip_labels=1; shift ;;
         --skip-viewer) skip_viewer=1; shift ;;
         --bin-dir) bin_dir=${2:?--bin-dir needs a path}; shift 2 ;;
@@ -74,6 +86,39 @@ done
 here=$(cd "$(dirname "$0")" && pwd)
 playbook=$(dirname "$here")
 step() { printf '  %-8s %s\n' "$1" "$2"; }
+
+# The issues repo (spec R28, R31): <owner>/<repo>, checked before anything
+# is written.
+is_repo() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'; }
+if [ -n "$issues_repo" ] && ! is_repo "$issues_repo"; then
+    echo "--issues-repo '$issues_repo' is not <owner>/<repo>; nothing was written." >&2
+    exit 2
+fi
+lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+
+# The config's top-level issues: value; empty when absent or empty.
+issues_value() {
+    [ -f "$1" ] || return 0
+    sed -n '/^issues:/{s/^issues:[[:space:]]*//p;q;}' "$1" | tr -d '\r' |
+        sed -e 's/^#.*//' -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' \
+            -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+}
+
+# Writes "issues: <value>" into the config: over its empty issues: line,
+# else just after the template's commented-out one, else at the end.
+# Keeps the file's line endings (BINMODE stops Windows gawk dropping CRs).
+set_issues_value() {
+    mode=after
+    grep -q '^issues:' "$1" && mode=replace
+    awk -v BINMODE=3 -v v="$2" -v mode="$mode" '
+        { cr = sub(/\r$/, "") ? "\r" : "" }
+        !done && mode == "replace" && /^issues:/ { print "issues: " v cr; done = 1; next }
+        { print $0 cr }
+        !done && mode == "after" && /^#[ \t]*issues:/ { print "issues: " v cr; done = 1 }
+        END { if (!done) print "issues: " v cr }
+    ' "$1" > "$1.tmp"
+    mv "$1.tmp" "$1"
+}
 
 # 1. The project root: the folder holding .bare/.
 common=$(git -C "$project" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
@@ -107,6 +152,9 @@ if [ $# -gt 0 ] && { [ -d "$ynga" ] || [ $# -gt 1 ]; }; then
     names=""; [ -d "$ynga" ] && names=" .yngaiplaybook/"
     for d in "$@"; do names="$names $d/"; done
     step warning "found${names}; moved nothing and left each as it is: move what you need into .yngaiplaybook/ by hand"
+    if [ -n "$issues_repo" ]; then
+        step skipped "issues: $issues_repo not written (move .yngaiplaybook/ by hand first, then run again)"
+    fi
 else
     if [ $# -eq 1 ]; then
         old=$1
@@ -128,6 +176,15 @@ else
     mkdir -p "$ynga/yngorchestratorruns"
     if [ -f "$config" ]; then step kept ".yngaiplaybook/yngorchestratorconfig.yml (yours)"
     else cp "$playbook/templates/yngorchestratorconfig.yml" "$config"; step created ".yngaiplaybook/yngorchestratorconfig.yml (every path required)"; fi
+    current=$(issues_value "$config")
+    if [ -n "$issues_repo" ] && [ -z "$current" ]; then
+        set_issues_value "$config" "$issues_repo"
+        step wrote "issues: $issues_repo into .yngaiplaybook/yngorchestratorconfig.yml"
+    elif [ -n "$issues_repo" ] && [ "$(lower "$current")" != "$(lower "$issues_repo")" ]; then
+        step kept "issues: $current in .yngaiplaybook/yngorchestratorconfig.yml (yours; --issues-repo $issues_repo not written)"
+    elif [ -n "$current" ]; then
+        step kept "issues: $current in .yngaiplaybook/yngorchestratorconfig.yml"
+    fi
     version=$(tr -d '\r\n' < "$playbook/VERSION")
     sed "s/{{VERSION}}/$version/g" "$playbook/templates/yngaiplaybookreadme.md" > "$ynga/README.md"
     step wrote ".yngaiplaybook/README.md (the folder explained, $version)"
@@ -163,12 +220,17 @@ else
     step warning "yngshared reported problems above"
 fi
 
-# 6. Labels, when gh is available.
+# 6. Labels, when gh is available, in the issues repo: --issues-repo, else
+# the config's issues: value, else origin's repo (spec R31.3).
+config_issues=$(issues_value "$config")
+repo=$issues_repo
+[ -z "$repo" ] && repo=$config_issues
 if [ "$skip_labels" = 1 ]; then step skipped "labels (--skip-labels)"
 elif ! command -v gh >/dev/null 2>&1; then step skipped "labels (gh not found)"
-elif ! url=$(git --git-dir="$common" remote get-url origin 2>/dev/null); then step skipped "labels (no origin remote)"
+elif [ -n "$repo" ] && ! is_repo "$repo"; then step warning "labels skipped: the config's issues: '$repo' is not <owner>/<repo>"
+elif [ -z "$repo" ] && ! url=$(git --git-dir="$common" remote get-url origin 2>/dev/null); then step skipped "labels (no origin remote)"
 else
-    repo=${url%.git}
+    [ -z "$repo" ] && repo=${url%.git}
     failed=0; total=0
     while IFS='|' read -r name color desc; do
         total=$((total + 1))

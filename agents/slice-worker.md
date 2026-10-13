@@ -26,7 +26,7 @@ equivalent.
 Your prompt carries these fields. Everything you need is in them.
 
 ``` text
-ISSUE:        #<n> <title>
+ISSUE:        <owner>/<repo>#<n> <title>
 CRITERIA:     the issue's acceptance criteria, verbatim
 SPEC:         docs/specs/<feature>/requirements.md, section <Rn>,
               or "none" for a standalone fix
@@ -42,6 +42,15 @@ PREVIOUS:     re-dispatch only: the last attempt's STATUS, ISSUES and
 On a re-dispatch, `PREVIOUS` is your starting point: build on the
 commits already on `BRANCH` and resolve the cause it names before
 anything else.
+
+`ISSUE` names the issue by full reference: `<owner>/<repo>` is the
+**issues repo**, which may differ from the **code repo** your worktree
+pushes to (`origin`'s repository). Take the code repo from
+`git -C "<WORKTREE>" remote get-url origin`: the last two path parts,
+without `.git`. Name each repository with `-R` on every `gh` call, and
+name the issue by its full reference, `<owner>/<repo>#<n>`, wherever
+you write it, so a link never lands on the code repo's own `#<n>`.
+`BRANCH` carries the issues repo's number.
 
 ## Stop with `needs-human`
 
@@ -76,7 +85,8 @@ leave the worktree untouched.
 
 ### 2. Read
 
-Read the issue (`gh issue view <n>`), the `SPEC` section, the project's
+Read the issue (`gh issue view <n> -R <owner>/<repo>`, both from
+`ISSUE`), the `SPEC` section, the project's
 agent instructions (`AGENTS.md`, `CLAUDE.md`) and written standards,
 and the code the slice touches.
 
@@ -127,14 +137,24 @@ fixed or recorded.
 ### 6. Commit, push, open the pull request
 
 Inspect `git diff`, then commit only this slice's files, following the
-project's commit conventions. Push and open the pull request:
+project's commit conventions; where a message names the issue, it uses
+the full reference from `ISSUE`. Push and open the pull request in the
+code repo:
 
 ``` bash
 git push -u origin <BRANCH>
-gh pr create --base <PR BASE> --head <BRANCH> --title "<ISSUE title>" --body "<body>"
+gh pr create -R <code repo> --base <PR BASE> --head <BRANCH> --title "<ISSUE title>" --body "<body>"
 ```
 
-The body: what changed, one line per file; then a `## Review record`
+The body opens with the issue's full reference from `ISSUE`:
+
+- `PR BASE: main` (a standalone fix): `Closes <owner>/<repo>#<n>`, so
+  the merge into the default branch closes the issue in the issues
+  repo;
+- any other base (a slice): `Implements <owner>/<repo>#<n>`, no
+  closing keyword; the orchestrator closes slice issues itself.
+
+Then what changed, one line per file; then a `## Review record`
 section holding the open decisions, or "none".
 
 Done when the branch is pushed and the pull request is open into

@@ -13,7 +13,7 @@ committed: no branch or pull request can change what is in it.
 ``` text
 .yngaiplaybook/
 ├── README.md                       this file
-├── yngorchestratorconfig.yml       merge rules for /yngorchestrator
+├── yngorchestratorconfig.yml       merge rules and issues repo for /yngorchestrator
 └── yngorchestratorruns/
     ├── <epic>.md                   run log, one per Epic or standalone issue
     └── <n>.lock                    run lock, present while a run writes issue state
@@ -32,7 +32,7 @@ section below.
 | File | Purpose | Owner | Overwritten by `yngorch` |
 |------|---------|-------|--------------------------|
 | `README.md` | this file | the playbook | yes, on every install |
-| `yngorchestratorconfig.yml` | who merges each kind of pull request | you | no: written only when absent |
+| `yngorchestratorconfig.yml` | who merges each kind of pull request, and where the issues live | you | no: written only when absent, and `issues:` only when it has no value |
 | `yngorchestratorruns/<epic>.md` | what each run did, so a later run resumes | the orchestrator | no |
 | `yngorchestratorruns/<n>.lock` | one writer of issue state at a time | the orchestrator | no |
 
@@ -46,6 +46,13 @@ decision is open). A missing key, or any other value, means `required`.
 | `slice-to-epic` | `slice/*` into its Epic branch |
 | `epic-to-main` | `epic/*` into `main` |
 | `fix-to-main` | `fix/*` into `main` (standalone fixes) |
+
+The top-level `issues:` key names the GitHub repository holding this
+project's issues, as `<owner>/<repo>`, when they live apart from the
+code; absent or empty, the issues are in `origin`'s repository. It is
+yours to set. `yngorch -IssuesRepo <owner>/<repo>` (`--issues-repo` in
+`yngorch.sh`) writes it only when it has no value yet, and never
+overwrites it.
 
 A lock left by a crashed run stays until you delete it; the orchestrator
 never deletes a lock it did not create.

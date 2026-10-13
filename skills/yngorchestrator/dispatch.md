@@ -3,7 +3,8 @@
 Run steps 1 to 3 for each slice in turn, then step 4 once for all of
 them. Every command names its target by absolute path (*The project
 root* in [SKILL.md](SKILL.md)), so the session's own folder does not
-matter.
+matter. Every command here is an issue command: `gh` carries
+`-R <issues repo>` (*Two repositories* in [SKILL.md](SKILL.md)).
 
 ## 1. Check provenance (Gate 1)
 
@@ -11,7 +12,7 @@ The issue must carry `workflow:ready-for-agent` now, and a person must
 have applied it. Read who applied it from the issue timeline:
 
 ``` bash
-gh api repos/<owner>/<repo>/issues/<n>/timeline --paginate \
+gh api repos/<issues repo>/issues/<n>/timeline --paginate \
   --jq '.[] | select(.event=="labeled" and .label.name=="workflow:ready-for-agent")
         | [.actor.login, .actor.type, (.performed_via_github_app.slug // "-"), .created_at] | @tsv'
 ```
@@ -70,7 +71,7 @@ prints the Epic.
 ## 3. Hand it out
 
 ``` bash
-gh issue edit <n> -R <owner>/<repo> --add-label workflow:in-progress --remove-label workflow:ready-for-agent
+gh issue edit <n> -R <issues repo> --add-label workflow:in-progress --remove-label workflow:ready-for-agent
 ```
 
 Log `dispatched` to the run log.
@@ -84,7 +85,7 @@ Fill one prompt per slice from this template. Every value comes from
 the issue and from step 2; the worker reads nothing else to start.
 
 ``` text
-ISSUE:        #<n> <title>
+ISSUE:        <issues repo>#<n> <title>
 CRITERIA:     <the issue's acceptance criteria, verbatim>
 SPEC:         docs/specs/<feature>/requirements.md, section <Rn>
 WORKTREE:     <root>/slice-<epic>-<name>, as an absolute path
@@ -93,6 +94,10 @@ PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       <absolute path of skills/yngorchestrator/report.md>
 ```
+
+`ISSUE` carries the full reference, `<issues repo>#<n>`, even when the
+issues repo is the code repo: the worker reads the issue with `-R` from
+it, and names it so in its commits and pull request.
 
 A standalone run ([scoped.md](scoped.md)) fills `SPEC: none`,
 `PR BASE: main`, and its `fix/<n>-<name>` branch and worktree: the
