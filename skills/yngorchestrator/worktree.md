@@ -3,8 +3,8 @@
 You find the issue's branch, bring it and its worktree to a known
 state, and link the skill into a worktree you create. You arrive from
 [locate.md](locate.md) holding `<root>`, `<code repo>`,
-`<issues repo>`, the issue `<n>`, its title, its kind and, for a
-slice, its parent. An Epic run
+`<issues repo>`, `<auto-promote>`, the issue `<n>`, its title, its
+kind and, for a slice, its parent. An Epic run
 comes straight from locate.md; a slice run (R19) and a standalone run
 (R20) come from [scoped.md](scoped.md), only after their Gate 1
 check, so no branch is created for an issue a person has not promoted.
@@ -232,7 +232,8 @@ exists on the Epic branch.
 ## 6. Hand on
 
 - **Epic**: go on with step 1 of [SKILL.md](SKILL.md), holding
-  `<root>`, `<code repo>`, `<issues repo>`, the Epic `<n>`, `<epic branch>`,
+  `<root>`, `<code repo>`, `<issues repo>`, `<auto-promote>`, the Epic
+  `<n>`, `<epic branch>`,
   `<epic worktree>` and the spec folder
   `<epic worktree>/docs/specs/<feature>/`;
 - **slice**, **standalone**: hold `<branch>` and `<worktree>` for the

@@ -130,6 +130,30 @@ command `-R <code repo>`; no `gh` call is left to its default. Without
 an `issues:` value the two are the same repository, and the run is
 what it was before the key existed.
 
+**The Gate 1 setting**, `<auto-promote>`, is the config's top-level
+`auto-promote:` key, read now from the same file, at the start of
+every run (R33). It is the person's advance decision on Gate 1, as
+`merge:` is on Gate 2 ([merge.md](merge.md)); the two never stand in
+for each other. Take the value as for `issues:`:
+
+``` bash
+ap=$(sed -n 's/^auto-promote:[[:space:]]*//p' \
+    "<root>/.yngaiplaybook/yngorchestratorconfig.yml" 2>/dev/null | head -n 1 |
+  sed 's/[[:space:]]*#.*$//; s/[[:space:]]*$//; s/^["'\'']\(.*\)["'\'']$/\1/')
+case "$(printf '%s' "$ap" | tr '[:upper:]' '[:lower:]')" in
+  yes|true) autopromote=yes ;;
+  *)        autopromote=no ;;
+esac
+```
+
+`yes` or `true`, in any case, is `yes`. No file, no key, an empty
+value or any other value is `no`, and never stops the run: with `no`
+the run is what it was before the key existed. Hold `<auto-promote>`
+for the whole run; a change to the file takes effect at the next run.
+It decides two things only: how [plan.md](plan.md) labels the slices
+it creates, and whether step 1 of [dispatch.md](dispatch.md) accepts a
+plan promotion.
+
 **A URL argument** must name the issues repo (compare without case).
 A URL naming any other repository, the code repo included when it
 differs, stops the run, naming both the URL's repository and the
@@ -145,7 +169,8 @@ gh api "repos/<issues repo>/issues/<n>" \
 A `404` stops the run: issue `<n>` does not exist in `<issues repo>`.
 `pr: true` stops it too: `<n>` is a pull request, not an issue.
 
-Done when you hold `<code repo>` and `<issues repo>`, the issue exists
+Done when you hold `<code repo>`, `<issues repo>` and
+`<auto-promote>`, the issue exists
 in the issues repo, and you hold its state, state reason, title,
 labels and sub-issue count.
 
@@ -218,15 +243,15 @@ The run stays within the issue's boundary:
 
 - **Epic**: the run drives the Epic. Follow
   [worktree.md](worktree.md), holding `<root>`, `<code repo>`,
-  `<issues repo>`, the Epic `<n>` and its title: it finds or creates
+  `<issues repo>`, `<auto-promote>`, the Epic `<n>` and its title: it finds or creates
   the Epic branch and worktree, checks the spec, and hands on to step
   1 of [SKILL.md](SKILL.md);
 - **slice**: the run handles that slice only (R19);
 - **standalone**: the run handles that issue only (R20).
 
 For a slice or a standalone issue, follow [scoped.md](scoped.md),
-holding `<root>`, `<code repo>`, `<issues repo>`, `<n>`, its title,
-its kind and, for a slice, its parent. It checks Gate 1 before it
+holding `<root>`, `<code repo>`, `<issues repo>`, `<auto-promote>`,
+`<n>`, its title, its kind and, for a slice, its parent. It checks Gate 1 before it
 reaches [worktree.md](worktree.md), so no branch is created for an
 issue a person has not promoted.
 
