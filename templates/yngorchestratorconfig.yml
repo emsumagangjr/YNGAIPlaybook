@@ -10,9 +10,21 @@
 # Never committed: it belongs to no branch, so no branch or pull request can
 #   change it, and no agent's work can grant itself a setting. Only you edit
 #   it, by hand.
-# Written by yngorch: from this template, only when the file is absent.
-#   yngorch never overwrites it; the one exception is filling in an empty
-#   issues setting when you pass -IssuesRepo (see below).
+# Written by yngorch: whole, from this template, only when the file is
+#   absent. On a reinstall it keeps the file and adds only what this
+#   template has and the file lacks: each missing setting, with its
+#   comments, just above the worked examples, and each missing key under
+#   a setting active in your file (such as a new merge path). It never
+#   changes, removes or reorders a line of yours. Before adding anything
+#   it copies the file to yngorchestratorconfig.yml.bak beside it,
+#   replacing an older backup, and prints one line per backup and per
+#   addition. With nothing to add it writes no backup and prints "kept".
+#   A setting whose header you kept, with its key commented out, stays as
+#   you left it. A setting you deleted, header and key, comes back at its
+#   default. A key of yours this template does not have is left as it is,
+#   with a note that the orchestrator ignores it. The one other write is
+#   filling in an empty issues setting when you pass -IssuesRepo (see
+#   below).
 # Read fresh: the orchestrator reads the file as it is now, at the start of
 #   every run and again before every merge. An edit counts from the next
 #   read; there is nothing to restart.
@@ -46,9 +58,10 @@
 #   <owner>/<repo> stops the run before it touches anything, naming the
 #   value; yngorch then skips creating labels, with a warning.
 # Read: at the start of every run.
-# Changed by: you. yngorch -IssuesRepo <owner>/<repo> (--issues-repo in
-#   yngorch.sh) writes it only when it has no value yet, and never
-#   overwrites a value.
+# Changed by: you. yngorch adds this setting, commented out as below,
+#   when it is missing, and never changes it otherwise; yngorch
+#   -IssuesRepo <owner>/<repo> (--issues-repo in yngorch.sh) writes the
+#   key only when it has no value yet, and never overwrites a value.
 # issues: <owner>/<repo>
 
 
@@ -68,7 +81,8 @@
 # Switching back to no: slices promoted under yes stop counting as
 #   promoted, and wait for your label.
 # Read: at the start of every run.
-# Changed by: you. yngorch never writes it; it arrives with this template.
+# Changed by: you. yngorch adds the key, at no, when it is missing, and
+#   never changes it.
 #
 # Promote approved slices to Agent-Ready automatically.
 #   no   You promote each slice (label workflow:ready-for-agent)
@@ -101,8 +115,11 @@ auto-promote: no
 # Default: required. A missing file, a missing key, or any value other
 #   than auto means required.
 # Read: before every merge, for the key that merge falls under.
-# Changed by: you. yngorch writes these keys only as part of this
-#   template, when the file is absent, and never changes them.
+# Changed by: you. yngorch adds merge, or any one of its keys, at
+#   required, when it is missing, and never changes them. A key it cannot
+#   add line by line (merge written on one line as {...}, set twice, or
+#   its keys indented with a tab or unevenly) it reports as a warning,
+#   with the line to paste by hand.
 merge:
   slice-to-epic: required   # required | auto
   epic-to-main: required    # required | auto

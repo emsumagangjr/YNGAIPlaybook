@@ -4,6 +4,22 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.9.0] — 2026-10-14
+
+A reinstall keeps every setting in your config and adds the new ones.
+
+### Added
+- When `.yngaiplaybook/yngorchestratorconfig.yml` exists, `yngorch` (`.ps1` and `.sh`) brings it up to date with its template: each setting the template has and the file lacks is added whole, with its comments, just above the worked examples (at the end of a file without them), and each missing key under a setting active in the file is added after that block's last key, with the template's trailing comment. Nothing already in the file is changed, removed or reordered, and its line endings stay as they are. A setting kept with its key commented out stays so; one deleted, header and key, comes back at its default. Re-running adds nothing.
+- Before its first change, `yngorch` copies the config to `yngorchestratorconfig.yml.bak` beside it, replacing an older backup; with nothing to add it writes none. It prints a `backed up` line and one `added` line per setting or key, or `kept ... (yours, nothing new)`.
+- A key it cannot add line by line (its parent's value on the parent's own line, the parent set twice, or the keys under it indented with a tab or unevenly) is a `warning` naming the reason and the exact line to paste by hand. An active key the template does not have stays as it is, with a `note` that the orchestrator ignores it.
+- The upgrade is one routine per script over a list of template and config pairs, so a config file added later needs no new upgrade code. Every config template keeps one `# --- Setting: <name> ---` header per top-level key and its worked examples below a `# ====` banner.
+
+### Changed
+- When an old `.yngorchestrator/` or `.orchestrator/` stops the migration, the config is not upgraded either, and a `skipped` line says so.
+- The config template's header, each setting's *Changed by* line, the folder's README (its layout now shows `yngorchestratorconfig.yml.bak`), INSTALL and guide section 25 describe the upgrade and the backup. The spec gains R39-R42.
+
+---
+
 ## [1.8.0] — 2026-10-13
 
 A person can give Gate 1 by approving an Epic's plan, when the config says so.

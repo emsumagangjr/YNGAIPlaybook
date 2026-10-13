@@ -61,8 +61,11 @@ https://github.com/you/myproject`. When the project's issues live in a
 separate repository, name it too: `...; its issues are in you/tracker`.
 
 It checks your setup, tells you what it will change, waits for your
-approval, installs, and reports back. Reinstalling keeps your config
-and run logs. Next, set `auto-promote:` and your merge rules, and start an Epic
+approval, installs, and reports back. Reinstalling keeps your run logs
+and every setting in your config, and adds the settings new in this
+version, after backing the config up to
+`yngorchestratorconfig.yml.bak`. Next, set `auto-promote:` and your
+merge rules, and start an Epic
 ([After installing](#after-installing)).
 
 ### For the agent doing the install
@@ -120,7 +123,15 @@ existing folder.
     cause; report it.
 
     The installer overwrites the skill and worker and keeps the config,
-    so a reinstall runs the same command. The project's playbook files
+    so a reinstall runs the same command. On a reinstall it keeps every
+    setting in the config and adds only the settings and keys the
+    template has and the config lacks, changing no line of the person's:
+    a `backed up` line for the copy it makes first,
+    `yngorchestratorconfig.yml.bak`, then one `added` line each; or a
+    `kept` line `(yours, nothing new)`. A key it cannot add line by line
+    is a `warning` giving the line to paste: report it, with that line,
+    and add it only as the person answers. A `note` that a key is not in
+    the template is not a warning: pass it on. The project's playbook files
     go in `<root>/.yngaiplaybook/`: the config
     (`yngorchestratorconfig.yml`), the run logs and locks
     (`yngorchestratorruns/`), and a `README.md` explaining them, which
@@ -303,5 +314,8 @@ clone until you have checked the new one:
     issue it works on a `fix/` branch from `main` and opens a pull
     request into `main` (guide, section 25).
 
-To upgrade, update the playbook copy and run the installer again; it
-never overwrites your config.
+To upgrade, update the playbook copy and run the installer again. It
+keeps every setting in your config and adds the settings new in this
+version, changing no line of yours, after copying the config to
+`.yngaiplaybook/yngorchestratorconfig.yml.bak`; it prints one line per
+setting added.
