@@ -980,7 +980,9 @@ Epic: #82
 3.  A config file added later is named by R23.2 and documented as
     R37 sets out.
 4.  Both `yngorch.ps1` and `yngorch.sh` behave the same and print the
-    same lines (R27.1).
+    same lines (R27.1). Path separators may differ between the scripts:
+    `yngorch.ps1` may print `.yngaiplaybook\` where `yngorch.sh` prints
+    `.yngaiplaybook/`.
 
 ## R42 Documentation and version
 
