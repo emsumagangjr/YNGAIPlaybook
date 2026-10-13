@@ -193,7 +193,7 @@ else {
     }
     New-Item -ItemType Directory -Force (Join-Path $ynga 'yngorchestratorruns') | Out-Null
     if (Test-Path $config) { Step 'kept' '.yngaiplaybook\yngorchestratorconfig.yml (yours)' }
-    else { Copy-Item (Join-Path $playbook 'templates\yngorchestratorconfig.yml') $config; Step 'created' '.yngaiplaybook\yngorchestratorconfig.yml (every path required)' }
+    else { Copy-Item (Join-Path $playbook 'templates\yngorchestratorconfig.yml') $config; Step 'created' '.yngaiplaybook\yngorchestratorconfig.yml (auto-promote: no, every merge path required)' }
     $current = Get-IssuesValue $config
     if ($IssuesRepo -and -not $current) {
         Set-IssuesValue $config $IssuesRepo
@@ -316,6 +316,6 @@ else {
 
 Write-Host ''
 Write-Host 'Done. Next:'
-Write-Host "  - Set your merge rules in $config"
+Write-Host "  - Set auto-promote (Gate 1) and your merge rules (Gate 2) in $config"
 Write-Host '  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>'
 Write-Host '  - After creating a new worktree, run this script again to link it.'

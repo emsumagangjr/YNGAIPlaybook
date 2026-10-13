@@ -175,7 +175,7 @@ else
     fi
     mkdir -p "$ynga/yngorchestratorruns"
     if [ -f "$config" ]; then step kept ".yngaiplaybook/yngorchestratorconfig.yml (yours)"
-    else cp "$playbook/templates/yngorchestratorconfig.yml" "$config"; step created ".yngaiplaybook/yngorchestratorconfig.yml (every path required)"; fi
+    else cp "$playbook/templates/yngorchestratorconfig.yml" "$config"; step created ".yngaiplaybook/yngorchestratorconfig.yml (auto-promote: no, every merge path required)"; fi
     current=$(issues_value "$config")
     if [ -n "$issues_repo" ] && [ -z "$current" ]; then
         set_issues_value "$config" "$issues_repo"
@@ -265,6 +265,6 @@ fi
 
 echo
 echo "Done. Next:"
-echo "  - Set your merge rules in $config"
+echo "  - Set auto-promote (Gate 1) and your merge rules (Gate 2) in $config"
 echo "  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>"
 echo "  - After creating a new worktree, run this script again to link it."
