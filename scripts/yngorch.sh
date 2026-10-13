@@ -153,6 +153,24 @@ function header(s,   r) {
     return r
 }
 function spaces(n,   r) { r = ""; while (n-- > 0) r = r " "; return r }
+# Records the keys written inside a flow-style value of q, {a: 1, b: 2},
+# as flow[q, key]: they count as present (R39.5).
+function flowkeys(q, v,   i, c, d, piece) {
+    v = substr(v, 2); sub(/[}][ \t]*$/, "", v); d = 0; piece = ""
+    for (i = 1; i <= length(v) + 1; i++) {
+        c = (i <= length(v)) ? substr(v, i, 1) : ","
+        if (c == "{" || c == "[") d++
+        else if (c == "}" || c == "]") d--
+        if (c == "," && d == 0) {
+            sub(/^[ \t]+/, "", piece); sub(/^["\047]/, "", piece)
+            if (match(piece, /^[A-Za-z0-9_-]+["\047]?:/)) {
+                piece = substr(piece, 1, RLENGTH - 1); sub(/["\047]$/, "", piece)
+                flow[q, piece] = 1
+            }
+            piece = ""
+        } else piece = piece c
+    }
+}
 # True when an ancestor of path p was inserted with its subtree.
 function under(p,   x) {
     x = p
@@ -202,6 +220,7 @@ END {
         while (sp > 0 && sind[sp] >= K_ind) sp--
         p = sp ? spath[sp] "." K_key : K_key
         cnt[p]++; hasval[p] = (K_val != ""); pind[p] = K_ind; last[p] = i
+        if (K_val ~ /^[{]/) flowkeys(p, K_val)
         for (a = 1; a <= sp; a++) last[spath[a]] = i
         if (sp) {
             q = spath[sp]
@@ -217,13 +236,13 @@ END {
     }
 
     # Missing settings (R39.5, R39.6): whole sections, in template order.
-    adds = ""; warns = ""; ins_set = ""
+    warns = ""; ins_set = ""
     for (s = 1; s <= ns; s++) {
         n = sname[s]
         if (cnt[n] > 0 || (n in hdr)) continue
         missing[n] = 1
         for (i = sstart[s]; i <= send[s]; i++) ins_set = ins_set t[i] eol
-        adds = adds "A " disp ": " n " (new in the template)\n"
+        addl[sstart[s]] = "A " disp ": " n " (new in the template)\n"
     }
 
     # Missing nested keys (R39.7, R39.8), in template order.
@@ -232,6 +251,8 @@ END {
         if (q == "") continue
         top = p; sub(/\..*$/, "", top)
         if ((top in missing) || under(p) || cnt[p] > 0 || !(cnt[q] > 0)) continue
+        kk = p; sub(/^.*[.]/, "", kk)
+        if ((q, kk) in flow) continue
         why = ""
         if (cnt[q] > 1) why = q " is set more than once"
         else if (hasval[q]) why = q " has its value on the same line"
@@ -250,7 +271,7 @@ END {
             ins[pos] = ins[pos] spaces(ind) substr(l, m + 1) eol
         }
         inserted[p] = 1
-        adds = adds "A " disp ": " p ": " kval[k] " (new in the template)\n"
+        addl[kline[k]] = "A " disp ": " p ": " kval[k] " (new in the template)\n"
     }
 
     # The file, every line as it was, with the new lines in place.
@@ -264,6 +285,9 @@ END {
     }
     if (!fb && ins_set != "") emit(ins_set)
     close(out)
+    # Added lines, settings and nested keys mixed, in template order.
+    adds = ""
+    for (i = 1; i <= T; i++) if (i in addl) adds = adds addl[i]
     printf "%s%s%s", adds, warns, notes
 }'
 
@@ -332,7 +356,7 @@ if [ $# -gt 0 ] && { [ -d "$ynga" ] || [ $# -gt 1 ]; }; then
     for d in "$@"; do names="$names $d/"; done
     step warning "found${names}; moved nothing and left each as it is: move what you need into .yngaiplaybook/ by hand"
     while IFS='|' read -r tpl name holds; do
-        step skipped ".yngaiplaybook/$name not brought up to date (move .yngaiplaybook/ by hand first, then run again)"
+        step skipped ".yngaiplaybook/$name not upgraded (move .yngaiplaybook/ by hand first, then run again)"
     done <<EOF
 $config_files
 EOF
