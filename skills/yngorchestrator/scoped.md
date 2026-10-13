@@ -2,15 +2,16 @@
 
 A run on a slice handles that slice only (R19); a run on a standalone
 issue handles that issue only (R20). You arrive from
-[locate.md](locate.md) holding `<root>`, `<owner>/<repo>`, the issue
-`<n>`, its title, its kind and, for a slice, its parent `<parent>`.
+[locate.md](locate.md) holding `<root>`, `<code repo>`,
+`<issues repo>`, the issue `<n>`, its title, its kind and, for a
+slice, its parent `<parent>`.
 The run holds its lock (*The lock* in [SKILL.md](SKILL.md)) and writes
 its log; this file carries it to its end, and SKILL.md's steps 2 to 5
 do not run.
 
 Every command names its target by absolute path, and every `gh`
-command carries `-R <owner>/<repo>` (*The project root* in
-[SKILL.md](SKILL.md)).
+command carries `-R <issues repo>` for an issue or `-R <code repo>`
+for a pull request (*Two repositories* in [SKILL.md](SKILL.md)).
 
 When a step stops the run, tell the person the reason in one sentence,
 log it, delete the lock, and end the run. You never apply
@@ -27,7 +28,7 @@ An issue at `workflow:in-review` was dispatched by an earlier run, and
 its pull request waits. Find it by head branch:
 
 ``` bash
-gh pr list -R <owner>/<repo> --state all --limit 1000 \
+gh pr list -R <code repo> --state all --limit 1000 \
   --json number,state,headRefName,baseRefName,url \
   --jq '.[] | select(.headRefName | test("^(slice|fix)/<n>-")) | [.number, .state, .headRefName, .baseRefName, .url] | @tsv'
 ```
@@ -64,7 +65,7 @@ Done when the issue has passed Gate 1, or the run has stopped.
 Read the issue's `Depends on:` line, written by planning:
 
 ``` bash
-gh api "repos/<owner>/<repo>/issues/<n>" --jq .body \
+gh api "repos/<issues repo>/issues/<n>" --jq .body \
   | sed -n 's/^Depends on:[[:space:]]*//p' | head -n 1 | grep -o '#[0-9][0-9]*' | tr -d '#'
 ```
 
@@ -72,7 +73,7 @@ No line, or no number in it, means no dependency. Each number must be
 closed:
 
 ``` bash
-gh api "repos/<owner>/<repo>/issues/<d>" --jq .state
+gh api "repos/<issues repo>/issues/<d>" --jq .state
 ```
 
 Any one still `open` stops the run, naming each open dependency: the
@@ -131,7 +132,7 @@ whose `Depends on:` names `#<n>` and whose dependencies are now all
 closed.
 
 ``` bash
-gh api "repos/<owner>/<repo>/issues/<parent>/sub_issues" --paginate \
+gh api "repos/<issues repo>/issues/<parent>/sub_issues" --paginate \
   --jq '.[] | select(.state == "open") | [.number, .title, ([.labels[].name] | join(","))] | @tsv'
 ```
 
@@ -142,12 +143,12 @@ each. Do not dispatch them: that is an Epic run
 
 ### A standalone issue
 
-A closing keyword in the pull request may have closed the issue
-already. While it is open, close it explicitly:
+The pull request's `Closes <issues repo>#<n>` may have closed the
+issue already. While it is open, close it explicitly:
 
 ``` bash
-gh issue edit <n> -R <owner>/<repo> --remove-label workflow:in-review
-gh issue close <n> -R <owner>/<repo> --comment "Merged into \`main\` by <PR url>."
+gh issue edit <n> -R <issues repo> --remove-label workflow:in-review
+gh issue close <n> -R <issues repo> --comment "Merged into \`main\` by <PR url>."
 ```
 
 Log `closed`. Remove the worktree and local branch as in step 4 of

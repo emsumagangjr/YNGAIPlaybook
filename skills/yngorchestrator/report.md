@@ -42,8 +42,8 @@ STATUS:        done
 SUMMARY:       Users can sign in with a Microsoft account; callback and token refresh covered by tests.
 BRANCH:        slice/101-oauth
 PR:            https://github.com/acme/app/pull/131
-COMMITS:       3f2a91c #101 Add Microsoft OAuth sign-in
-               8b0d4e2 #101 Refresh expired Microsoft tokens
+COMMITS:       3f2a91c acme/app#101 Add Microsoft OAuth sign-in
+               8b0d4e2 acme/app#101 Refresh expired Microsoft tokens
 TESTS:         pytest auth/ — 42 passed
 REVIEW RECORD: Should a Microsoft account with no matching email create a new user or be refused?
 ISSUES:        none

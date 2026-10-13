@@ -70,7 +70,7 @@ existing issue keeps its labels, and its body changes only where the
 person approved the change. For each new slice:
 
 ``` bash
-gh issue create -R <owner>/<repo> --title "<outcome>" --label "workflow:needs-triage" --body-file <file>
+gh issue create -R <issues repo> --title "<outcome>" --label "workflow:needs-triage" --body-file <file>
 ```
 
 The body, with the optional lines only when they apply:
@@ -88,12 +88,15 @@ Route: workflow:ready-for-human — <reason>
 Shares files with: #<n> (<path>)
 ```
 
+A slice issue lives in the issues repo beside its Epic, so the short
+`#<n>` references in its body name the issues repo's issues.
+
 Then attach it to the Epic. The REST call takes the issue's numeric
 `id`, not its number:
 
 ``` bash
-id=$(gh api "repos/<owner>/<repo>/issues/<n>" --jq .id)
-gh api -X POST "repos/<owner>/<repo>/issues/<epic>/sub_issues" -F sub_issue_id="$id"
+id=$(gh api "repos/<issues repo>/issues/<n>" --jq .id)
+gh api -X POST "repos/<issues repo>/issues/<epic>/sub_issues" -F sub_issue_id="$id"
 ```
 
 Append `<date> #<n> planned` to the run log for each.
