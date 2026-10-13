@@ -16,7 +16,7 @@
 #   |   `-- agents/slice-worker.md  the worker it dispatches
 #   |-- .yngaiplaybook/             the playbook's files for this project
 #   |   |-- README.md               the folder explained (rewritten every run)
-#   |   |-- yngorchestratorconfig.yml  issues repo, auto-promote, merge rules (written only if absent)
+#   |   |-- yngorchestratorconfig.yml  issues repo, auto-promote, merge rules (yours; new settings added)
 #   |   `-- yngorchestratorruns/    one run log per Epic, and run locks
 #   |-- .claude/                    linked from .shared/.claude/, for a session at the root
 #   |-- yngshared.sh                links .shared/ into the worktrees
@@ -25,8 +25,10 @@
 # Steps, all safe to repeat:
 #   1. Find the project root from --project (default: the current folder).
 #   2. Copy the skill and worker into .shared/.claude/ (upgrades in place).
-#   3. Fill .yngaiplaybook/: yngorchestratorconfig.yml from the template,
-#      only if absent; yngorchestratorruns/; README.md from the template.
+#   3. Fill .yngaiplaybook/: yngorchestratorconfig.yml from the template
+#      if absent, else add the settings and keys it lacks, changing no line
+#      of yours, after a backup to yngorchestratorconfig.yml.bak;
+#      yngorchestratorruns/; README.md from the template.
 #      With --issues-repo, write the config's issues: key, only if it has
 #      no value yet; an existing value is kept and reported.
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
@@ -50,7 +52,7 @@
 # every worktree.
 #
 # Run it again after creating a worktree, or to upgrade: it re-links every
-# worktree and never overwrites your config.
+# worktree and never changes a line of your config.
 #
 # Usage: yngorch.sh [--project <path>] [--issues-repo <owner>/<repo>]
 #                   [--skip-labels] [--skip-viewer] [--bin-dir <path>]
@@ -64,7 +66,7 @@
 
 set -euo pipefail
 
-usage() { sed -n '2,63p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,65p' "$0" | sed 's/^# \{0,1\}//'; }
 
 project=$PWD
 issues_repo=""
@@ -120,6 +122,207 @@ set_issues_value() {
     mv "$1.tmp" "$1"
 }
 
+# The config upgrade (spec R39-R41). Reads a template, then the person's
+# file, and writes the file with the settings and nested keys it lacks
+# added to out. Prints one report line each: "A <text>" added,
+# "W <text>" warning (R39.8), "N <text>" note (R40.3). Every line of the
+# file is copied byte for byte; only whole new lines are inserted.
+upgrade_awk='
+function clean(s, first) {
+    sub(/\r$/, "", s)
+    if (first && bom != "" && substr(s, 1, length(bom)) == bom) s = substr(s, length(bom) + 1)
+    return s
+}
+# An active key line: sets K_key, K_val (no trailing comment), K_ind, K_tab.
+function parse(s,   ws, rest, p) {
+    if (s ~ /^[ \t]*#/ || s ~ /^[ \t]*$/) return 0
+    match(s, /^[ \t]*/); ws = substr(s, 1, RLENGTH); rest = substr(s, RLENGTH + 1)
+    if (rest !~ /^[A-Za-z0-9_-]+:([ \t]|$)/) return 0
+    p = index(rest, ":")
+    K_key = substr(rest, 1, p - 1); K_val = substr(rest, p + 1)
+    sub(/^[ \t]+/, "", K_val)
+    if (K_val ~ /^#/) K_val = ""
+    sub(/[ \t]+#.*$/, "", K_val); sub(/[ \t]+$/, "", K_val)
+    K_ind = length(ws); K_tab = (ws ~ /\t/)
+    return 1
+}
+# The <name> of a "# --- Setting: <name> ---" header line, else "".
+function header(s,   r) {
+    if (s !~ /^# --- Setting:[ \t]+[^ \t]/) return ""
+    r = s; sub(/^# --- Setting:[ \t]+/, "", r); sub(/[ \t].*$/, "", r)
+    return r
+}
+function spaces(n,   r) { r = ""; while (n-- > 0) r = r " "; return r }
+# Records the keys written inside a flow-style value of q, {a: 1, b: 2},
+# as flow[q, key]: they count as present (R39.5).
+function flowkeys(q, v,   i, c, d, piece) {
+    v = substr(v, 2); sub(/[}][ \t]*$/, "", v); d = 0; piece = ""
+    for (i = 1; i <= length(v) + 1; i++) {
+        c = (i <= length(v)) ? substr(v, i, 1) : ","
+        if (c == "{" || c == "[") d++
+        else if (c == "}" || c == "]") d--
+        if (c == "," && d == 0) {
+            sub(/^[ \t]+/, "", piece); sub(/^["\047]/, "", piece)
+            if (match(piece, /^[A-Za-z0-9_-]+["\047]?:/)) {
+                piece = substr(piece, 1, RLENGTH - 1); sub(/["\047]$/, "", piece)
+                flow[q, piece] = 1
+            }
+            piece = ""
+        } else piece = piece c
+    }
+}
+# True when an ancestor of path p was inserted with its subtree.
+function under(p,   x) {
+    x = p
+    while (sub(/\.[^.]*$/, "", x)) if (x in inserted) return 1
+    return 0
+}
+function emit(s) {
+    if (needbreak) { printf "%s", ((raw[N] ~ /\r$/) ? "\n" : eol) > out; needbreak = 0 }
+    printf "%s", s > out
+}
+FILENAME == ARGV[1] { T++; traw[T] = $0; t[T] = clean($0, FNR == 1); next }
+{ N++; raw[N] = $0; f[N] = clean($0, FNR == 1) }
+END {
+    # The template: its banner, its settings, and its active keys by path.
+    tb = T + 1
+    for (i = 1; i <= T; i++) if (t[i] ~ /^# ====/) { tb = i; break }
+    ns = 0
+    for (i = 1; i < tb; i++) {
+        h = header(t[i])
+        if (h != "") { ns++; sname[ns] = h; sstart[ns] = i; known[h] = 1 }
+    }
+    for (s = 1; s <= ns; s++) send[s] = (s < ns ? sstart[s + 1] : tb) - 1
+    sp = 0; nk = 0
+    for (i = 1; i < tb; i++) {
+        if (!parse(t[i])) continue
+        while (sp > 0 && sind[sp] >= K_ind) sp--
+        p = sp ? spath[sp] "." K_key : K_key
+        nk++; kpath[nk] = p; kline[nk] = i; kind[nk] = K_ind; kval[nk] = K_val
+        kpar[nk] = sp ? spath[sp] : ""; kpind[nk] = sp ? sind[sp] : 0
+        known[p] = 1
+        sp++; sind[sp] = K_ind; spath[sp] = p
+    }
+    for (k = 1; k <= nk; k++) {
+        kend[k] = kline[k]
+        for (j = k + 1; j <= nk && kind[j] > kind[k]; j++) kend[k] = kline[j]
+    }
+
+    # The file: line endings, banner, headers, and its active keys by path.
+    if (N > 1 || (N == 1 && !nofinal)) eol = (raw[1] ~ /\r$/) ? "\r\n" : "\n"
+    else eol = (T > 1 && traw[1] ~ /\r$/) ? "\r\n" : "\n"
+    fb = 0
+    for (i = 1; i <= N; i++) if (f[i] ~ /^# ====/) { fb = i; break }
+    for (i = 1; i <= N; i++) { h = header(f[i]); if (h != "") hdr[h] = 1 }
+    sp = 0; notes = ""
+    for (i = 1; i <= N; i++) {
+        if (!parse(f[i])) continue
+        while (sp > 0 && sind[sp] >= K_ind) sp--
+        p = sp ? spath[sp] "." K_key : K_key
+        cnt[p]++; hasval[p] = (K_val != ""); pind[p] = K_ind; last[p] = i
+        if (K_val ~ /^[{]/) flowkeys(p, K_val)
+        for (a = 1; a <= sp; a++) last[spath[a]] = i
+        if (sp) {
+            q = spath[sp]
+            if (K_tab) tab[q] = 1
+            if (q in cind) { if (cind[q] != K_ind) mixed[q] = 1 } else cind[q] = K_ind
+        }
+        if (!(p in known) && !(p in noted)) {
+            noted[p] = 1
+            notes = notes "N " disp ": " p " is not in the template; the orchestrator ignores it\n"
+        }
+        # A tab-indented key has no measurable depth: it parents nothing.
+        if (!K_tab) { sp++; sind[sp] = K_ind; spath[sp] = p }
+    }
+
+    # Missing settings (R39.5, R39.6): whole sections, in template order.
+    warns = ""; ins_set = ""
+    for (s = 1; s <= ns; s++) {
+        n = sname[s]
+        if (cnt[n] > 0 || (n in hdr)) continue
+        missing[n] = 1
+        for (i = sstart[s]; i <= send[s]; i++) ins_set = ins_set t[i] eol
+        addl[sstart[s]] = "A " disp ": " n " (new in the template)\n"
+    }
+
+    # Missing nested keys (R39.7, R39.8), in template order.
+    for (k = 1; k <= nk; k++) {
+        p = kpath[k]; q = kpar[k]
+        if (q == "") continue
+        top = p; sub(/\..*$/, "", top)
+        if ((top in missing) || under(p) || cnt[p] > 0 || !(cnt[q] > 0)) continue
+        kk = p; sub(/^.*[.]/, "", kk)
+        if ((q, kk) in flow) continue
+        why = ""
+        if (cnt[q] > 1) why = q " is set more than once"
+        else if (hasval[q]) why = q " has its value on the same line"
+        else if (q in tab) why = "the keys under " q " are indented with a tab"
+        else if (q in mixed) why = "the keys under " q " are not all at one indentation"
+        if (why != "") {
+            pk = q; sub(/^.*\./, "", pk)
+            warns = warns "W " disp ": " p " not added, " why "; add it by hand under " pk ": as \"" t[kline[k]] "\"\n"
+            continue
+        }
+        ind = (q in cind) ? cind[q] : pind[q] + kind[k] - kpind[k]
+        pos = last[q]
+        for (i = kline[k]; i <= kend[k]; i++) {
+            l = t[i]; m = 0
+            while (m < kind[k] && substr(l, m + 1, 1) == " ") m++
+            ins[pos] = ins[pos] spaces(ind) substr(l, m + 1) eol
+        }
+        inserted[p] = 1
+        addl[kline[k]] = "A " disp ": " p ": " kval[k] " (new in the template)\n"
+    }
+
+    # The file, every line as it was, with the new lines in place.
+    printf "" > out
+    needbreak = 0
+    for (i = 1; i <= N; i++) {
+        if (i == fb && ins_set != "") emit(ins_set)
+        emit(raw[i])
+        if (i < N || !nofinal) emit("\n"); else needbreak = 1
+        if (i in ins) emit(ins[i])
+    }
+    if (!fb && ins_set != "") emit(ins_set)
+    close(out)
+    # Added lines, settings and nested keys mixed, in template order.
+    adds = ""
+    for (i = 1; i <= T; i++) if (i in addl) adds = adds addl[i]
+    printf "%s%s%s", adds, warns, notes
+}'
+
+# Installs one config file from its template (spec R39-R41): writes it
+# whole when absent, else adds what it lacks after a backup to <file>.bak.
+# $1 template, $2 target, $3 the target as printed, $4 what a new copy holds.
+install_config() {
+    if [ ! -f "$2" ]; then
+        cp "$1" "$2"; step created "$3 ($4)"; return
+    fi
+    nofinal=0
+    [ -s "$2" ] && [ -n "$(tail -c1 "$2")" ] && nofinal=1
+    report=$(LC_ALL=C awk -v BINMODE=3 -v bom="$(printf '\357\273\277')" -v nofinal="$nofinal" \
+        -v disp="$3" -v out="$2.tmp" "$upgrade_awk" "$1" "$2")
+    if printf '%s\n' "$report" | grep -q '^A '; then
+        cp "$2" "$2.bak"; step "backed up" "$3 -> $(basename "$2").bak"
+        cat "$2.tmp" > "$2"
+    else
+        step kept "$3 (yours, nothing new)"
+    fi
+    rm -f "$2.tmp"
+    printf '%s\n' "$report" | while IFS= read -r line; do
+        case "$line" in
+            "A "*) step added "${line#A }" ;;
+            "W "*) step warning "${line#W }" ;;
+            "N "*) step note "${line#N }" ;;
+        esac
+    done
+}
+
+# Every config file yngorch installs from a template (spec R41.1), one per
+# line: template (in the playbook) | file (in .yngaiplaybook/) | what a new
+# copy holds. A config file added later is one more line here.
+config_files='templates/yngorchestratorconfig.yml|yngorchestratorconfig.yml|auto-promote: no, every merge path required'
+
 # 1. The project root: the folder holding .bare/.
 common=$(git -C "$project" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
 [ -z "$common" ] && [ -d "$project/.bare" ] && common="$project/.bare"
@@ -152,6 +355,11 @@ if [ $# -gt 0 ] && { [ -d "$ynga" ] || [ $# -gt 1 ]; }; then
     names=""; [ -d "$ynga" ] && names=" .yngaiplaybook/"
     for d in "$@"; do names="$names $d/"; done
     step warning "found${names}; moved nothing and left each as it is: move what you need into .yngaiplaybook/ by hand"
+    while IFS='|' read -r tpl name holds; do
+        step skipped ".yngaiplaybook/$name not upgraded (move .yngaiplaybook/ by hand first, then run again)"
+    done <<EOF
+$config_files
+EOF
     if [ -n "$issues_repo" ]; then
         step skipped "issues: $issues_repo not written (move .yngaiplaybook/ by hand first, then run again)"
     fi
@@ -174,8 +382,11 @@ else
         else step warning "$old/ is not empty; left in place"; fi
     fi
     mkdir -p "$ynga/yngorchestratorruns"
-    if [ -f "$config" ]; then step kept ".yngaiplaybook/yngorchestratorconfig.yml (yours)"
-    else cp "$playbook/templates/yngorchestratorconfig.yml" "$config"; step created ".yngaiplaybook/yngorchestratorconfig.yml (auto-promote: no, every merge path required)"; fi
+    while IFS='|' read -r tpl name holds; do
+        install_config "$playbook/$tpl" "$ynga/$name" ".yngaiplaybook/$name" "$holds"
+    done <<EOF
+$config_files
+EOF
     current=$(issues_value "$config")
     if [ -n "$issues_repo" ] && [ -z "$current" ]; then
         set_issues_value "$config" "$issues_repo"

@@ -913,7 +913,10 @@ Epic: #82
         and key, is missing and comes back at its template value,
         which behaves as the absent key did.
     -   a nested key: an active key of that name in its parent's block.
-        A commented-out line (`# <key>:`) is not an active key.
+        A commented-out line (`# <key>:`) is not an active key. Under
+        a parent written flow-style (`merge: {slice-to-epic: auto}`), a
+        key named inside the braces is present. Under a parent active
+        more than once, a key in any of its blocks is present.
 6.  A missing setting is inserted whole, its section's lines exactly as
     in the template, just above the file's worked-examples banner; in
     a file with no banner, at the end, after a final line break if the
@@ -932,12 +935,29 @@ Epic: #82
     -   the parent key is active more than once at its level.
 
     The warning names the key, the reason, and the exact line to paste
-    by hand. Every other missing setting and key is still added.
+    by hand, the template's line as it is (indentation and trailing
+    comment included):
+
+    ``` text
+    warning  .yngaiplaybook/yngorchestratorconfig.yml: <path> not added, <reason>; add it by hand under <parent>: as "<template line>"
+    ```
+
+    `<parent>` is the parent's own key name. The reasons, checked in
+    this order, the first that holds named:
+    -   `<parent> is set more than once`;
+    -   `<parent> has its value on the same line`;
+    -   `the keys under <parent> are indented with a tab`;
+    -   `the keys under <parent> are not all at one indentation`.
+
+    In a reason, `<parent>` is the parent's path. Every other missing
+    setting and key is still added.
 9.  Inserted lines use the file's line endings, CRLF or LF, taken from
     its first line break; a file with none takes the template's.
 10. It runs after the migration (R24) and before the `issues:` write
     (R31.2). When R24.2 holds and nothing is created in
-    `.yngaiplaybook/`, it changes nothing either, and says so.
+    `.yngaiplaybook/`, it changes nothing either, and says so, one
+    line per config file, just before the `issues:` skipped line:
+    `skipped  .yngaiplaybook/yngorchestratorconfig.yml not upgraded (move .yngaiplaybook/ by hand first, then run again)`.
 11. Re-running adds nothing: after one run the file holds every
     setting and key it can, and a second run reports nothing new.
 
@@ -955,6 +975,12 @@ Epic: #82
     -   each setting added: `added .yngaiplaybook/yngorchestratorconfig.yml: <name> (new in the template)`;
     -   each nested key added: `added .yngaiplaybook/yngorchestratorconfig.yml: <path>: <value> (new in the template)`;
     -   nothing added: `kept .yngaiplaybook/yngorchestratorconfig.yml (yours, nothing new)`.
+
+    The lines come in this order: the backup; then the `added` lines,
+    settings and nested keys mixed, in template order; or, when
+    nothing is added, the `kept` line. Then the R39.8 warnings, in
+    template order; then the notes (3), in the order their keys appear
+    in the file.
 3.  Every active key in the file, top-level or nested, that the
     template does not have, active or commented out, gets a note:
     `note .yngaiplaybook/yngorchestratorconfig.yml: <path> is not in the template; the orchestrator ignores it`.
@@ -980,7 +1006,9 @@ Epic: #82
 3.  A config file added later is named by R23.2 and documented as
     R37 sets out.
 4.  Both `yngorch.ps1` and `yngorch.sh` behave the same and print the
-    same lines (R27.1).
+    same lines (R27.1). Path separators may differ between the scripts:
+    `yngorch.ps1` may print `.yngaiplaybook\` where `yngorch.sh` prints
+    `.yngaiplaybook/`.
 
 ## R42 Documentation and version
 
