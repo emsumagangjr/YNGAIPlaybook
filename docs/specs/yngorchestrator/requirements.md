@@ -1024,5 +1024,9 @@ Epic: #82
     `yngorchestratorconfig.yml.bak`.
 3.  INSTALL's reinstall text and guide section 25 say a reinstall keeps
     every setting the person has and adds new ones, with the backup.
+    Section 25 shows the report lines (R40.2), and its layout tree
+    shows `yngorchestratorconfig.yml.bak`. INSTALL tells the agent
+    doing the install to report an R39.8 warning with its line to
+    paste, and to pass a note on.
 4.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.9.0.
