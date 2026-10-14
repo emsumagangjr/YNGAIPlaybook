@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.8.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.9.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1506,6 +1506,7 @@ myproject/
 ├── .yngaiplaybook/              # the playbook's files, never committed
 │   ├── README.md                # the folder explained, written by yngorch
 │   ├── yngorchestratorconfig.yml # issues repo, auto-promote, merge rules
+│   ├── yngorchestratorconfig.yml.bak # the config before a reinstall added to it
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
@@ -1547,8 +1548,8 @@ auto-promote: no   # yes | no
 
 What plan approval allows, what it never allows, and the record it
 leaves are in section 6, *Gate 1 by plan approval*. The orchestrator
-reads the key fresh at the start of every run; `yngorch` writes it
-only as part of the template, when the file is absent. A hands-off
+reads the key fresh at the start of every run; `yngorch` adds it, at
+`no`, when the file lacks it, and never changes it. A hands-off
 Epic is `auto-promote: yes` with `slice-to-epic: auto`, and
 `epic-to-main` stays as you set it. The
 [config template](../templates/yngorchestratorconfig.yml) documents
@@ -1652,7 +1653,8 @@ C:\path\to\YNGAIPlaybook\scripts\yngorch.ps1     # Windows
 
 It finds the project root, copies the skill and worker into
 `.shared/.claude/`, writes `.yngaiplaybook/yngorchestratorconfig.yml`
-with every path `required` (only if you have none) and
+with every path `required` (only if you have none; a reinstall adds
+to yours, as below) and
 `.yngaiplaybook/README.md`, hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree, and `.shared/.claude/` into the root's own `.claude/`,
@@ -1664,7 +1666,7 @@ Then set `auto-promote:` and your merge rules in
 `.yngaiplaybook/yngorchestratorconfig.yml`.
 
 Run the same command again to upgrade, or after creating a worktree to
-link it; it never overwrites your config. Upgrading from 1.1.0-1.4.0,
+link it. Upgrading from 1.1.0-1.4.0,
 it moves the older `.yngorchestrator/` (or `.orchestrator/`) into
 `.yngaiplaybook/`, config and run logs kept, one line per item; when
 `.yngaiplaybook/` already exists, or both old folders do, it moves and
@@ -1674,6 +1676,39 @@ run. The orchestrator links the worktrees it creates itself. `-Project <path>` /
 <path>` installs into a project other than the current folder, and
 `-SkipLabels` / `--skip-labels` leaves the labels alone, and
 `-SkipViewer` / `--skip-viewer` leaves `yngv` out.
+
+A reinstall keeps every setting you have and adds the new ones. When
+`.yngaiplaybook/yngorchestratorconfig.yml` exists, `yngorch` compares
+it with the [config template](../templates/yngorchestratorconfig.yml)
+and adds only what the template has and the file lacks: a missing
+setting, with its comments, just above the worked examples, or at the
+end of a file without them; a missing key under a setting active in
+the file, such as a new `merge:` path, carrying the template's
+trailing comment. It never changes, removes or reorders a line of
+yours, and keeps the file's line endings. Before its first change it
+copies the file to `yngorchestratorconfig.yml.bak` beside it,
+replacing an older backup; with nothing to add it writes no backup.
+It reports, in this order:
+
+``` text
+  backed up .yngaiplaybook/yngorchestratorconfig.yml -> yngorchestratorconfig.yml.bak
+  added    .yngaiplaybook/yngorchestratorconfig.yml: auto-promote (new in the template)
+  added    .yngaiplaybook/yngorchestratorconfig.yml: merge.fix-to-main: required (new in the template)
+```
+
+or, when nothing is new,
+`kept .yngaiplaybook/yngorchestratorconfig.yml (yours, nothing new)`;
+then any warnings and notes. A setting whose header you kept, with its
+key commented out, stays as you left it; one you deleted, header and
+key, comes back at its default. A key it cannot add line by line, its
+parent's value written on the parent's own line
+(`merge: {slice-to-epic: auto}`), the parent set twice, or the keys
+under it indented with a tab or unevenly, is a `warning` naming the
+reason and the line to paste by hand; the rest is still added. A key
+of yours the template does not have stays as it is, with a `note` that
+the orchestrator ignores it. Run it again and it adds nothing. When an
+old folder stops the migration, the config is not upgraded either, and
+a `skipped` line says so.
 
 `-IssuesRepo <owner>/<repo>` / `--issues-repo <owner>/<repo>` sets the
 issues repo. It writes `issues: <owner>/<repo>` into the config only
