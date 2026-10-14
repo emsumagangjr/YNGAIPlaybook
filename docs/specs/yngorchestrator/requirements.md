@@ -421,12 +421,12 @@ reach it from `scoped.md`, only after their Gate 1 check.
 
     A new branch is created with `--no-track`, so it does not track
     its start point; its first push sets its upstream.
-2.  Worktree directories follow the guide's naming: `epic-<name>`,
-    `slice-<epic>-<name>`, `fix-<name>`. `<name>` is a short kebab-case
-    form of the issue's title, or, for a branch that already exists,
-    the branch's name after `<prefix><n>-`. `<epic>` is the Epic
-    worktree's name without `epic-`. A folder already at that path
-    stops the run.
+2.  Worktree directories follow the guide's naming, which names each
+    folder's issue and a slice's Epic (R43): `epic<n>-<name>`,
+    `epic<e>-slice<n>-<name>`, `fix<n>-<name>`. `<name>` is a short
+    kebab-case form of the issue's title, or, for a branch that
+    already exists, the branch's name after `<prefix><n>-`. A folder
+    already at that path stops the run.
 3.  Every branch created records its Epic in
     `branch.<branch>.epicid`; an Epic branch records its own number.
     A standalone `fix/` branch has no Epic and records nothing.
@@ -1030,3 +1030,72 @@ Epic: #82
     paste, and to pass a note on.
 4.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.9.0.
+
+## R43 Worktree names
+
+Epic: #90
+
+1.  A new worktree's folder names its issue's number, and a slice's
+    folder names its Epic's number too, so a folder listing tells
+    which issue each worktree is for and which Epic a slice belongs
+    to:
+
+    | Kind       | Branch                     | Worktree folder              |
+    |------------|----------------------------|------------------------------|
+    | Epic       | `epic/<n>-<name>`          | `epic<n>-<name>`             |
+    | slice      | `slice/<n>-<name>`         | `epic<e>-slice<n>-<name>`    |
+    | standalone | `fix/<n>-<name>`           | `fix<n>-<name>`              |
+
+    `<n>` is the issue's number and `<e>` the slice's Epic: its parent
+    issue's number, never read from the Epic worktree's folder name.
+    Both are the issues repo's numbers (R29), as in branch names.
+    Numbers are not padded: they read as `#<n>` and as the branch
+    does. Branch names are unchanged.
+2.  Every place that creates a worktree uses these names: `worktree.md`
+    (Epic, slice and standalone runs) and step 2 of `dispatch.md`
+    (slices of an Epic run).
+3.  Existing worktrees keep their folders. Branches and worktrees are
+    found by branch (R16, R17.1), so a folder named the older way
+    (`epic-<name>`, `slice-<epic>-<name>`, `fix-<name>`) works as
+    before. Nothing renames or moves a worktree.
+
+## R44 The issue records its branch and worktree
+
+Epic: #90
+
+1.  When the orchestrator creates a branch for an issue (an Epic, a
+    slice or a standalone issue), it adds a line to that issue's body,
+    after a blank line at its end:
+
+    ``` text
+    Branch: `<branch>`
+    ```
+
+    It is the line R16.1 reads, so later runs find the branch by name
+    rather than by pattern. A body that already has a `Branch:` line
+    is left as it is: that line still wins (R16.1). A branch that
+    already exists, found by R16, adds no line.
+2.  When it dispatches an issue to a worker, it comments on the issue,
+    naming the branch and the worktree folder:
+
+    ``` text
+    Dispatched: branch `<branch>`, worktree `<folder>`
+    ```
+
+    `<folder>` is the worktree's folder name, below `<root>`. The
+    comment is posted once per dispatch, so a slice sent back to a
+    worker after a failure gets a second one.
+3.  Both are issue commands, run against the issues repo (R29).
+
+## R45 Documentation and version
+
+Epic: #90
+
+1.  The guide (sections 7 to 10 and 25), INSTALL and README name
+    worktrees as R43 sets out, in every example, tree and command.
+    Where a section describes the naming, it says older folders keep
+    their names and still work (R43.3), and that the issue records its
+    branch and worktree (R44).
+2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.10.0. Earlier CHANGELOG entries are history
+    and keep their names.
