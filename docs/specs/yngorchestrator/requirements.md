@@ -1051,6 +1051,12 @@ Epic: #90
     Both are the issues repo's numbers (R29), as in branch names.
     Numbers are not padded: they read as `#<n>` and as the branch
     does. Branch names are unchanged.
+
+    In general `<n>` and `<e>` are the issue's ID as its branch writes
+    it. On a tracker with keyed IDs, the key goes in as written:
+    `epic/AUTH-100-authentication` gives `epicAUTH-100-authentication`,
+    and its slice `slice/AUTH-101-oauth` gives
+    `epicAUTH-100-sliceAUTH-101-oauth`.
 2.  Every place that creates a worktree uses these names: `worktree.md`
     (Epic, slice and standalone runs) and step 2 of `dispatch.md`
     (slices of an Epic run).
@@ -1091,11 +1097,19 @@ Epic: #90
 
 Epic: #90
 
-1.  The guide (sections 7 to 10 and 25), INSTALL and README name
-    worktrees as R43 sets out, in every example, tree and command.
-    Where a section describes the naming, it says older folders keep
-    their names and still work (R43.3), and that the issue records its
-    branch and worktree (R44).
-2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+1.  `guides/epic-workflow.md`, INSTALL and README name worktrees as
+    R43 sets out, in every section, example, tree, table and command
+    (in the guide today: sections 1, 3, 4, 7 to 10, 12, 13, 15, 16, 19,
+    22 to 25). Where a section describes the naming, it says older
+    folders keep their names and still work (R43.3), and that the
+    issue records its branch and worktree (R44).
+2.  The guide's examples use plain issue numbers, as GitHub and the
+    orchestrator do: `epic/AUTH-100-authentication` becomes
+    `epic/100-authentication` with worktree `epic100-authentication`,
+    `slice/AUTH-101-oauth` becomes `slice/101-oauth` with worktree
+    `epic100-slice101-oauth`, and so on for every example ID.
+    Section 3's naming table keeps one note that a tracker with keyed
+    IDs puts the key in as written (R43.1).
+3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.10.0. Earlier CHANGELOG entries are history
     and keep their names.
