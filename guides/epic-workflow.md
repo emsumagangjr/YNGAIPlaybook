@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.9.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.10.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -83,13 +83,13 @@ myproject/
 │   └── config/                  # real folder
 │       └── app.ini -> ../../.shared/config/app.ini
 │
-├── epic-auth/                   # Epic integration worktree
+├── epic100-authentication/      # Epic integration worktree
 │
-├── slice-auth-oauth/            # Slice worktree → Agent A
+├── epic100-slice101-oauth/      # Slice worktree → Agent A
 │
-├── slice-auth-permissions/      # Slice worktree → Agent B
+├── epic100-slice102-permissions/  # Slice worktree → Agent B
 │
-└── slice-auth-audit/            # Slice worktree → Agent C
+└── epic100-slice103-audit/      # Slice worktree → Agent C
 ```
 
 A corresponding branch hierarchy might be:
@@ -97,11 +97,11 @@ A corresponding branch hierarchy might be:
 ``` text
 main
 │
-└── epic/AUTH-100-authentication
+└── epic/100-authentication
       │
-      ├── slice/AUTH-101-oauth
-      ├── slice/AUTH-102-permissions
-      └── slice/AUTH-103-audit
+      ├── slice/101-oauth
+      ├── slice/102-permissions
+      └── slice/103-audit
 ```
 
 The `.bare/` repository owns the shared Git history, objects, refs,
@@ -224,16 +224,36 @@ issue.
 
 ### Naming
 
-| Item          | Branch                                | Worktree directory | Base            |
-|---------------|---------------------------------------|--------------------|-----------------|
-| Epic          | `epic/AUTH-100-authentication`        | `epic-auth`        | `main`          |
-| Slice         | `slice/AUTH-101-oauth`                | `slice-auth-oauth` | the Epic branch |
-| Standalone fix | `fix/AUTH-140-login-redirect`        | `fix-login-redirect` | `main`        |
+| Item           | Branch                     | Worktree directory         | Base            |
+|----------------|----------------------------|----------------------------|-----------------|
+| Epic           | `epic/100-authentication`  | `epic100-authentication`   | `main`          |
+| Slice          | `slice/101-oauth`          | `epic100-slice101-oauth`   | the Epic branch |
+| Standalone fix | `fix/140-login-redirect`   | `fix140-login-redirect`    | `main`          |
 
-Use the tracker's issue key in the branch name. Where a tracker numbers
-Epics in a different namespace from issues (GitLab uses `&12` for an
-Epic and `#12` for an issue), the `epic/` prefix keeps the two readable
-at a glance.
+The pattern is `epic/<n>-<name>` in `epic<n>-<name>`,
+`slice/<n>-<name>` in `epic<e>-slice<n>-<name>`, and `fix/<n>-<name>`
+in `fix<n>-<name>`: `<n>` is the issue's number and `<e>` the number of
+the slice's Epic, its parent issue, both unpadded. A folder listing then
+tells which issue each worktree is for, and which Epic a slice belongs
+to. The examples in this guide use plain issue numbers, as GitHub does.
+
+Use the tracker's issue ID in the branch name. A tracker with keyed IDs
+puts the key in as written, in the branch and the folder alike:
+`epic/AUTH-100-authentication` lives in `epicAUTH-100-authentication`,
+and its slice `slice/AUTH-101-oauth` in
+`epicAUTH-100-sliceAUTH-101-oauth`. Where a tracker numbers Epics in a
+different namespace from issues (GitLab uses `&12` for an Epic and
+`#12` for an issue), the `epic/` prefix keeps the two readable at a
+glance.
+
+A worktree created under an older convention (`epic-<name>`,
+`slice-<epic>-<name>`, `fix-<name>`) keeps its folder and still works:
+branches and worktrees are found by branch, never by folder name, and
+nothing renames or moves a worktree. The issue records its own:
+when the orchestrator creates an issue's branch, it adds a
+``Branch: `<branch>` `` line to the issue body, and when it dispatches
+the issue to a worker, it comments with the branch and the worktree
+folder (section 25).
 
 A project that already has a branch convention may keep it, provided an
 Epic branch, a slice branch and a standalone fix are distinguishable
@@ -256,16 +276,16 @@ is reading or testing it.
 Worktrees provide filesystem-level separation:
 
 ``` text
-                         .bare/
-                    Shared Git database
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
- slice-auth-oauth/  slice-auth-permissions/ slice-auth-audit/
-        │                  │                  │
-        ▼                  ▼                  ▼
-     Agent A            Agent B            Agent C
+                                    .bare/
+                              Shared Git database
+                                       │
+           ┌───────────────────────────┼───────────────────────────┐
+           │                           │                           │
+           ▼                           ▼                           ▼
+epic100-slice101-oauth/  epic100-slice102-permissions/  epic100-slice103-audit/
+           │                           │                           │
+           ▼                           ▼                           ▼
+        Agent A                     Agent B                     Agent C
 ```
 
 This provides:
@@ -285,16 +305,16 @@ This provides:
 Consider an Epic:
 
 ``` text
-AUTH-100
+#100
 Authentication Improvements
 ```
 
 with slices:
 
 ``` text
-AUTH-101    Microsoft OAuth
-AUTH-102    Role permissions
-AUTH-103    Authentication audit logging
+#101    Microsoft OAuth
+#102    Role permissions
+#103    Authentication audit logging
 ```
 
 The branch model becomes:
@@ -302,22 +322,22 @@ The branch model becomes:
 ``` text
 main
   │
-  └── epic/AUTH-100-authentication
+  └── epic/100-authentication
           │
-          ├── slice/AUTH-101-oauth
-          ├── slice/AUTH-102-permissions
-          └── slice/AUTH-103-audit
+          ├── slice/101-oauth
+          ├── slice/102-permissions
+          └── slice/103-audit
 ```
 
 The agent model becomes:
 
 ``` text
-                  epic/AUTH-100-authentication
+                  epic/100-authentication
                              │
              ┌───────────────┼───────────────┐
              │               │               │
              ▼               ▼               ▼
-        AUTH-101          AUTH-102         AUTH-103
+            #101            #102            #103
              │               │               │
              ▼               ▼               ▼
        Slice Branch    Slice Branch    Slice Branch
@@ -603,7 +623,7 @@ where possible.
 For:
 
 ``` text
-Epic: AUTH-100
+Epic: #100
 Authentication Improvements
 ```
 
@@ -611,8 +631,8 @@ create an Epic branch from `main`:
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b epic/AUTH-100-authentication \
-    epic-auth \
+    -b epic/100-authentication \
+    epic100-authentication \
     main
 ```
 
@@ -622,7 +642,7 @@ Result:
 myproject/
 ├── .bare/
 ├── main/
-└── epic-auth/
+└── epic100-authentication/
 ```
 
 The Epic worktree is the integration workspace for all slices belonging
@@ -636,27 +656,27 @@ Create Agent A's slice:
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b slice/AUTH-101-oauth \
-    slice-auth-oauth \
-    epic/AUTH-100-authentication
+    -b slice/101-oauth \
+    epic100-slice101-oauth \
+    epic/100-authentication
 ```
 
 Create Agent B's slice:
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b slice/AUTH-102-permissions \
-    slice-auth-permissions \
-    epic/AUTH-100-authentication
+    -b slice/102-permissions \
+    epic100-slice102-permissions \
+    epic/100-authentication
 ```
 
 Create Agent C's slice:
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b slice/AUTH-103-audit \
-    slice-auth-audit \
-    epic/AUTH-100-authentication
+    -b slice/103-audit \
+    epic100-slice103-audit \
+    epic/100-authentication
 ```
 
 Result:
@@ -665,13 +685,15 @@ Result:
 myproject/
 ├── .bare/
 ├── main/
-├── epic-auth/
-├── slice-auth-oauth/
-├── slice-auth-permissions/
-└── slice-auth-audit/
+├── epic100-authentication/
+├── epic100-slice101-oauth/
+├── epic100-slice102-permissions/
+└── epic100-slice103-audit/
 ```
 
-Each agent now has an independent working directory.
+Each agent now has an independent working directory. Each slice folder
+names its Epic and its own issue, so the listing shows which Epic every
+slice belongs to (naming in section 3).
 
 ------------------------------------------------------------------------
 
@@ -687,19 +709,19 @@ several worktrees simultaneously.
 Therefore, do not attempt:
 
 ``` text
-agent-a/ → epic/AUTH-100
-agent-b/ → epic/AUTH-100
-agent-c/ → epic/AUTH-100
+agent-a/ → epic/100
+agent-b/ → epic/100
+agent-c/ → epic/100
 ```
 
 Instead, derive slice branches from the Epic:
 
 ``` text
-epic/AUTH-100
+epic/100
     │
-    ├── slice/AUTH-101 → agent-a/
-    ├── slice/AUTH-102 → agent-b/
-    └── slice/AUTH-103 → agent-c/
+    ├── slice/101 → agent-a/
+    ├── slice/102 → agent-b/
+    └── slice/103 → agent-c/
 ```
 
 This also gives each agent an explicit unit of ownership and a clean
@@ -714,7 +736,7 @@ An agent works only inside its assigned slice worktree.
 For example:
 
 ``` bash
-cd slice-auth-oauth
+cd epic100-slice101-oauth
 
 git status
 
@@ -722,8 +744,8 @@ git status
 
 git diff
 git add .
-git commit -m "AUTH-101 Add Microsoft OAuth"
-git push -u origin slice/AUTH-101-oauth
+git commit -m "#101 Add Microsoft OAuth"
+git push -u origin slice/101-oauth
 ```
 
 An agent starts only work that has passed Gate 1 (`ready-for-agent`).
@@ -777,24 +799,24 @@ Epic branch** (Gate 2), merged by a person or, where the project's
 config says `auto`, by the orchestrator (section 25). The MR itself is
 not optional: it is where the review record is read and where CI runs.
 
-After AUTH-101's MR is approved and merged:
+After #101's MR is approved and merged:
 
 ``` bash
 # Refresh the Epic worktree; the merge itself happened on the host.
-cd epic-auth
+cd epic100-authentication
 git pull
 ```
 
 Then close the slice issue with a note saying it landed on
-`epic/AUTH-100-authentication` (see *Slice completion* in the Gates
+`epic/100-authentication` (see *Slice completion* in the Gates
 section), and repeat for the remaining slices.
 
 A person working alone, with no agent involved, may merge locally
 instead:
 
 ``` bash
-cd epic-auth
-git merge slice/AUTH-101-oauth
+cd epic100-authentication
+git merge slice/101-oauth
 ```
 
 Agents never do this.
@@ -804,11 +826,11 @@ The Epic branch becomes the combined implementation:
 ``` text
 main
   │
-  └── epic/AUTH-100
+  └── epic/100
           │
-          ├── AUTH-101 ✓
-          ├── AUTH-102 ✓
-          └── AUTH-103 ✓
+          ├── #101 ✓
+          ├── #102 ✓
+          └── #103 ✓
 ```
 
 ------------------------------------------------------------------------
@@ -887,9 +909,9 @@ This creates a controlled promotion path:
 After all required slices have been integrated:
 
 ``` text
-slice/AUTH-101 ─┐
-slice/AUTH-102 ─┼──► epic/AUTH-100 ──► main
-slice/AUTH-103 ─┘
+slice/101 ─┐
+slice/102 ─┼──► epic/100 ──► main
+slice/103 ─┘
 ```
 
 Before the Epic is merged into `main`, run the appropriate Epic-level:
@@ -938,8 +960,8 @@ into `main` on its own:
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b fix/AUTH-140-login-redirect \
-    fix-login-redirect \
+    -b fix/140-login-redirect \
+    fix140-login-redirect \
     main
 ```
 
@@ -991,8 +1013,8 @@ Store the Epic key against the **branch**, in the shared config:
 
 ``` bash
 # Once per new slice or Epic branch, from myproject/.
-git --git-dir=.bare config branch.slice/AUTH-101-oauth.epicid AUTH-100
-git --git-dir=.bare config branch.epic/AUTH-100-authentication.epicid AUTH-100
+git --git-dir=.bare config branch.slice/101-oauth.epicid 100
+git --git-dir=.bare config branch.epic/100-authentication.epicid 100
 
 # Read it from inside any worktree.
 git config --get "branch.$(git branch --show-current).epicid"
@@ -1058,10 +1080,10 @@ Each active agent may need independent:
 For example:
 
 ``` text
-epic-auth/                 → port 8000
-slice-auth-oauth/          → port 8001
-slice-auth-permissions/    → port 8002
-slice-auth-audit/          → port 8003
+epic100-authentication/          → port 8000
+epic100-slice101-oauth/          → port 8001
+epic100-slice102-permissions/    → port 8002
+epic100-slice103-audit/          → port 8003
 ```
 
 For Django projects, database migrations require particular care when
@@ -1096,12 +1118,12 @@ backs up each file it replaces, and never replaces a folder (a real
 folder where a file should go is left alone with a warning):
 
 ``` powershell
-.\yngshared.ps1 -link main epic-auth -WhatIf   # preview
-.\yngshared.ps1 -link main epic-auth           # symlink shared files
-.\yngshared.ps1 -link -All                     # every worktree
-.\yngshared.ps1 -copy slice-auth-oauth -Name .env   # opt out: own .env
-.\yngshared.ps1 -copy slice-auth-oauth -Name config\app.ini   # nested file
-.\yngshared.ps1 -unlink slice-auth-oauth       # links -> independent copies
+.\yngshared.ps1 -link main epic100-authentication -WhatIf          # preview
+.\yngshared.ps1 -link main epic100-authentication                  # symlink shared files
+.\yngshared.ps1 -link -All                                         # every worktree
+.\yngshared.ps1 -copy epic100-slice101-oauth -Name .env            # opt out: own .env
+.\yngshared.ps1 -copy epic100-slice101-oauth -Name config\app.ini  # nested file
+.\yngshared.ps1 -unlink epic100-slice101-oauth                     # links -> independent copies
 ```
 
 `-Name` takes files only, as paths relative to `.shared/`; a folder name
@@ -1117,11 +1139,11 @@ the same as the Windows script, including per-file links and
 `--name config/app.ini`:
 
 ``` bash
-./yngshared.sh --link main epic-auth --what-if   # preview
-./yngshared.sh --link main epic-auth             # symlink shared items
-./yngshared.sh --link --all                      # every worktree
-./yngshared.sh --copy slice-auth-oauth --name .env   # opt out: own .env
-./yngshared.sh --unlink slice-auth-oauth         # links -> independent copies
+./yngshared.sh --link main epic100-authentication --what-if   # preview
+./yngshared.sh --link main epic100-authentication             # symlink shared items
+./yngshared.sh --link --all                                   # every worktree
+./yngshared.sh --copy epic100-slice101-oauth --name .env      # opt out: own .env
+./yngshared.sh --unlink epic100-slice101-oauth                # links -> independent copies
 ```
 
 To see what the script does, or without it, the equivalent manual
@@ -1141,8 +1163,8 @@ wt=main
 done
 ```
 
-Repeat for `epic-auth` and each slice worktree, or put this loop in the
-worktree creation script. Existing files are left alone. If a tracked
+Repeat for `epic100-authentication` and each slice worktree, or put
+this loop in the worktree creation script. Existing files are left alone. If a tracked
 file already occupies one of these paths, keep it tracked and choose a
 different local path for the shared data.
 
@@ -1162,10 +1184,10 @@ branch out for one item, use `yngshared.ps1 -copy <worktree> -Name <item>`
 
 ``` bash
 # From myproject/: give the OAuth slice its own .env.
-test -L slice-auth-oauth/.env
-cp -L slice-auth-oauth/.env slice-auth-oauth/.env.local-copy
-unlink slice-auth-oauth/.env
-mv slice-auth-oauth/.env.local-copy slice-auth-oauth/.env
+test -L epic100-slice101-oauth/.env
+cp -L epic100-slice101-oauth/.env epic100-slice101-oauth/.env.local-copy
+unlink epic100-slice101-oauth/.env
+mv epic100-slice101-oauth/.env.local-copy epic100-slice101-oauth/.env
 ```
 
 The OAuth slice now has independent `.env` values; the file links in its
@@ -1278,25 +1300,25 @@ remain important.
 After a slice is merged into the Epic:
 
 ``` bash
-git --git-dir=.bare worktree remove slice-auth-oauth
+git --git-dir=.bare worktree remove epic100-slice101-oauth
 ```
 
 Delete its local slice branch when appropriate:
 
 ``` bash
-git --git-dir=.bare branch -d slice/AUTH-101-oauth
+git --git-dir=.bare branch -d slice/101-oauth
 ```
 
 After the completed Epic is merged into `main`:
 
 ``` bash
-git --git-dir=.bare worktree remove epic-auth
+git --git-dir=.bare worktree remove epic100-authentication
 ```
 
 Then remove the local Epic branch:
 
 ``` bash
-git --git-dir=.bare branch -d epic/AUTH-100-authentication
+git --git-dir=.bare branch -d epic/100-authentication
 ```
 
 If a worktree directory was manually deleted, prune stale metadata:
@@ -1318,11 +1340,11 @@ git --git-dir=.bare worktree list
 Example:
 
 ``` text
-/path/myproject/.bare                    (bare)
-/path/myproject/main                     abc1234 [main]
-/path/myproject/epic-auth                def5678 [epic/AUTH-100-authentication]
-/path/myproject/slice-auth-oauth         123abcd [slice/AUTH-101-oauth]
-/path/myproject/slice-auth-permissions   456efgh [slice/AUTH-102-permissions]
+/path/myproject/.bare                          (bare)
+/path/myproject/main                           abc1234 [main]
+/path/myproject/epic100-authentication         def5678 [epic/100-authentication]
+/path/myproject/epic100-slice101-oauth         123abcd [slice/101-oauth]
+/path/myproject/epic100-slice102-permissions   456efgh [slice/102-permissions]
 ```
 
 This is useful for both developers and agent orchestrators because it
@@ -1353,8 +1375,8 @@ git --git-dir=.bare worktree add main main
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b epic/AUTH-100-authentication \
-    epic-auth \
+    -b epic/100-authentication \
+    epic100-authentication \
     main
 ```
 
@@ -1362,20 +1384,20 @@ git --git-dir=.bare worktree add \
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b slice/AUTH-101-oauth \
-    slice-auth-oauth \
-    epic/AUTH-100-authentication
+    -b slice/101-oauth \
+    epic100-slice101-oauth \
+    epic/100-authentication
 
 # Record the Epic on the branch (never `git config --local`).
-git --git-dir=.bare config branch.slice/AUTH-101-oauth.epicid AUTH-100
+git --git-dir=.bare config branch.slice/101-oauth.epicid 100
 ```
 
 ### Create standalone fix (no Epic)
 
 ``` bash
 git --git-dir=.bare worktree add \
-    -b fix/AUTH-140-login-redirect \
-    fix-login-redirect \
+    -b fix/140-login-redirect \
+    fix140-login-redirect \
     main
 ```
 
@@ -1388,13 +1410,13 @@ git --git-dir=.bare worktree list
 ### Commit agent work
 
 ``` bash
-cd slice-auth-oauth
+cd epic100-slice101-oauth
 
 git status
 git diff
 git add .
-git commit -m "AUTH-101 Add Microsoft OAuth"
-git push -u origin slice/AUTH-101-oauth
+git commit -m "#101 Add Microsoft OAuth"
+git push -u origin slice/101-oauth
 ```
 
 ### Integrate slice into Epic
@@ -1404,29 +1426,29 @@ branch, have a person merge it, then close the slice issue with a note
 naming the Epic branch. Refresh the Epic worktree afterwards:
 
 ``` bash
-cd ../epic-auth
+cd ../epic100-authentication
 git pull
 ```
 
 A person working alone, with no agent involved, may merge locally:
 
 ``` bash
-cd ../epic-auth
-git merge slice/AUTH-101-oauth
+cd ../epic100-authentication
+git merge slice/101-oauth
 ```
 
 ### Remove completed slice
 
 ``` bash
-git --git-dir=.bare worktree remove slice-auth-oauth
-git --git-dir=.bare branch -d slice/AUTH-101-oauth
+git --git-dir=.bare worktree remove epic100-slice101-oauth
+git --git-dir=.bare branch -d slice/101-oauth
 ```
 
 ### Remove completed Epic after merge to main
 
 ``` bash
-git --git-dir=.bare worktree remove epic-auth
-git --git-dir=.bare branch -d epic/AUTH-100-authentication
+git --git-dir=.bare worktree remove epic100-authentication
+git --git-dir=.bare branch -d epic/100-authentication
 ```
 
 ### Prune stale metadata
@@ -1511,7 +1533,7 @@ myproject/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
 ├── main/
-└── epic-auth/
+└── epic100-authentication/
 ```
 
 The run log lets an interrupted run resume where it stopped, and
@@ -1741,6 +1763,19 @@ wins, else `*/<n>-*`, locally then on `origin`) and its worktree,
 creates whichever is missing, and links a new worktree through
 `yngshared`. A new Epic branch it only proposes, and creates once you
 confirm the name.
+
+A worktree it creates is named as in section 3: `epic<n>-<name>` for
+an Epic, `epic<e>-slice<n>-<name>` for a slice, with `<e>` its parent
+issue's number, and `fix<n>-<name>` for a standalone issue, so
+`epic/100-authentication` gets `epic100-authentication` and its slice
+`slice/101-oauth` gets `epic100-slice101-oauth`. A worktree that already
+exists is found by its branch, whatever its folder is called: one named
+the older way (`epic-<name>`, `slice-<epic>-<name>`, `fix-<name>`) keeps
+its folder and works as before. The issue records both: a branch the
+orchestrator creates adds a ``Branch: `<branch>` `` line to the end of
+the issue body, unless it already has one, so later runs find it by
+name; and each dispatch to a worker comments
+``Dispatched: branch `<branch>`, worktree `<folder>` `` on the issue.
 
 -   **An Epic.** The run drives the whole Epic. It needs the spec on
     the Epic branch; with none, it stops and names where the spec
