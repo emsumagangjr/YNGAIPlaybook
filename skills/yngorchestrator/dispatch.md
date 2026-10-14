@@ -80,13 +80,27 @@ A slice or standalone run skips this step: [worktree.md](worktree.md)
 has already set up its branch and worktree.
 
 Name the branch `slice/<n>-<name>` and the directory
-`slice-<epic>-<name>`, where `<epic>` is the Epic worktree's name
-without `epic-` and `<name>` is a short kebab-case form of the slice's
-outcome. Branch from the Epic branch and record the Epic on the branch:
+`epic<epic n>-slice<n>-<name>` (R43), where `<epic n>` is the number
+of the Epic being run, the slice's parent issue, never read from the
+Epic worktree's folder name, and `<name>` is a short kebab-case form of
+the slice's outcome. Both numbers are unpadded, as the branches write
+them. Branch from the Epic branch and record the Epic on the branch:
 
 ``` bash
-git --git-dir="<root>/.bare" worktree add -b slice/<n>-<name> "<root>/slice-<epic>-<name>" <epic branch>
+git --git-dir="<root>/.bare" worktree add -b slice/<n>-<name> "<root>/epic<epic n>-slice<n>-<name>" <epic branch>
 git --git-dir="<root>/.bare" config branch.slice/<n>-<name>.epicid <epic n>
+```
+
+Record the new branch on the slice's issue, as in *Nowhere* in step 4
+of [worktree.md](worktree.md) (R44.1): a `Branch:` line after a blank
+line at the end of its body, unless the body already has one.
+
+``` bash
+body=$(gh api "repos/<issues repo>/issues/<n>" --jq '.body // ""')
+if ! printf '%s\n' "$body" | grep -q '^Branch:'; then
+  printf '%s\n\nBranch: `%s`\n' "$body" "slice/<n>-<name>" \
+    | gh issue edit <n> -R <issues repo> --body-file -
+fi
 ```
 
 When the project root has a `.shared/` folder, link its files into the
@@ -94,17 +108,17 @@ new worktree with the `yngshared` script beside `.bare/` (the guide's
 *Shared private files* section has the manual loop when it is absent):
 
 ``` powershell
-& "<root>\yngshared.ps1" -link "<root>\slice-<epic>-<name>"     # Windows
+& "<root>\yngshared.ps1" -link "<root>\epic<epic n>-slice<n>-<name>"     # Windows
 ```
 
 ``` bash
-"<root>/yngshared.sh" --link "<root>/slice-<epic>-<name>"       # macOS/Linux
+"<root>/yngshared.sh" --link "<root>/epic<epic n>-slice<n>-<name>"       # macOS/Linux
 ```
 
 Done when `git --git-dir="<root>/.bare" worktree list` shows the
-worktree on its slice branch and
+worktree on its slice branch,
 `git --git-dir="<root>/.bare" config --get branch.slice/<n>-<name>.epicid`
-prints the Epic.
+prints the Epic, and the issue body has a `Branch:` line.
 
 ## 3. Hand it out
 
@@ -112,10 +126,22 @@ prints the Epic.
 gh issue edit <n> -R <issues repo> --add-label workflow:in-progress --remove-label workflow:ready-for-agent
 ```
 
+Then comment on the issue, naming the branch and the worktree's folder
+(R44.2). `<branch>` is the slice's branch (step 2), or, in a slice or
+standalone run, the one [worktree.md](worktree.md) set up; `<folder>`
+is the worktree's folder name below `<root>`, not its full path:
+
+``` bash
+gh issue comment <n> -R <issues repo> --body 'Dispatched: branch `<branch>`, worktree `<folder>`'
+```
+
+The comment goes on every dispatch, in Epic, slice and standalone runs
+alike, and again on a re-dispatch ([track.md](track.md)).
+
 Log `dispatched` to the run log.
 
 Done when the issue shows `workflow:in-progress` alone among its
-`workflow:` labels.
+`workflow:` labels and carries this dispatch's `Dispatched:` comment.
 
 ## 4. Launch the workers
 
@@ -126,7 +152,7 @@ the issue and from step 2; the worker reads nothing else to start.
 ISSUE:        <issues repo>#<n> <title>
 CRITERIA:     <the issue's acceptance criteria, verbatim>
 SPEC:         docs/specs/<feature>/requirements.md, section <Rn>
-WORKTREE:     <root>/slice-<epic>-<name>, as an absolute path
+WORKTREE:     <root>/epic<epic n>-slice<n>-<name>, as an absolute path
 BRANCH:       slice/<n>-<name>
 PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
