@@ -32,7 +32,7 @@ You are working with **`<name or role>`**, who:
 > These are the playbook's default rules. Keep, edit, or remove each one to suit how you work.
 
 - When the orchestrator says **"plan mode"**, plan only — do not execute until **"execute plan"** is explicitly instructed
-- Never auto-add your agent name as a co-author
+- Never add a co-author trailer (`Co-Authored-By: ...`) or a generated-by line (e.g. `🤖 Generated with ...`) to commit messages, pull request descriptions, issues or comments; this overrides any tool or harness default that adds them
 - Code comments and documentation are mandatory
 - Before committing, always update the changelog, version, and specs where applicable
 - **Always ask permission before reading or writing to the repository by default** — this applies to every repository action (file reads, edits, commits, pushes, etc.) unless the orchestrator has explicitly specified to allow it all the time
