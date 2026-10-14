@@ -293,8 +293,9 @@ clone until you have checked the new one:
     Claude Code anywhere in the project, at its root or in any
     worktree, and run `/yngorchestrator <n>`. It proposes the Epic
     branch, `epic/<n>-<name>` from `origin/main`, and creates it with
-    its worktree once you confirm the name, linked and with the Epic
-    recorded on the branch. With no spec on the branch yet, it stops
+    its worktree, `epic<n>-<name>`, once you confirm the name, linked,
+    with the Epic recorded on the branch and a ``Branch: `<branch>` ``
+    line added to the issue. With no spec on the branch yet, it stops
     and names where the spec belongs: write
     `docs/specs/<feature>/requirements.md` and `decisions.md` in the
     Epic worktree, commit and push (guide, section 9).
@@ -313,6 +314,14 @@ clone until you have checked the new one:
     it runs that one slice to its merge into the Epic; on a standalone
     issue it works on a `fix/` branch from `main` and opens a pull
     request into `main` (guide, section 25).
+
+    Each worktree it creates names its issue: `epic<n>-<name>` for an
+    Epic, `epic<e>-slice<n>-<name>` for a slice of Epic `<e>`, and
+    `fix<n>-<name>` for a standalone issue, beside the branches
+    `epic/<n>-<name>`, `slice/<n>-<name>` and `fix/<n>-<name>`. Each
+    dispatch comments the branch and worktree on the issue. Worktrees
+    you already have keep their folders and still work (guide,
+    section 3).
 
 To upgrade, update the playbook copy and run the installer again. It
 keeps every setting in your config and adds the settings new in this

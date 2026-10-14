@@ -21,11 +21,20 @@ When a step stops the run, tell the person the reason in one sentence,
 delete the lock, and end the run. A stop before step 4 has changed
 nothing; a stop after it names what was created.
 
-| Kind       | Prefix   | Worktree              | Created from         | `epicid` |
-|------------|----------|-----------------------|----------------------|----------|
-| Epic       | `epic/`  | `epic-<name>`         | `origin/main`        | `<n>`    |
-| slice      | `slice/` | `slice-<epic>-<name>` | the Epic branch      | the Epic's number |
-| standalone | `fix/`   | `fix-<name>`          | `origin/main`        | none     |
+| Kind       | Prefix   | Worktree                       | Created from    | `epicid` |
+|------------|----------|--------------------------------|-----------------|----------|
+| Epic       | `epic/`  | `epic<n>-<name>`               | `origin/main`   | `<n>`    |
+| slice      | `slice/` | `epic<parent>-slice<n>-<name>` | the Epic branch | the Epic's number |
+| standalone | `fix/`   | `fix<n>-<name>`                | `origin/main`   | none     |
+
+The folder names its issue and, for a slice, its Epic (R43): `<n>` is
+the issue's number and `<parent>` the slice's parent issue's number,
+both written as the branch writes them, unpadded. These names apply
+only to a worktree this file creates. A worktree that already exists
+is found by its branch (steps 1 and 3), whatever its folder is called,
+so one named the older way (`epic-<name>`, `slice-<epic>-<name>`,
+`fix-<name>`) works as before. Nothing here renames or moves a
+worktree.
 
 ## 1. Look up the branch
 
@@ -76,15 +85,13 @@ Epic: its `Branch:` line, then `*/<parent>-*` locally, then on
 `origin`, with the prefix `epic/`. The same stops apply. A parent with
 no Epic branch stops the run too: an Epic run on `<parent>` creates it.
 
-`<epic>`, used in the slice's worktree name, is the Epic worktree's
-name without `epic-` (step 3 finds that worktree); with no Epic
-worktree, it is the Epic branch's name after `epic/<parent>-`.
+The slice's worktree name takes its Epic's number from `<parent>`,
+never from the Epic worktree's folder name.
 
 The slice starts from the local Epic branch when it exists, and from
 `origin/<epic branch>` otherwise.
 
-Done when you hold `<epic branch>`, `<epic>` and the slice's start
-point.
+Done when you hold `<epic branch>` and the slice's start point.
 
 ## 3. Read the branch's state
 
@@ -176,6 +183,22 @@ git --git-dir="<root>/.bare" worktree add --no-track -b <branch> "<worktree>" <s
 `--no-track` keeps the new branch from tracking its start point; the
 first push sets its upstream.
 
+Then record the branch on the issue (R44.1), so later runs find it by
+name (step 1). Unless the body already has a `Branch:` line, add one
+after a blank line at its end; a body that has one keeps it as it is.
+Both are issue commands, against the issues repo:
+
+``` bash
+body=$(gh api "repos/<issues repo>/issues/<n>" --jq '.body // ""')
+if ! printf '%s\n' "$body" | grep -q '^Branch:'; then
+  printf '%s\n\nBranch: `%s`\n' "$body" "<branch>" \
+    | gh issue edit <n> -R <issues repo> --body-file -
+fi
+```
+
+Only a branch created here gets the line: a branch step 1 found, in
+any other state, adds nothing.
+
 ### Every created branch, every new worktree
 
 A slice or Epic branch created above records its `epicid` (the table
@@ -199,7 +222,8 @@ A worktree created above gets the skill and worker through
 
 Done when `git --git-dir="<root>/.bare" worktree list` shows
 `<worktree>` on `<branch>`, any slice or Epic branch you created
-prints its `epicid`, and any worktree you created holds the linked
+prints its `epicid`, any branch you created is named by a `Branch:`
+line on its issue, and any worktree you created holds the linked
 `.claude/skills/yngorchestrator/SKILL.md`.
 
 ## 5. Check the spec (an Epic only)

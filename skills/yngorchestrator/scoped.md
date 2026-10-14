@@ -98,8 +98,11 @@ Done when you hold `<branch>`, `<worktree>` and, for a slice,
 ## 5. Dispatch one worker
 
 Run steps 3 and 4 of [dispatch.md](dispatch.md) for this one issue:
-label it `workflow:in-progress`, log `dispatched`, and launch one
-`slice-worker` with the prompt filled from the table above:
+label it `workflow:in-progress`, comment
+``Dispatched: branch `<branch>`, worktree `<folder>` `` with
+`<folder>` the folder name of `<worktree>` (R44.2), log `dispatched`,
+and launch one `slice-worker` with the prompt filled from the table
+above:
 
 - **slice**: `SPEC` is the section the issue links,
   `PR BASE` the Epic branch;

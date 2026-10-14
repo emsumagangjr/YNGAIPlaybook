@@ -4,6 +4,21 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.10.0] — 2026-10-14
+
+A worktree's folder names its issue, and a slice's folder names its Epic too; the issue records its branch and worktree.
+
+### Added
+- When the orchestrator creates a branch for an issue, it adds a ``Branch: `<branch>` `` line to the end of the issue body, unless the body has one, so later runs find the branch by name. A branch that already existed adds nothing.
+- Each dispatch to a worker comments ``Dispatched: branch `<branch>`, worktree `<folder>` `` on the issue, once per dispatch.
+
+### Changed
+- A worktree the orchestrator creates is named for its issue: `epic<n>-<name>` for an Epic, `epic<e>-slice<n>-<name>` for a slice, with `<e>` its parent issue's number, and `fix<n>-<name>` for a standalone issue. Numbers are the issues repo's, unpadded, as the branch writes them; a tracker with keyed IDs puts the key in as written. Branch names are unchanged. `worktree.md` (Epic, slice and standalone runs) and step 2 of `dispatch.md` both use these names.
+- Existing worktrees keep their folders: branches and worktrees are found by branch, so a folder named the older way (`epic-<name>`, `slice-<epic>-<name>`, `fix-<name>`) works as before. Nothing renames or moves a worktree.
+- The guide, INSTALL and README use the new names in every section, example, tree, table and command, and the guide's examples use plain issue numbers (`epic/100-authentication` in `epic100-authentication`, `slice/101-oauth` in `epic100-slice101-oauth`, `fix/140-login-redirect` in `fix140-login-redirect`). Section 3 describes the naming, keeps one note for trackers with keyed IDs, and says older folders still work. The spec gains R43-R45.
+
+---
+
 ## [1.9.0] — 2026-10-14
 
 A reinstall keeps every setting in your config and adds the new ones.

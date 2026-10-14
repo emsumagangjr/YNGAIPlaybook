@@ -67,7 +67,9 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
                 you can add (a dependency now merged, a decision made)
   ```
 
-  Log `re-dispatched`.
+  Post the `Dispatched:` comment again, as in step 3 of
+  [dispatch.md](dispatch.md), naming the same branch and worktree
+  folder (R44.2). Log `re-dispatched`.
 - Two attempts: hand back to a person.
 
   ``` bash
