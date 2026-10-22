@@ -54,7 +54,7 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
     |-----------|------------------------------------------|--------------------------------------------------|
     | GitHub    | github.com, GitHub Enterprise Server     | `gh`, logged in (`gh auth status --hostname`)    |
     | GitLab    | gitlab.com, GitLab self-managed          | `glab`, logged in (`glab auth status --hostname`) |
-    | Bitbucket | bitbucket.org (Cloud only)               | REST with `curl`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` (R6) |
+    | Bitbucket | bitbucket.org (Cloud only)               | REST with `curl` and `jq`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` (R6) |
 
 2.  Planned, named as such wherever the supported list appears (R16):
     Azure DevOps, Bitbucket Data Center, Jira as an issue tracker,
@@ -127,7 +127,7 @@ Amends INSTALL.md, *For the agent doing the install*, step 2.
     |-----------|--------|
     | GitHub    | `gh repo create <owner>/<repo> --private --add-readme` |
     | GitLab    | `glab repo create <group>/<project> --private --readme` |
-    | Bitbucket | `POST /2.0/repositories/<workspace>/<repo>` with `is_private: true` and `has_issues: true`, then a README committed and pushed to `main` |
+    | Bitbucket | `POST /2.0/repositories/<workspace>/<repo>` with `is_private: true` and `has_issues: true`, then a README committed to `main` through `POST .../src`, so no git credential is needed |
 
 2.  The bare clone and worktree commands are the same for every
     provider, with the provider's clone URL.
@@ -205,7 +205,10 @@ Amends INSTALL.md, *Before you start* and step 1.
     removes the previous `workflow:` label in one call.
 3.  Bitbucket: the issue's `component` holds the state, named without
     the `workflow:` prefix (`needs-triage`, `ready-for-agent`, ...).
-    An Epic is an issue in the `epic` milestone.
+    An Epic is an issue in the `epic` milestone. *Set state*, *mark
+    epic*, *close* and *reopen* post to the issue's `/changes`, so each
+    leaves a change record (R10); *create issue* creates the issue
+    without a component, then sets its state that way.
 4.  *Setup states* creates the labels (GitHub, GitLab) or the
     components and the `epic` milestone (Bitbucket). Where the provider
     cannot create one through its API, the installer prints a `warning`
@@ -237,7 +240,9 @@ Amends yngorchestrator R4.1.
     - Bitbucket: the latest change in `GET .../issues/<id>/changes`
       that sets `component` to `ready-for-agent`, whose author has
       `type: user`. Workspace, project and repository access tokens
-      act as `app_user` and fail.
+      act as `app_user` and fail. An issue created with the
+      component already at `ready-for-agent` has no such change, and
+      fails.
 2.  A change made with the person's own token passes on every
     provider, so the orchestrator never sets `ready-for-agent` itself.
     Each provider file says so beside its check.
@@ -275,6 +280,8 @@ Amends yngorchestrator R7.
 1.  `auto` merges check *pr status* first, on every provider: open,
     the expected head and base, mergeable, and every check or pipeline
     passed. Any other result holds the merge with a comment, as today.
+    On Bitbucket, the checks are the pull request's commit statuses,
+    and mergeable is `no` when its diffstat names a conflict.
 2.  *Merge pr* uses a merge commit and deletes the head branch on
     every provider.
 
