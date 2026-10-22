@@ -23,6 +23,20 @@ Agent → Slice Branch → Epic Branch → main
          (Gate 1: a person promotes)   (Gate 2: a person decides the merge, by hand or by config)
 ```
 
+## Supported providers
+
+The guide works with any Git host. The YNG Orchestrator and its slice worker work with these git providers, through each provider's own tool:
+
+| Provider  | Hosting                              | Tool and sign-in |
+|-----------|--------------------------------------|------------------|
+| GitHub    | github.com, GitHub Enterprise Server | `gh`, logged in to the host |
+| GitLab    | gitlab.com, GitLab self-managed      | `glab`, logged in to the host |
+| Bitbucket | bitbucket.org (Cloud only)           | `curl`, with an API token in `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` ([INSTALL.md](INSTALL.md#bitbucket-api-token)) |
+
+**Planned:** Azure DevOps, Bitbucket Data Center, Jira as an issue tracker, Gitea/Forgejo, and an issues repo on a different provider from the code.
+
+More providers will be added: each is one file in `skills/yngorchestrator/providers/` ([Adding a provider](skills/yngorchestrator/providers/README.md#adding-a-provider)). The installer works out your project's provider from `origin`, or takes it from `-Provider` / `--provider`, and records it in the config ([INSTALL.md](INSTALL.md#supported-providers)).
+
 ## What's inside
 
 ```text
@@ -60,17 +74,18 @@ Known Git host CLIs:
 |------|-----|-------|--------|------------------|----------------|----------------|
 | GitHub | [`gh`](https://cli.github.com) | `gh auth status` | `gh auth login` | `winget install --id GitHub.cli -e` | `brew install gh` | [cli.github.com](https://github.com/cli/cli/blob/trunk/docs/install_linux.md) |
 | GitLab | [`glab`](https://gitlab.com/gitlab-org/cli) | `glab auth status` | `glab auth login` | `winget install --id GLab.GLab -e` | `brew install glab` | [gitlab.com/gitlab-org/cli](https://gitlab.com/gitlab-org/cli#installation) |
+| Bitbucket Cloud | `curl` and an API token (no CLI) | `curl --version`, and `BITBUCKET_EMAIL`, `BITBUCKET_API_TOKEN` set | create the token and set both variables ([INSTALL.md](INSTALL.md#bitbucket-api-token)) | built into Windows 10 and later | built in | your package manager, e.g. `sudo apt install curl` |
 | Azure DevOps | [`az`](https://learn.microsoft.com/cli/azure/) + `azure-devops` extension | `az account show` | `az login` | `winget install --id Microsoft.AzureCLI -e` | `brew install azure-cli` | [learn.microsoft.com](https://learn.microsoft.com/cli/azure/install-azure-cli-linux) |
 | Gitea, Forgejo, Codeberg | [`tea`](https://gitea.com/gitea/tea) | `tea login list` | `tea login add` | `winget install --id Gitea.tea -e` | `brew install tea` | [gitea.com/gitea/tea](https://gitea.com/gitea/tea/releases) |
 | Git itself | `git` | `git --version` | — | `winget install --id Git.Git -e` | `brew install git` | your package manager, e.g. `sudo apt install git` |
 
 For Azure DevOps, add the extension after installing: `az extension add --name azure-devops`.
 
-The guide works with any of these hosts. The YNG Orchestrator and its slice worker currently drive **GitHub** only, through `gh`.
+The guide works with any of these hosts. The YNG Orchestrator and its slice worker work with GitHub, GitLab and Bitbucket Cloud ([Supported providers](#supported-providers)); the install checks only your provider's tool.
 
 ### For the agent
 
-Before the first step that needs Git or the host CLI, check both with the commands above, for the host of the project's `origin` (`git remote get-url origin`). When one is missing, tell the person which, offer to install it with the command for their platform, and install only after they say yes. Logging in is interactive: ask the person to run the log-in command themselves (in Claude Code, `! gh auth login`), then check again.
+Before the first step that needs Git or the host's tool, check both with the commands above, for the host of the project's `origin` (`git remote get-url origin`), and only that host's tool. When one is missing, tell the person which, offer to install it with the command for their platform, and install only after they say yes. Logging in is interactive: ask the person to run the log-in command themselves (in Claude Code, `! gh auth login` or `! glab auth login`), then check again. For Bitbucket, the person creates the API token and sets the two variables themselves; check only that both are set, and never print them.
 
 ## Quick start
 
@@ -89,7 +104,7 @@ Before the first step that needs Git or the host CLI, check both with the comman
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
 6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Its config (`auto-promote:` and the `merge:` rules, [template](templates/yngorchestratorconfig.yml)) and run logs live in `.yngaiplaybook/` in your project root (`yngorchestratorconfig.yml`, `yngorchestratorruns/`), with a `README.md` that explains each file ([template](templates/yngaiplaybookreadme.md)). Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree, naming a new worktree for its issue (`epic100-authentication` for `epic/100-authentication`, `epic100-slice101-oauth` for its slice `slice/101-oauth`, `fix140-login-redirect` for `fix/140-login-redirect`), and records the branch and worktree on the issue. On an Epic it plans the slices and dispatches the ones you promote to parallel workers (with `auto-promote: yes`, approving the plan promotes the agent slices, and dispatch starts at once); on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
-7. **Keep issues in their own repository** (optional): when your issues belong apart from the code (a public tracker for a private codebase, say), name that GitHub repository in the config's `issues:` key as `<owner>/<repo>`, or install with `-IssuesRepo <owner>/<repo>` (`--issues-repo` in `yngorch.sh`), which writes the key only when it has no value yet. The orchestrator then works the issues in that repository and the code, branches and pull requests in `origin`'s, and names every issue by its full reference, `<owner>/<repo>#<n>`, so links from the code repository reach the right issue ([guide, section 25](guides/epic-workflow.md#25-running-the-dispatcher-as-the-yng-orchestrator)).
+7. **Keep issues in their own repository** (optional): when your issues belong apart from the code (a public tracker for a private codebase, say), name that repository, on the same provider as the code, in the config's `issues:` key as its path (`<owner>/<repo>`), or install with `-IssuesRepo <owner>/<repo>` (`--issues-repo` in `yngorch.sh`), which writes the key only when it has no value yet. The orchestrator then works the issues in that repository and the code, branches and pull requests in `origin`'s, and names every issue by its full reference, `<owner>/<repo>#<n>`, so links from the code repository reach the right issue ([guide, section 25](guides/epic-workflow.md#25-running-the-dispatcher-as-the-yng-orchestrator)).
 
 ## Roadmap
 

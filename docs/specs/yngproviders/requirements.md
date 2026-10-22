@@ -129,6 +129,11 @@ Amends INSTALL.md, *For the agent doing the install*, step 2.
     owner, group or workspace.
 3.  It then proposes the folders and commands as today and waits for
     the person's yes.
+4.  For an existing project, the agent takes the provider from the
+    config's `provider:`, else from `origin`'s host by R3.1, and asks
+    by R4.2 only when neither settles it. A provider settled by asking
+    reaches the installer as `-Provider` / `--provider`. It checks only
+    that provider's tool (R6.1).
 
 ## R5 Repository creation
 
@@ -163,8 +168,12 @@ Amends INSTALL.md, *Before you start* and step 1.
     or echoes them. The installer hands them to `curl` on its standard
     input (`curl -K -`), never on its command line.
 3.  INSTALL.md lists the Bitbucket API token scopes the orchestrator
-    needs (repository, pull request and issue, read and write) and how
-    to set the variables in PowerShell and bash.
+    needs (repository, pull request and issue, read and write:
+    `read:`/`write:repository:bitbucket`, `read:`/`write:pullrequest:bitbucket`,
+    `read:`/`write:issue:bitbucket`), `read:user:bitbucket` for the
+    install check, and `admin:repository:bitbucket` only for creating a
+    repository (R5), and how to set the variables in PowerShell and
+    bash, user-wide.
 
 ## R7 Provider files
 
