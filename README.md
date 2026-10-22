@@ -74,6 +74,7 @@ Known Git host CLIs:
 |------|-----|-------|--------|------------------|----------------|----------------|
 | GitHub | [`gh`](https://cli.github.com) | `gh auth status` | `gh auth login` | `winget install --id GitHub.cli -e` | `brew install gh` | [cli.github.com](https://github.com/cli/cli/blob/trunk/docs/install_linux.md) |
 | GitLab | [`glab`](https://gitlab.com/gitlab-org/cli) | `glab auth status` | `glab auth login` | `winget install --id GLab.GLab -e` | `brew install glab` | [gitlab.com/gitlab-org/cli](https://gitlab.com/gitlab-org/cli#installation) |
+| `jq` (the orchestrator on GitLab and Bitbucket) | [`jq`](https://jqlang.org) | `jq --version` | — | `winget install jqlang.jq` | `brew install jq` | `sudo apt install jq` |
 | Bitbucket Cloud | `curl` and an API token (no CLI) | `curl --version`, and `BITBUCKET_EMAIL`, `BITBUCKET_API_TOKEN` set | create the token and set both variables ([INSTALL.md](INSTALL.md#bitbucket-api-token)) | built into Windows 10 and later | built in | your package manager, e.g. `sudo apt install curl` |
 | Azure DevOps | [`az`](https://learn.microsoft.com/cli/azure/) + `azure-devops` extension | `az account show` | `az login` | `winget install --id Microsoft.AzureCLI -e` | `brew install azure-cli` | [learn.microsoft.com](https://learn.microsoft.com/cli/azure/install-azure-cli-linux) |
 | Gitea, Forgejo, Codeberg | [`tea`](https://gitea.com/gitea/tea) | `tea login list` | `tea login add` | `winget install --id Gitea.tea -e` | `brew install tea` | [gitea.com/gitea/tea](https://gitea.com/gitea/tea/releases) |

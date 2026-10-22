@@ -159,7 +159,8 @@ Amends INSTALL.md, *Before you start* and step 1.
     `gh auth status --hostname <host>`, `glab auth status --hostname
     <host>`, or, for Bitbucket, `curl` present and `GET
     https://api.bitbucket.org/2.0/user` succeeding with
-    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. A failed check is a
+    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. GitLab and Bitbucket
+    also need `jq` on PATH (GitHub's `gh` has `--jq` built in). A failed check is a
     `warning` naming what failed and how to fix it; the install goes on
     and skips the workflow states (R8.4).
 2.  Bitbucket credentials are read from those two environment variables
@@ -172,8 +173,10 @@ Amends INSTALL.md, *Before you start* and step 1.
     `read:`/`write:repository:bitbucket`, `read:`/`write:pullrequest:bitbucket`,
     `read:`/`write:issue:bitbucket`), `read:user:bitbucket` for the
     install check, and `admin:repository:bitbucket` only for creating a
-    repository (R5), and how to set the variables in PowerShell and
-    bash, user-wide.
+    repository (R5); the Bitbucket smoke run (R15) confirms these two
+    before release. It also says how to set the variables in PowerShell
+    and bash, user-wide, and how git authenticates the first push of a
+    new Bitbucket repository.
 
 ## R7 Provider files
 

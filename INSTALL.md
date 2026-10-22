@@ -54,6 +54,7 @@ You need these once per machine:
 |------|-------|
 | Git | `git --version` |
 | Your provider's tool, signed in (only that one) | GitHub: `gh auth status --hostname <host>` · GitLab: `glab auth status --hostname <host>` · Bitbucket: `curl --version`, and the [API token](#bitbucket-api-token) variables set |
+| GitLab and Bitbucket only: `jq` (GitHub's `gh` has `--jq` built in) | `jq --version`; install with `winget install jqlang.jq` (Windows), `brew install jq` (macOS) or `sudo apt install jq` (Linux) |
 | Claude Code | `claude --version` |
 | Windows only: Developer Mode, for the links | Settings → System → For developers |
 
@@ -161,7 +162,8 @@ existing folder.
     --hostname <host>` (GitHub), `glab auth status --hostname <host>`
     (GitLab), or, for Bitbucket, `curl --version` and that
     `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` are both set (test that
-    they are non-empty; never print them). When something is missing,
+    they are non-empty; never print them). For GitLab and Bitbucket,
+    also `jq --version`. When something is missing,
     report it with the fix from [Before you start](#before-you-start)
     and stop.
 
@@ -413,6 +415,12 @@ git add README.md && git commit -m 'Add README'
 git push https://bitbucket.org/myworkspace/myproject.git main
 cd .. && rm -rf myproject-readme
 ```
+
+The `git push` signs in to bitbucket.org. With Git Credential Manager
+(Git for Windows' default), it prompts once and stores the sign-in.
+Otherwise use your account email as the username and the same API
+token as the password, or use an SSH key and the SSH clone URL
+(`git@bitbucket.org:myworkspace/myproject.git`).
 
 **2. Lay it out**, the same on every provider, with your repository's
 clone URL (`https://github.com/you/myproject.git`,
