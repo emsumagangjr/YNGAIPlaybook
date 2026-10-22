@@ -71,12 +71,13 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
     ```
 
 2.  The orchestrator reads both fresh at the start of every run, as it
-    reads `issues:`. A `provider:` that is not one of the supported
-    values stops the run before the lock, naming the value and the
-    supported list. The supported list is the provider files present
-    in `skills/yngorchestrator/providers/` (R7), so a provider is
-    supported by the run once its file is there. A `host:` with a
-    scheme or a path stops the run the same way.
+    reads `issues:`. The supported providers are those that have a
+    file in `skills/yngorchestrator/providers/` (R7), other than its
+    README; a provider is supported by the run once its file is there.
+    A `provider:` with no file there stops the run before the lock,
+    naming the value and the providers that have a file in
+    `providers/`. A `host:` with a scheme or a path stops the run the
+    same way.
 3.  The installer writes each key only when it has no value yet; it
     never overwrites one. The config template documents both, and the
     folder's README (yngorchestrator R26) gives each a line: purpose,
