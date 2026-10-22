@@ -92,9 +92,8 @@ person approved the change. For each new slice, `<label>` comes from
 | `yes`            | agent | `workflow:ready-for-agent` |
 | `yes`            | human | `workflow:ready-for-human` |
 
-``` bash
-gh issue create -R <issues repo> --title "<outcome>" --label "<label>" --body-file <file>
-```
+*Create issue* in the issues repo, titled with the outcome, at the state
+`<label>`, with the body below in a file.
 
 A slice routed to a person is never created `workflow:ready-for-agent`,
 whatever the config says: plan approval cannot override the guide's
@@ -120,23 +119,17 @@ Shares files with: #<n> (<path>)
 A slice issue lives in the issues repo beside its Epic, so the short
 `#<n>` references in its body name the issues repo's issues.
 
-Then attach it to the Epic. The REST call takes the issue's numeric
-`id`, not its number:
-
-``` bash
-id=$(gh api "repos/<issues repo>/issues/<n>" --jq .id)
-gh api -X POST "repos/<issues repo>/issues/<epic>/sub_issues" -F sub_issue_id="$id"
-```
+Then attach it to the Epic with *link child* (R9).
 
 Append `<date> #<n> planned` to the run log for each.
 
 With `<auto-promote>` `yes`, record each slice created
 `workflow:ready-for-agent` as promoted by plan approval (R36.1), once
-it is attached to the Epic. Comment on it:
+it is attached to the Epic. *Comment* on it (R10.3):
 
-``` bash
-gh issue comment <n> -R <issues repo> --body "Promoted by plan approval (auto-promote: yes), <date>.
-Plan approved by the person in the orchestrator session."
+``` text
+Promoted by plan approval (auto-promote: yes), <date>.
+Plan approved by the person in the orchestrator session.
 ```
 
 and append `<date> #<n> promoted by plan approval` to the run log.
@@ -145,7 +138,7 @@ write it only for a slice the person approved in this plan, created
 `workflow:ready-for-agent` by this run and attached to this Epic. A
 slice routed to a person gets neither.
 
-Done when every approved slice is an open sub-issue of the Epic
+Done when every approved slice is an open child of the Epic
 labelled `<label>`, each has its `planned` line and, with `yes`, each
 agent slice has its comment and its `promoted by plan approval` line.
 

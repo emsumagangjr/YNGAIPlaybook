@@ -11,8 +11,9 @@ check, so no branch is created for an issue a person has not promoted.
 They run steps 1 to 4 and return there.
 
 Every command names its target by absolute path, as in locate.md: `git
---git-dir="<root>/.bare"` or `git -C <worktree>`, and `gh` with
-`-R <issues repo>` (*Two repositories* in [SKILL.md](SKILL.md)). The
+--git-dir="<root>/.bare"` or `git -C <worktree>`, and every operation
+(*The provider* in [SKILL.md](SKILL.md)) on `<issues repo>` (*Two
+repositories*). The
 session's own folder does not matter. Branch names carry the issues
 repo's number; the branches themselves are the code repo's.
 
@@ -46,12 +47,13 @@ git --git-dir="<root>/.bare" fetch origin --prune
 
 Then find the branch, in this order:
 
-1. **The issue body's `Branch:` line** wins. Read the body and take the
-   name from the first line that starts with `Branch:`, without
-   backticks or spaces. With a name, skip 2 and 3:
+1. **The issue body's `Branch:` line** wins. Read the body (*read
+   issue*, passed in as `"$body"`) and take the name from the first
+   line that starts with `Branch:`, without backticks or spaces. With
+   a name, skip 2 and 3:
 
    ``` bash
-   gh api "repos/<issues repo>/issues/<n>" --jq .body \
+   printf '%s\n' "$body" \
      | sed -n 's/^Branch:[[:space:]]*`\{0,1\}\([^`[:space:]]*\).*/\1/p' | head -n 1
    ```
 
@@ -186,14 +188,13 @@ first push sets its upstream.
 Then record the branch on the issue (R44.1), so later runs find it by
 name (step 1). Unless the body already has a `Branch:` line, add one
 after a blank line at its end; a body that has one keeps it as it is.
-Both are issue commands, against the issues repo:
+Both are issue operations, on the issues repo: *read issue* for the
+body and, when no line starts with `Branch:`, *edit body* to the body
+followed by:
 
-``` bash
-body=$(gh api "repos/<issues repo>/issues/<n>" --jq '.body // ""')
-if ! printf '%s\n' "$body" | grep -q '^Branch:'; then
-  printf '%s\n\nBranch: `%s`\n' "$body" "<branch>" \
-    | gh issue edit <n> -R <issues repo> --body-file -
-fi
+``` text
+
+Branch: `<branch>`
 ```
 
 Only a branch created here gets the line: a branch step 1 found, in
