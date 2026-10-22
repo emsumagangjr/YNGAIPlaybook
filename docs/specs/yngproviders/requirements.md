@@ -73,8 +73,7 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
 2.  The orchestrator reads both fresh at the start of every run, as it
     reads `issues:`. A `provider:` that is not one of the supported
     values stops the run before the lock, naming the value and the
-    supported list. It stops the installer too, before anything is
-    written.
+    supported list.
 3.  The installer writes each key only when it has no value yet; it
     never overwrites one. The config template documents both, and the
     folder's README (yngorchestrator R26) gives each a line: purpose,
@@ -82,10 +81,9 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
 
 ## R3 Detection in an existing project
 
-1.  With no `provider:` value in the config, the installer takes the
-    host from the config's `host:`, else from `git remote get-url
-    origin` (HTTPS or SSH form), and decides in order, before anything
-    is written:
+1.  With no value in the config, the installer reads the host from
+    `git remote get-url origin` (HTTPS or SSH form) and decides in
+    order:
     1.  A known cloud host: `github.com` is github, `gitlab.com` is
         gitlab, `bitbucket.org` is bitbucket.
     2.  Any other host: `gh auth status --hostname <host>` and
@@ -93,21 +91,15 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
         names the provider.
     3.  Otherwise, neither or both: the installer stops and asks for
         `-Provider` / `--provider`, naming the host and what each
-        check returned (`logged in`, `not logged in to <host>`, or
-        `not found`). With no host at all (no origin remote) it stops
-        the same way. The agent doing the install asks the person.
+        check returned. The agent doing the install asks the person.
 2.  `-Provider github|gitlab|bitbucket` / `--provider` skips
     detection. With a value already in the config, a flag that differs
     is a `warning` naming both; the config wins and is not changed.
-3.  The installer prints one line for each key's outcome: `wrote
-    provider: gitlab (detected from origin)`, `wrote provider: gitlab
-    (from --provider)`, or `kept provider: gitlab (yours)`; then `wrote
-    host: gitlab.example.com (from origin)`, `wrote host: gitlab.com
-    (gitlab's cloud host)` when there is no origin, or `kept host:
-    <host> (yours)`.
+3.  The installer prints one line for the outcome: `wrote provider:
+    gitlab (detected from origin)`, `wrote provider: gitlab (from
+    --provider)`, or `kept provider: gitlab (yours)`.
 4.  A Bitbucket host other than `bitbucket.org` is Bitbucket Data
-    Center: the installer stops before anything is written, saying it
-    is planned, not supported.
+    Center: the installer stops, saying it is planned, not supported.
 
 ## R4 Provider for a new project
 
@@ -146,14 +138,11 @@ Amends INSTALL.md, *Before you start* and step 1.
     `gh auth status --hostname <host>`, `glab auth status --hostname
     <host>`, or, for Bitbucket, `curl` present and `GET
     https://api.bitbucket.org/2.0/user` succeeding with
-    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. A failed check is a
-    `warning` naming what failed and how to fix it; the install goes on
-    and skips the workflow states (R8.4).
+    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`.
 2.  Bitbucket credentials are read from those two environment variables
     only. Neither the installer, the orchestrator nor a worker writes
     them to the config, the project, a run log, a comment or a report,
-    or echoes them. The installer hands them to `curl` on its standard
-    input (`curl -K -`), never on its command line.
+    or echoes them.
 3.  INSTALL.md lists the Bitbucket API token scopes the orchestrator
     needs (repository, pull request and issue, read and write) and how
     to set the variables in PowerShell and bash.
@@ -195,9 +184,9 @@ Amends INSTALL.md, *Before you start* and step 1.
 ## R8 Workflow states and labels
 
 1.  The state names are the same on every provider:
-    `workflow:needs-triage`, `workflow:needs-info`,
-    `workflow:ready-for-agent`, `workflow:ready-for-human`,
-    `workflow:in-progress`, `workflow:in-review`, and `epic`.
+    `workflow:needs-triage`, `workflow:ready-for-agent`,
+    `workflow:ready-for-human`, `workflow:in-progress`,
+    `workflow:in-review`, and `epic`.
 2.  GitHub and GitLab: plain labels with exactly these names, single
     colon, no GitLab scoped labels. *Set state* adds the new label and
     removes the previous `workflow:` label in one call.
@@ -207,17 +196,7 @@ Amends INSTALL.md, *Before you start* and step 1.
 4.  *Setup states* creates the labels (GitHub, GitLab) or the
     components and the `epic` milestone (Bitbucket). Where the provider
     cannot create one through its API, the installer prints a `warning`
-    naming each to create by hand and where. In the installer:
-    -   GitHub: `gh label create --force` for each, in the issues repo
-        on the host, so each is created or updated.
-    -   GitLab: the project's labels are read through `glab api`, and
-        each missing one is created; existing ones are left as they are.
-    -   Bitbucket: the API reads components and milestones but cannot
-        create them, so the installer reads both and names each missing
-        component and the `epic` milestone in one `warning`, pointing at
-        the repository's settings (`https://bitbucket.org/<workspace>/<repo>/admin`).
-    -   A label or component that could not be created is named in a
-        `warning`, with where to create it by hand.
+    naming each to create by hand and where.
 
 ## R9 Parent and child
 
@@ -293,11 +272,7 @@ Amends yngorchestrator R7.
     runs unchanged.
 2.  On a reinstall with no `provider:`, the installer runs detection
     (R3) once and adds `provider:` and `host:` through the config
-    upgrade (yngorchestrator R39), one `added` line each. The template
-    ships both settings with their key commented out, as `issues:`
-    does, so the upgrade adds each section just above the worked
-    examples, and the R3.3 write then puts the value on the line below
-    its commented-out key, with one `wrote` line each.
+    upgrade (yngorchestrator R39), one `added` line each.
 
 ## R15 Smoke run per provider
 
