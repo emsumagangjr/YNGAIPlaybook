@@ -39,6 +39,18 @@ You are working with **`<name or role>`**, who:
 
 ---
 
+## Reusable Code
+
+> Default rules for keeping code reusable. Keep, edit, or remove each one to suit the project.
+
+- **Reuse before you write.** Before adding a function, module, component, or script, search the codebase for one that already does the job. Extend or call it; never add a near-duplicate.
+- **Extract on the third copy.** When the same logic would appear a third time, move it into one shared, named unit and point every caller at it. Don't abstract speculatively for a use that doesn't exist yet; simple beats clever.
+- **One home for shared code.** Shared units live in `<shared location — e.g. src/lib/, scripts/lib/>`, each with one responsibility, a small documented interface (inputs, outputs, errors), and its own tests.
+- **No hardcoding in shared units.** Pass paths, names, credentials, and settings in as parameters or config so the unit works for every caller, not just the first one.
+- **Follow the existing pattern.** Match the naming, structure, and error handling of the surrounding code. If you introduce a new pattern where one already exists, record why in the feature's `decisions.md`, and migrate the old callers or open an issue to do so.
+
+---
+
 ## Recommended Repository Framework
 
 For projects involving multiple concurrent AI agents (e.g., an Epic with several independently deliverable slices), use the **Bare Repository + Git Worktrees Pattern**:
