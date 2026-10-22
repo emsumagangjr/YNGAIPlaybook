@@ -39,3 +39,12 @@ Dated log of options refused, one line of why each.
 - **2026-10-23** Refused: trusting the command references without a
   live run. Provenance refusal is a safety rule; each provider proves
   it in a sandbox. → context
+- **2026-10-23** Refused: a supported-provider list written into
+  `locate.md`. The provider files present are the list, so adding a
+  provider stays one file (R7).
+- **2026-10-23** Refused: `gh pr checks` for *pr status*. Its exit
+  status mixes "no checks" with "failed"; `statusCheckRollup` gives
+  `none`, `pending`, `passed` and `failed` apart.
+- **2026-10-23** Refused: `gh`'s own default host. Every GitHub call
+  sets `GH_HOST=<host>`, so a GitHub Enterprise run never reaches
+  github.com.

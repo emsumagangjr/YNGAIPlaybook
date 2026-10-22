@@ -18,8 +18,10 @@ Your hard guardrails:
 - The orchestrator writes issue state. You leave labels, assignees and
   issue state as you found them.
 
-Commands are shown for GitHub (`gh`). On another tracker, use its
-equivalent.
+Every call to the git provider is an **operation**, named in italics
+(*read issue*, *list prs*, *create pr*). Run each as the provider file
+named in `PROVIDER` says, on its host, and load no other provider's
+file.
 
 ## Dispatch prompt
 
@@ -35,21 +37,29 @@ BRANCH:       slice/<n>-<name>, or fix/<n>-<name> for a standalone fix
 PR BASE:      the branch the PR targets (normally the Epic branch)
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       absolute path of skills/yngorchestrator/report.md
+PROVIDER:     <provider> on <host>, absolute path of
+              skills/yngorchestrator/providers/<provider>.md
 PREVIOUS:     re-dispatch only: the last attempt's STATUS, ISSUES and
               COMMITS, plus what has changed since
 ```
+
+A prompt without `PROVIDER` comes from an orchestrator older than
+provider files: read it as `github` on `github.com`, with
+`providers/github.md` beside `REPORT`.
 
 On a re-dispatch, `PREVIOUS` is your starting point: build on the
 commits already on `BRANCH` and resolve the cause it names before
 anything else.
 
 `ISSUE` names the issue by full reference: `<owner>/<repo>` is the
-**issues repo**, which may differ from the **code repo** your worktree
-pushes to (`origin`'s repository). Take the code repo from
-`git -C "<WORKTREE>" remote get-url origin`: the last two path parts,
-without `.git`. Name each repository with `-R` on every `gh` call, and
-name the issue by its full reference, `<owner>/<repo>#<n>`, wherever
-you write it, so a link never lands on the code repo's own `#<n>`.
+**issues repo** (on GitLab, `<group>[/<subgroup>...]/<project>`), which
+may differ from the **code repo** your worktree pushes to (`origin`'s
+repository). Take the code repo from
+`git -C "<WORKTREE>" remote get-url origin`: the whole path after the
+host, without `.git`. Every operation names its repository: *read
+issue* the issues repo, *list prs* and *create pr* the code repo. Name
+the issue by its full reference, as `ISSUE` writes it, wherever you
+write it, so a link never lands on the code repo's own `#<n>`.
 `BRANCH` carries the issues repo's number.
 
 ## Stop with `needs-human`
@@ -85,8 +95,9 @@ leave the worktree untouched.
 
 ### 2. Read
 
-Read the issue (`gh issue view <n> -R <owner>/<repo>`, both from
-`ISSUE`), the `SPEC` section, the project's
+Read the provider file `PROVIDER` names, then the issue (*read issue*
+`<n>` in the issues repo, both from `ISSUE`), the `SPEC` section, the
+project's
 agent instructions (`AGENTS.md`, `CLAUDE.md`) and written standards,
 and the code the slice touches.
 
@@ -138,21 +149,26 @@ fixed or recorded.
 
 Inspect `git diff`, then commit only this slice's files, following the
 project's commit conventions; where a message names the issue, it uses
-the full reference from `ISSUE`. Push and open the pull request in the
-code repo:
+the full reference from `ISSUE`. Push:
 
 ``` bash
 git push -u origin <BRANCH>
-gh pr create -R <code repo> --base <PR BASE> --head <BRANCH> --title "<ISSUE title>" --body "<body>"
 ```
 
-The body opens with the issue's full reference from `ISSUE`:
+Then *list prs* for the head `^<BRANCH>$`. An open pull request from
+`BRANCH` into `PR BASE` (a re-dispatch) is yours: the push updated it.
+Otherwise *create pr* in the code repo from `BRANCH` into `PR BASE`,
+titled with the `ISSUE` title, with the body below in a file.
 
-- `PR BASE: main` (a standalone fix): `Closes <owner>/<repo>#<n>`, so
-  the merge into the default branch closes the issue in the issues
-  repo;
-- any other base (a slice): `Implements <owner>/<repo>#<n>`, no
-  closing keyword; the orchestrator closes slice issues itself.
+The body opens with the issue's reference:
+
+- `PR BASE: main` (a standalone fix): the provider file's *Closing
+  reference* (`Closes <owner>/<repo>#<n>` on GitHub), so the merge into
+  the default branch closes the issue in the issues repo where the
+  provider can (R12);
+- any other base (a slice): `Implements <owner>/<repo>#<n>`, the full
+  reference from `ISSUE`, no closing keyword; the orchestrator closes
+  slice issues itself.
 
 Then what changed, one line per file; then a `## Review record`
 section holding the open decisions, or "none".
