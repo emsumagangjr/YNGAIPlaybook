@@ -73,7 +73,10 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
 2.  The orchestrator reads both fresh at the start of every run, as it
     reads `issues:`. A `provider:` that is not one of the supported
     values stops the run before the lock, naming the value and the
-    supported list.
+    supported list. The supported list is the provider files present
+    in `skills/yngorchestrator/providers/` (R7), so a provider is
+    supported by the run once its file is there. A `host:` with a
+    scheme or a path stops the run the same way.
 3.  The installer writes each key only when it has no value yet; it
     never overwrites one. The config template documents both, and the
     folder's README (yngorchestrator R26) gives each a line: purpose,
@@ -162,9 +165,10 @@ Amends INSTALL.md, *Before you start* and step 1.
     | read parent        | the Epic of a slice (R9) |
     | link child         | attach a slice to its Epic (R9) |
     | provenance         | who set `ready-for-agent`, and whether that is a human (R10) |
-    | comment            | post a comment on an issue |
+    | comment            | post a comment on an issue or a pull request |
     | close / reopen     | close or reopen an issue |
     | create issue       | create an issue at a state |
+    | edit body          | replace an issue's body (the `Branch:` line, yngorchestrator R44.1) |
     | create pr          | open a pull request from a branch into a base |
     | pr status          | state, head, base, mergeable, and checks of a pull request |
     | list prs           | pull requests by head branch, any state |
@@ -172,14 +176,22 @@ Amends INSTALL.md, *Before you start* and step 1.
     | create repo        | R5 |
     | setup states       | create the workflow labels or their equivalent (R8) |
 
-2.  The orchestrator loads `SKILL.md`, the step files it needs, and the
-    one provider file for the configured `provider:`, never another.
+    `providers/README.md` gives each operation its inputs and outputs,
+    which are the same on every provider, and the *Facts* every file
+    states: its CLI, cloud host, path form (R11.2), issue URL, issue
+    reference and closing reference (R12.1).
+
+2.  The orchestrator loads `SKILL.md`, the step files it needs,
+    `providers/README.md`, and the one provider file for the configured
+    `provider:`, never another.
 3.  The step files and `agents/slice-worker.md` name operations ("*set
     state* `workflow:in-progress`"), not commands. No `gh`, `glab` or
     `curl` call remains in them.
 4.  The dispatch prompt carries the provider and host, so the worker
     loads the same provider file for *read issue*, *create pr* and
-    *list prs*.
+    *list prs*: a `PROVIDER:` field holding the provider, the host and
+    the provider file's absolute path. A prompt without the field is
+    read as `github` on `github.com`.
 
 ## R8 Workflow states and labels
 

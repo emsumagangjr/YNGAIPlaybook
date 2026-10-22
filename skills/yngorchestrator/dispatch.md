@@ -3,33 +3,24 @@
 Run steps 1 to 3 for each slice in turn, then step 4 once for all of
 them. Every command names its target by absolute path (*The project
 root* in [SKILL.md](SKILL.md)), so the session's own folder does not
-matter. Every command here is an issue command: `gh` carries
-`-R <issues repo>` (*Two repositories* in [SKILL.md](SKILL.md)).
+matter. Every operation here is an issue operation, on
+`<issues repo>` (*Two repositories* in [SKILL.md](SKILL.md)).
 
 ## 1. Check provenance (Gate 1)
 
-The issue must carry `workflow:ready-for-agent` now, and a person must
-have promoted it: by applying the label, or, with `<auto-promote>`
-`yes`, by approving the plan that created it ([plan.md](plan.md)).
-Read who applied the label from the issue timeline:
+The issue must carry `workflow:ready-for-agent` now (*read issue*),
+and a person must have promoted it: by applying the state, or, with
+`<auto-promote>` `yes`, by approving the plan that created it
+([plan.md](plan.md)). Read who applied it with *provenance*: every
+application of `workflow:ready-for-agent`, oldest first, so the last
+is the application that counts. It passes when either route holds.
 
-``` bash
-gh api repos/<issues repo>/issues/<n>/timeline --paginate \
-  --jq '.[] | select(.event=="labeled" and .label.name=="workflow:ready-for-agent")
-        | [.actor.login, .actor.type, (.performed_via_github_app.slug // "-"), .created_at] | @tsv'
-```
-
-Events come oldest first, so the last line is the application that
-counts. It passes when either route holds.
-
-**A person's label.** All three hold:
-
-- `actor.type` is `User`;
-- the login is no bot account (none ending in `[bot]`);
-- `performed_via_github_app` is empty (`-`).
+**A person's label.** *Provenance* judges the last application a
+human's, by the provider file's rule (R10.1; on GitHub, a `User`
+account, no `[bot]` login, no GitHub App).
 
 When the run log `<log>` has a `promoted by plan approval` line for
-`#<n>`, the first application on the timeline is the one this
+`#<n>`, the first application *provenance* lists is the one this
 orchestrator made when it created the slice, not a person's, even
 though it may read as theirs. This route then counts only a later
 application.
@@ -37,10 +28,9 @@ application.
 **Plan approval** (R36.2). All four hold:
 
 - `<auto-promote>` is `yes` now, as read at the start of this run;
-- the issue is a sub-issue of the Epic being run, so its parent is
-  `<log>` (the parent is read as in step 4 of [locate.md](locate.md);
-  a standalone run's `<log>` is the issue itself, which has no
-  parent);
+- the issue is a child of the Epic being run: *read parent* gives
+  `<log>` (a standalone run's `<log>` is the issue itself, which has
+  no parent);
 - `<root>/.yngaiplaybook/yngorchestratorruns/<log>.md` has the line
   `<date> #<n> promoted by plan approval`:
 
@@ -49,7 +39,7 @@ application.
     "<root>/.yngaiplaybook/yngorchestratorruns/<log>.md"
   ```
 
-- the timeline shows exactly one application of the label: the one
+- *provenance* lists exactly one application of the label: the one
   made at creation. A label applied again later, after a dispatch or
   a hand-back, is judged by the person's-label route alone.
 
@@ -93,14 +83,13 @@ git --git-dir="<root>/.bare" config branch.slice/<n>-<name>.epicid <epic n>
 
 Record the new branch on the slice's issue, as in *Nowhere* in step 4
 of [worktree.md](worktree.md) (R44.1): a `Branch:` line after a blank
-line at the end of its body, unless the body already has one.
+line at the end of its body, unless the body already has one: *read
+issue* for the body and, when no line starts with `Branch:`, *edit
+body* to the body followed by:
 
-``` bash
-body=$(gh api "repos/<issues repo>/issues/<n>" --jq '.body // ""')
-if ! printf '%s\n' "$body" | grep -q '^Branch:'; then
-  printf '%s\n\nBranch: `%s`\n' "$body" "slice/<n>-<name>" \
-    | gh issue edit <n> -R <issues repo> --body-file -
-fi
+``` text
+
+Branch: `slice/<n>-<name>`
 ```
 
 When the project root has a `.shared/` folder, link its files into the
@@ -122,17 +111,16 @@ prints the Epic, and the issue body has a `Branch:` line.
 
 ## 3. Hand it out
 
-``` bash
-gh issue edit <n> -R <issues repo> --add-label workflow:in-progress --remove-label workflow:ready-for-agent
-```
+*Set state* `workflow:in-progress`.
 
-Then comment on the issue, naming the branch and the worktree's folder
-(R44.2). `<branch>` is the slice's branch (step 2), or, in a slice or
-standalone run, the one [worktree.md](worktree.md) set up; `<folder>`
-is the worktree's folder name below `<root>`, not its full path:
+Then *comment* on the issue, naming the branch and the worktree's
+folder (R44.2). `<branch>` is the slice's branch (step 2), or, in a
+slice or standalone run, the one [worktree.md](worktree.md) set up;
+`<folder>` is the worktree's folder name below `<root>`, not its full
+path:
 
-``` bash
-gh issue comment <n> -R <issues repo> --body 'Dispatched: branch `<branch>`, worktree `<folder>`'
+``` text
+Dispatched: branch `<branch>`, worktree `<folder>`
 ```
 
 The comment goes on every dispatch, in Epic, slice and standalone runs
@@ -141,7 +129,7 @@ alike, and again on a re-dispatch ([track.md](track.md)).
 Log `dispatched` to the run log.
 
 Done when the issue shows `workflow:in-progress` alone among its
-`workflow:` labels and carries this dispatch's `Dispatched:` comment.
+`workflow:` states and carries this dispatch's `Dispatched:` comment.
 
 ## 4. Launch the workers
 
@@ -157,11 +145,16 @@ BRANCH:       slice/<n>-<name>
 PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       <absolute path of skills/yngorchestrator/report.md>
+PROVIDER:     <provider> on <host>, <absolute path of skills/yngorchestrator/providers/<provider>.md>
 ```
 
 `ISSUE` carries the full reference, `<issues repo>#<n>`, even when the
-issues repo is the code repo: the worker reads the issue with `-R` from
-it, and names it so in its commits and pull request.
+issues repo is the code repo: the worker reads the issue in the issues
+repo it names, and names it so in its commits and pull request.
+
+`PROVIDER` carries the run's provider and host and the one provider
+file this run loaded (R7.4), so the worker's *read issue*, *list prs*
+and *create pr* go to the same provider and host as the run's.
 
 A standalone run ([scoped.md](scoped.md)) fills `SPEC: none`,
 `PR BASE: main`, and its `fix/<n>-<name>` branch and worktree: the

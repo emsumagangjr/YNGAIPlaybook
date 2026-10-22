@@ -372,7 +372,7 @@ Write-Host "YNG Orchestrator -> $root"
 $skillDir = Join-Path $root '.shared\.claude\skills\yngorchestrator'
 $agentDir = Join-Path $root '.shared\.claude\agents'
 New-Item -ItemType Directory -Force $skillDir, $agentDir | Out-Null
-Copy-Item -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
+Copy-Item -Recurse -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
 Copy-Item -Force (Join-Path $playbook 'agents\slice-worker.md') $agentDir
 Step 'copied' '.shared\.claude\skills\yngorchestrator\, .shared\.claude\agents\slice-worker.md'
 # The 1.1.0 skill folder, which only this installer writes.

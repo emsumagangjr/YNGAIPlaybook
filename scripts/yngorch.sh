@@ -335,7 +335,7 @@ echo "YNG Orchestrator -> $root"
 
 # 2. Skill and worker into .shared/.claude/.
 mkdir -p "$root/.shared/.claude/skills/yngorchestrator" "$root/.shared/.claude/agents"
-cp "$playbook"/skills/yngorchestrator/* "$root/.shared/.claude/skills/yngorchestrator/"
+cp -R "$playbook"/skills/yngorchestrator/. "$root/.shared/.claude/skills/yngorchestrator/"
 cp "$playbook/agents/slice-worker.md" "$root/.shared/.claude/agents/"
 step copied ".shared/.claude/skills/yngorchestrator/, .shared/.claude/agents/slice-worker.md"
 # The 1.1.0 skill folder, which only this installer writes.
