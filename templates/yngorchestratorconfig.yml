@@ -22,9 +22,9 @@
 #   A setting whose header you kept, with its key commented out, stays as
 #   you left it. A setting you deleted, header and key, comes back at its
 #   default. A key of yours this template does not have is left as it is,
-#   with a note that the orchestrator ignores it. The one other write is
-#   filling in an empty issues setting when you pass -IssuesRepo (see
-#   below).
+#   with a note that the orchestrator ignores it. The other writes fill
+#   in the provider and host settings when they have no value, and an
+#   empty issues setting when you pass -IssuesRepo (see below).
 # Read fresh: the orchestrator reads the file as it is now, at the start of
 #   every run and again before every merge. An edit counts from the next
 #   read; there is nothing to restart.
@@ -40,6 +40,49 @@
 #   Gate 1  the decision that an issue is ready for an agent to start. Its
 #           mark is the label workflow:ready-for-agent ("Agent-Ready").
 #   Gate 2  the decision to merge a pull request.
+
+
+# --- Setting: provider -------------------------------------------------------
+# Decides: which git provider holds this project's repository, and so
+#   which tool the orchestrator works through. Not a gate: it says where
+#   things are.
+# Values:
+#   github     GitHub (github.com or GitHub Enterprise Server), through gh.
+#   gitlab     GitLab (gitlab.com or self-managed), through glab.
+#   bitbucket  Bitbucket Cloud (bitbucket.org), through its REST API with
+#              curl, BITBUCKET_EMAIL and BITBUCKET_API_TOKEN. The token
+#              lives in your environment only, never in this file.
+# Default: github. An absent key or an empty value means github, so a
+#   config written before this setting works as before. Any other value
+#   stops the run before it touches anything, naming the value and these
+#   three; yngorch stops too.
+# Read: at the start of every run.
+# Changed by: you. yngorch writes the key, just below the commented-out
+#   line, only when it has no value yet, and never overwrites a value: it
+#   detects the provider from origin's host (github.com, gitlab.com and
+#   bitbucket.org by name; any other host by which of gh and glab is
+#   logged in to it), or takes it from yngorch -Provider (--provider in
+#   yngorch.sh) when detection cannot tell. A -Provider that differs from
+#   your value is a warning; your value is kept.
+# provider: github | gitlab | bitbucket
+
+
+# --- Setting: host -----------------------------------------------------------
+# Decides: the provider's host name, for example github.example.com for
+#   GitHub Enterprise Server or gitlab.example.com for GitLab
+#   self-managed. Not a gate.
+# Values:
+#   <host>     the host origin's repository lives on, without https://.
+#              Bitbucket takes only bitbucket.org: Bitbucket Data Center
+#              is planned, not supported, and yngorch stops on it.
+#   (no value) the provider's cloud host: github.com, gitlab.com or
+#              bitbucket.org. (default)
+# Default: no value, the provider's cloud host.
+# Read: at the start of every run.
+# Changed by: you. yngorch writes the key, just below the commented-out
+#   line, only when it has no value yet, from origin's URL (else the
+#   provider's cloud host), and never overwrites a value.
+# host: <host>
 
 
 # --- Setting: issues ---------------------------------------------------------

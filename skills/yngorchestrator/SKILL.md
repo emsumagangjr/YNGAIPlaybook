@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.10.0
+  version: 1.11.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -37,8 +37,17 @@ Your hard guardrails, the two gates:
   [merge.md](merge.md); everywhere else your part ends at
   `workflow:in-review`, and resumes once the person has merged.
 
-Commands are shown for GitHub (`gh`). On another tracker, use its
-equivalent.
+## The provider
+
+Every call to the git provider is an **operation**, named in italics
+(*read issue*, *set state*, *create pr*), and lives in one provider
+file, `providers/<provider>.md` beside this file. Step 3 of
+[locate.md](locate.md) reads `<provider>` and `<host>` from the config
+at the start of every run: an absent `provider:` is `github`, an
+absent `host:` the provider's cloud host. Load
+[providers/README.md](providers/README.md), which defines each
+operation, and that one provider file, never another (R7.2): the steps
+name operations, and the provider file says how each runs on `<host>`.
 
 ## The project root
 
@@ -49,8 +58,8 @@ one.
 
 The session stays where it started. Every command on the target names
 it by absolute path: `git -C <worktree>` or `git --git-dir=<root>/.bare`,
-files read from `<worktree>/docs/specs/...`, and `gh` with
-`-R <issues repo>` or `-R <code repo>` (*Two repositories* below).
+files read from `<worktree>/docs/specs/...`, and every operation on
+`<issues repo>` or `<code repo>` (*Two repositories* below).
 Every `<... worktree>` in these steps is an absolute path below
 `<root>`, so a run behaves the same from wherever it started.
 
@@ -68,23 +77,24 @@ touched.
 
 ## Two repositories
 
-A project may keep its issues in a separate GitHub repository. Step 3
-of [locate.md](locate.md) resolves both repositories before the lock,
-and the run holds them to its end:
+A project may keep its issues in a separate repository, on the same
+provider and host as its code (R11). Step 3 of [locate.md](locate.md)
+resolves both repositories before the lock, and the run holds them to
+its end:
 
-| Name            | What it is                                        | Its commands |
-|-----------------|---------------------------------------------------|--------------|
-| `<code repo>`   | `origin`'s `<owner>/<repo>`                       | fetching, branches, worktrees, pull requests, their checks, merges |
-| `<issues repo>` | the config's `issues:` value, else `<code repo>`  | reading an issue, its parent and sub-issues, labels, comments, closing, reopening, creating and attaching slice issues, the Gate 1 timeline |
+| Name            | What it is                                        | Its operations |
+|-----------------|---------------------------------------------------|----------------|
+| `<code repo>`   | `origin`'s repository path                        | pull requests, their checks, merges; Git's fetching, branches and worktrees |
+| `<issues repo>` | the config's `issues:` value, else `<code repo>`  | reading an issue, its parent and children, states, comments, closing, reopening, creating and linking slice issues, provenance |
 
-Every `gh` call names one of them with `-R`; none is left to `gh`'s
-default. Issue numbers, the run log's `#<issue>` and branch names
+Every operation names one of them; none is left to a tool's default.
+Issue numbers, the run log's `#<issue>` and branch names
 (`slice/<n>-<name>`) are the issues repo's. Wherever an issue is named
 from the code repo's side (a dispatch prompt, a commit, a pull
-request), it is named by full reference, `<issues repo>#<n>`, so a
-link never lands on the code repo's own `#<n>`. Without an `issues:`
-value the two are one repository, and every command targets it as
-before.
+request), it is named by full reference, the provider file's *Issue
+reference* (`<issues repo>#<n>` on GitHub), so a link never lands on
+the code repo's own `#<n>`. Without an `issues:` value the two are one
+repository, and every operation targets it as before.
 
 ## Run log
 
@@ -145,7 +155,8 @@ rm -f "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 
 The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
 `#39` or the issue's URL. Follow [locate.md](locate.md): it finds
-`<root>`, resolves the code repo and the issues repo, checks the issue
+`<root>`, reads the provider and host, resolves the code repo and the
+issues repo, checks the issue
 is in the issues repo, tells its kind and handles a closed issue. Once
 it has told the kind, take the lock (*The lock* above) before going
 on.
@@ -157,7 +168,8 @@ the steps below are an Epic run's.
 For an Epic, locate.md hands on through [worktree.md](worktree.md):
 it finds or creates the Epic branch and the Epic worktree, and checks
 the spec folder `<epic worktree>/docs/specs/<feature>/`. Then find the
-run log and the Epic's slice issues with their labels.
+run log and the Epic's slice issues with their labels (*list
+children*).
 
 Then run the *On a merge* path of [track.md](track.md): slices a
 person merged while you were away are closed before anything new is
@@ -209,18 +221,19 @@ put the items holding up the most slices first: those are what stop
 the Epic. A slice waiting on a person always comes ahead of the items
 it holds up.
 
-When every slice is closed, open the Epic's pull request into `main`.
-Its body names the Epic by full reference, so the merge into the
-default branch closes it in the issues repo:
-
-``` bash
-gh pr create -R <code repo> --base main --head <epic branch> \
-  --title "<Epic title>" --body "Closes <issues repo>#<epic>"
-```
+When every slice is closed, look for the Epic's pull request into
+`main`: *list prs* for the head `^<epic branch>$`, keeping those based
+on `main`. With none open or merged, *create pr* from `<epic branch>`
+into `main`, titled with the Epic's title. Its body is the provider
+file's *Closing reference* for the Epic (`Closes <issues repo>#<epic>`
+on GitHub), so the merge into the default branch closes the Epic where
+the provider can (R12.1).
 
 Then follow [merge.md](merge.md) for the `epic-to-main` path. On
 `required`, say the Epic is ready for the person's spec-level review
-against `requirements.md`.
+against `requirements.md`. When a person has already merged it, skip
+to the `epic-to-main` close in step 3 of [merge.md](merge.md): the
+Epic is closed there if the merge left it open (R12.2).
 
 Last, delete the run's lock (*The lock* above): the run has ended.
 

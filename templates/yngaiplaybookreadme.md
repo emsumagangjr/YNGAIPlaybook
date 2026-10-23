@@ -13,7 +13,7 @@ committed: no branch or pull request can change what is in it.
 ``` text
 .yngaiplaybook/
 ├── README.md                       this file
-├── yngorchestratorconfig.yml       your settings for /yngorchestrator: issues repo, Gate 1, Gate 2
+├── yngorchestratorconfig.yml       your settings for /yngorchestrator: provider and host, issues repo, Gate 1, Gate 2
 ├── yngorchestratorconfig.yml.bak   your settings as they were before the last install added to them
 └── yngorchestratorruns/
     ├── <epic>.md                   run log, one per Epic or standalone issue
@@ -33,7 +33,7 @@ section below.
 | File | Purpose | Owner | Overwritten by `yngorch` |
 |------|---------|-------|--------------------------|
 | `README.md` | this file | the playbook | yes, on every install |
-| `yngorchestratorconfig.yml` | your settings: where the issues live, whether plan approval promotes slices, who merges each kind of pull request | you | no: written whole only when absent; on a reinstall, only the settings and keys it lacks are added, and `issues:` only when it has no value |
+| `yngorchestratorconfig.yml` | your settings: the git provider and its host, where the issues live, whether plan approval promotes slices, who merges each kind of pull request | you | no: written whole only when absent; on a reinstall, only the settings and keys it lacks are added, and `provider:`, `host:` and `issues:` only when each has no value |
 | `yngorchestratorconfig.yml.bak` | the config as it was before the last install that added to it | you | yes, each time an install adds to the config |
 | `yngorchestratorruns/<epic>.md` | what each run did, so a later run resumes | the orchestrator | no |
 | `yngorchestratorruns/<n>.lock` | one writer of issue state at a time | the orchestrator | no |
@@ -58,8 +58,9 @@ default. A key it cannot add line by line (its parent's value written
 on the parent's own line, the parent set twice, or the keys under it
 indented with a tab or unevenly) is a `warning` giving the line to
 paste by hand. A key of yours the template does not have stays as it
-is, with a `note` that the orchestrator ignores it. The one other write
-is filling in an empty `issues:` when you pass `-IssuesRepo`. No branch
+is, with a `note` that the orchestrator ignores it. The other writes
+fill in `provider:` and `host:` when they have no value, and an empty
+`issues:` when you pass `-IssuesRepo`. No branch
 or pull request can change it. The
 orchestrator reads it as it is now, at the start of every run and again
 before every merge, so an edit counts from the next read. A missing file
@@ -76,6 +77,8 @@ any slice is created.
 
 | Key | Decides | Values | Default, absent or unknown | Read | Changed by |
 |-----|---------|--------|----------------------------|------|------------|
+| `provider:` | Which git provider holds the repository, and so which tool the orchestrator works through (not a gate). | `github` (`gh`), `gitlab` (`glab`), or `bitbucket` (Bitbucket Cloud, through its REST API with `curl`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`; the token stays in your environment, never in this folder). | `github`. Absent or empty: `github`, so an older config works as before. Any other value stops the run before it touches anything, and stops `yngorch`. | Start of every run | You. `yngorch` writes it only when it has no value yet, never over a value: detected from `origin`'s host, or from `yngorch -Provider` (`--provider` in `yngorch.sh`) when it cannot tell. A `-Provider` that differs from your value is a warning, and your value is kept. |
+| `host:` | The provider's host, such as a GitHub Enterprise Server or GitLab self-managed host (not a gate). | `<host>`, without `https://`. Bitbucket takes only `bitbucket.org`: Bitbucket Data Center is planned, not supported, and `yngorch` stops on it. | No value: the provider's cloud host, `github.com`, `gitlab.com` or `bitbucket.org`. | Start of every run | You. `yngorch` writes it only when it has no value yet, from `origin`'s URL (else the provider's cloud host), never over a value. |
 | `issues:` | Where this project's issues live (not a gate). Code, branches and pull requests stay in `origin`'s repository. | `<owner>/<repo>`: the issues live in that GitHub repository. No value: they live in `origin`'s repository. | No value. Absent, empty, or `origin`'s own repository: the default. A value that is not `<owner>/<repo>` stops the run before it touches anything, and `yngorch` skips the labels with a warning. | Start of every run | You. `yngorch -IssuesRepo <owner>/<repo>` (`--issues-repo` in `yngorch.sh`) writes it only when it has no value yet, never over a value. `yngorch` adds the setting, commented out, when it is missing. |
 | `auto-promote:` | Gate 1 in advance, for the slices the orchestrator plans for an Epic. | `no`: you promote each slice (label `workflow:ready-for-agent`). `yes` (or `true`, any case): approving the Epic's plan promotes the slices it routes to an agent, and work starts at once. | `no`. Absent, or any value other than `yes` or `true`: `no`. Under any value, a slice only a person may do, a standalone issue and a slice created by hand still need your label. Switching back to `no` undoes earlier plan promotions. | Start of every run | You. `yngorch` adds the key, at `no`, when it is missing, and never changes it. |
 | `merge:` `slice-to-epic:` | Gate 2 in advance for a slice's pull request (`slice/*`) into its Epic branch. | `required`: you merge. `auto`: the orchestrator merges once the agent reported the work done, the pull request is open and mergeable between the expected branches, every check passed and its review record holds no open decision; otherwise it stays with you, with a comment naming why. | `required`. Absent, or any value other than `auto`: `required`. | Before every merge | You. `yngorch` adds it, at `required`, when it is missing, and never changes it. |

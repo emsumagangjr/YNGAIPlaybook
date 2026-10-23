@@ -9,9 +9,9 @@ The run holds its lock (*The lock* in [SKILL.md](SKILL.md)) and writes
 its log; this file carries it to its end, and SKILL.md's steps 2 to 5
 do not run.
 
-Every command names its target by absolute path, and every `gh`
-command carries `-R <issues repo>` for an issue or `-R <code repo>`
-for a pull request (*Two repositories* in [SKILL.md](SKILL.md)).
+Every command names its target by absolute path, and every operation
+(*The provider* in [SKILL.md](SKILL.md)) targets `<issues repo>` for
+an issue or `<code repo>` for a pull request (*Two repositories*).
 
 When a step stops the run, tell the person the reason in one sentence,
 log it, delete the lock, and end the run. You never apply
@@ -25,13 +25,8 @@ log it, delete the lock, and end the run. You never apply
 ## 1. Read where it stands
 
 An issue at `workflow:in-review` was dispatched by an earlier run, and
-its pull request waits. Find it by head branch:
-
-``` bash
-gh pr list -R <code repo> --state all --limit 1000 \
-  --json number,state,headRefName,baseRefName,url \
-  --jq '.[] | select(.headRefName | test("^(slice|fix)/<n>-")) | [.number, .state, .headRefName, .baseRefName, .url] | @tsv'
-```
+its pull request waits. Find it by head branch: *list prs* for the
+head `^(slice|fix)/<n>-`.
 
 | Pull request | Go to                                                   |
 |--------------|---------------------------------------------------------|
@@ -66,19 +61,16 @@ Done when the issue has passed Gate 1, or the run has stopped.
 
 ## 3. Check the dependencies (a slice only)
 
-Read the issue's `Depends on:` line, written by planning:
+Read the issue's `Depends on:` line, written by planning, from the
+body *read issue* gives, passed in as `"$body"`:
 
 ``` bash
-gh api "repos/<issues repo>/issues/<n>" --jq .body \
+printf '%s\n' "$body" \
   | sed -n 's/^Depends on:[[:space:]]*//p' | head -n 1 | grep -o '#[0-9][0-9]*' | tr -d '#'
 ```
 
-No line, or no number in it, means no dependency. Each number must be
-closed:
-
-``` bash
-gh api "repos/<issues repo>/issues/<d>" --jq .state
-```
+No line, or no number in it, means no dependency. Each number `<d>`
+must be closed (*read issue* `<d>`).
 
 Any one still `open` stops the run, naming each open dependency: the
 slice waits for it to merge into the Epic branch. Log `refused` with
@@ -98,7 +90,7 @@ Done when you hold `<branch>`, `<worktree>` and, for a slice,
 ## 5. Dispatch one worker
 
 Run steps 3 and 4 of [dispatch.md](dispatch.md) for this one issue:
-label it `workflow:in-progress`, comment
+*set state* `workflow:in-progress`, comment
 ``Dispatched: branch `<branch>`, worktree `<folder>` `` with
 `<folder>` the folder name of `<worktree>` (R44.2), log `dispatched`,
 and launch one `slice-worker` with the prompt filled from the table
@@ -136,12 +128,7 @@ Epic worktree, skip step 2.
 
 Then name the slices this merge unblocked: the Epic's open slices
 whose `Depends on:` names `#<n>` and whose dependencies are now all
-closed.
-
-``` bash
-gh api "repos/<issues repo>/issues/<parent>/sub_issues" --paginate \
-  --jq '.[] | select(.state == "open") | [.number, .title, ([.labels[].name] | join(","))] | @tsv'
-```
+closed: *list children* of `<parent>`, keeping the `open` ones.
 
 Read each one's `Depends on:` line as in step 3. List them for the
 person with their `workflow:` label, and log `unblocked #<m>` for
@@ -150,13 +137,11 @@ each. Do not dispatch them: that is an Epic run
 
 ### A standalone issue
 
-The pull request's `Closes <issues repo>#<n>` may have closed the
-issue already. While it is open, close it explicitly:
-
-``` bash
-gh issue edit <n> -R <issues repo> --remove-label workflow:in-review
-gh issue close <n> -R <issues repo> --comment "Merged into \`main\` by <PR url>."
-```
+The pull request's closing reference (`Closes <issues repo>#<n>` on
+GitHub) may have closed the issue already, where the provider closes
+it on merge (R12.1). *Read issue*; while it is open, close it
+explicitly (R12.2): *set state* `none`, then *close* with the comment
+``Merged into `main` by <PR url>.``
 
 Log `closed`. Remove the worktree and local branch as in step 4 of
 *On a merge* in [track.md](track.md), with `fix/<n>-<name>` as the

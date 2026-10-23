@@ -27,20 +27,35 @@
 
     Steps, all safe to repeat:
       1. Find the project root from -Project (default: the current folder).
+         Then settle the git provider and its host, writing nothing yet:
+         the config's provider: and host: when set; else -Provider; else
+         detected from origin's host: github.com, gitlab.com and
+         bitbucket.org by name, any other host by which of
+         "gh auth status --hostname" and "glab auth status --hostname"
+         succeeds. Neither or both stops the install, asking for
+         -Provider. Bitbucket on a host other than bitbucket.org (Data
+         Center) stops it too: planned, not supported. GitLab and Bitbucket
+         without jq on PATH stop it as well, naming jq.
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
       3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template
          when absent; when present, add the settings and keys the template
          has and it lacks, changing no line, after a backup to
          yngorchestratorconfig.yml.bak; yngorchestratorruns\; README.md from
          the template.
+         Write the config's provider: and host: keys, each only if it has
+         no value yet; an existing value is kept and reported.
          With -IssuesRepo, write the config's issues: key, only if it has
          no value yet; an existing value is kept and reported.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree,
          and .shared\.claude\ into the root's own .claude\.
-      6. Create or update the workflow labels with gh, when gh is available,
-         in the issues repo: -IssuesRepo, else the config's issues: value,
-         else origin's repo.
+      6. Check the provider's tool, and only that one: gh or glab logged in
+         to the host, or, for Bitbucket, curl and the Bitbucket API
+         answering for BITBUCKET_EMAIL and BITBUCKET_API_TOKEN. Then set up
+         the workflow states in the issues repo (-IssuesRepo, else the
+         config's issues: value, else origin's repo): labels on GitHub and
+         GitLab; on Bitbucket, whose API cannot create them, a warning
+         naming each component and the epic milestone to create by hand.
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
 
@@ -62,20 +77,32 @@
     - Windows PowerShell 5.1 or PowerShell 7+, on Windows.
     - Git on PATH.
     - Developer Mode or an elevated shell, for yngshared's symbolic links.
-    - Optional: gh, authenticated, for the labels.
+    - The provider's tool, for the check and the workflow states: gh
+      (GitHub) or glab (GitLab) logged in to the host, or curl with
+      BITBUCKET_EMAIL and BITBUCKET_API_TOKEN set (Bitbucket Cloud). The
+      token is never printed or written anywhere.
+    - jq on PATH, for GitLab and Bitbucket; GitHub does not need it.
 
 .PARAMETER Project
     Any folder inside the project: the root, or any worktree. Default: the
     current folder.
 
+.PARAMETER Provider
+    github, gitlab or bitbucket: the git provider, when it cannot be
+    detected from origin, or to skip detection. Written into the config's
+    provider: key only when it has no value yet; a different value already
+    there wins, with a warning.
+
 .PARAMETER IssuesRepo
-    <owner>/<repo> of the GitHub repository holding this project's issues,
-    when they live apart from the code. Written into the config's issues:
-    key only when it has no value yet, and used for the labels. Any other
-    form stops the install before anything is written.
+    <owner>/<repo> of the repository holding this project's issues, on the
+    same provider, when they live apart from the code. Written into the
+    config's issues: key only when it has no value yet, and used for the
+    workflow states. Any other form stops the install before anything is
+    written.
 
 .PARAMETER SkipLabels
-    Do not touch the repository's labels.
+    Do not touch the repository's workflow states (labels, or Bitbucket
+    components and milestone).
 
 .PARAMETER SkipViewer
     Do not install yngv.
@@ -93,10 +120,16 @@
 .EXAMPLE
     F:\YNGAIPlaybook\scripts\yngorch.ps1 -IssuesRepo acme/tracker
     Issues live in acme/tracker; code, branches and pull requests in origin.
+
+.EXAMPLE
+    F:\YNGAIPlaybook\scripts\yngorch.ps1 -Provider gitlab
+    origin is on a self-managed host that detection cannot name.
 #>
 [CmdletBinding()]
 param(
     [string]$Project = (Get-Location).Path,
+    [ValidateSet('github', 'gitlab', 'bitbucket')]
+    [string]$Provider,
     [string]$IssuesRepo,
     [switch]$SkipLabels,
     [switch]$SkipViewer,
@@ -115,33 +148,172 @@ if ($PSBoundParameters.ContainsKey('IssuesRepo') -and $IssuesRepo -notmatch $rep
     throw "-IssuesRepo '$IssuesRepo' is not <owner>/<repo>; nothing was written."
 }
 
-# The config's top-level issues: value; '' when absent or empty.
-function Get-IssuesValue([string]$Path) {
-    if (-not (Test-Path $Path)) { return '' }
-    $m = [regex]::Match([IO.File]::ReadAllText($Path), '(?m)^issues:[ \t]*([^\r\n]*)')
+# The config's top-level <Key>: value (issues, provider, host); '' when
+# absent or empty.
+function Get-ConfigValue([string]$Path, [string]$Key) {
+    if (-not (Test-Path -LiteralPath $Path)) { return '' }
+    $m = [regex]::Match([IO.File]::ReadAllText($Path), "(?m)^$([regex]::Escape($Key)):[ \t]*([^\r\n]*)")
     if (-not $m.Success) { return '' }
     $v = ($m.Groups[1].Value -replace '^#.*', '' -replace '\s+#.*$', '').Trim()
     if ($v -match '^"(.*)"$' -or $v -match "^'(.*)'$") { $v = $Matches[1].Trim() }
     return $v
 }
 
-# Writes "issues: <Value>" into the config: over its empty issues: line,
-# else just after the template's commented-out one, else at the end.
-function Set-IssuesValue([string]$Path, [string]$Value) {
-    $text = [IO.File]::ReadAllText($Path)
+# Writes "<Key>: <Value>" into the config, one line: over its empty <Key>:
+# line, else just after the template's commented-out one, else at the end.
+# Read and written as Latin-1, so every other byte stays as it was.
+function Set-ConfigValue([string]$Path, [string]$Key, [string]$Value) {
+    $latin = [Text.Encoding]::GetEncoding(28591)
+    $text = $latin.GetString([IO.File]::ReadAllBytes($Path))
     $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
-    $line = "issues: $Value"
-    $m = [regex]::Match($text, '(?m)^issues:[^\r\n]*')
+    $line = "${Key}: $Value"
+    $k = [regex]::Escape($Key)
+    $m = [regex]::Match($text, "(?m)^${k}:[^\r\n]*")
     if ($m.Success) { $text = $text.Substring(0, $m.Index) + $line + $text.Substring($m.Index + $m.Length) }
     else {
-        $m = [regex]::Match($text, '(?m)^#[ \t]*issues:[^\r\n]*')
+        $m = [regex]::Match($text, "(?m)^#[ \t]*${k}:[^\r\n]*")
         if ($m.Success) { $at = $m.Index + $m.Length; $text = $text.Substring(0, $at) + $nl + $line + $text.Substring($at) }
         else {
             if ($text -and -not $text.EndsWith("`n")) { $text += $nl }
             $text += $line + $nl
         }
     }
-    [IO.File]::WriteAllText($Path, $text, (New-Object Text.UTF8Encoding $false))
+    [IO.File]::WriteAllBytes($Path, $latin.GetBytes($text))
+}
+
+# The supported providers (spec R1.1): each one's cloud host, and what the
+# install checks for it (R6.1). A provider added later is one more entry.
+$providers = [ordered]@{
+    github    = @{ Cloud = 'github.com';    Cli = 'gh';   Check = 'gh auth status' }
+    gitlab    = @{ Cloud = 'gitlab.com';    Cli = 'glab'; Check = 'glab auth status' }
+    bitbucket = @{ Cloud = 'bitbucket.org'; Cli = 'curl'; Check = 'curl and the Bitbucket API (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN)' }
+}
+$providerNames = @($providers.Keys) -join ', '
+
+# The workflow states (spec R8): the same names on every provider. GitHub
+# and GitLab hold them as labels; Bitbucket as components, named without
+# workflow:, with epic as a milestone.
+$states = @(
+    @('epic',                     '3e4b9e', 'Feature: tracker card plus integration branch'),
+    @('workflow:needs-triage',    'fbca04', 'Triage fills in every label'),
+    @('workflow:needs-info',      'd876e3', 'A person must answer before work starts'),
+    @('workflow:ready-for-agent', '0e8a16', 'Gate 1 passed: an agent may pick it up (set by a person, or by plan approval if auto-promote: yes)'),
+    @('workflow:ready-for-human', '1d76db', 'Gate 1 passed: a person picks it up'),
+    @('workflow:in-progress',     'c5def5', 'Being worked; no PR yet (set by the dispatcher)'),
+    @('workflow:in-review',       '5319e7', 'PR open, waiting for a person (set by the dispatcher)'))
+
+# Runs a native command, its errors discarded, so Windows PowerShell 5.1
+# never turns its stderr into a terminating error. Returns its output
+# lines; the exit code is in $LASTEXITCODE. -Stdin, when given, is its input.
+function Invoke-Native([string]$Exe, [string[]]$Arguments, [string]$Stdin) {
+    $ErrorActionPreference = 'Continue'
+    if ($PSBoundParameters.ContainsKey('Stdin')) { $Stdin | & $Exe @Arguments 2>$null }
+    else { & $Exe @Arguments 2>$null }
+}
+
+# origin's host and repository path from its URL, HTTPS or SSH form
+# (https://host/owner/repo.git, git@host:owner/repo.git,
+# ssh://git@host:22/group/sub/project.git); $null without an origin.
+function Get-Origin([string]$GitDir) {
+    $url = @(Invoke-Native 'git' @("--git-dir=$GitDir", 'remote', 'get-url', 'origin'))
+    if ($LASTEXITCODE -ne 0 -or -not $url) { return $null }
+    $u = $url[0].Trim() -replace '/+$', '' -replace '\.git$', ''
+    if ($u -match '^[A-Za-z][A-Za-z0-9+.-]*://(?:[^@/]*@)?([^/:]+)(?::\d*)?/(.+)$' -or
+        $u -match '^(?:[^@/]+@)?([^/:]{2,}):(.+)$') {
+        return @{ Host = $Matches[1].ToLower(); Path = $Matches[2].TrimStart('/') }
+    }
+    return $null
+}
+
+# What "<Tool> auth status --hostname <HostName>" says: 'logged in',
+# 'not found', or 'not logged in to <host>'.
+function Test-CliAuth([string]$Tool, [string]$HostName) {
+    if (-not (Get-Command $Tool -ErrorAction SilentlyContinue)) { return 'not found' }
+    $null = Invoke-Native $Tool @('auth', 'status', '--hostname', $HostName)
+    if ($LASTEXITCODE -eq 0) { return 'logged in' }
+    return "not logged in to $HostName"
+}
+
+# One GET from the Bitbucket Cloud API (spec R6.1-2), as @{ Code; Body }.
+# The credentials reach curl on its standard input, never on its command
+# line, in output, or in a file.
+function Invoke-BitbucketGet([string]$Path) {
+    $user = "${env:BITBUCKET_EMAIL}:${env:BITBUCKET_API_TOKEN}".Replace('\', '\\').Replace('"', '\"')
+    $out = @(Invoke-Native 'curl.exe' @('-s', '-K', '-', '-w', '\n%{http_code}', "https://api.bitbucket.org/2.0/$Path") "user = `"$user`"")
+    $code = if ($out.Count) { "$($out[$out.Count - 1])".Trim() } else { '' }
+    if ($code -notmatch '^\d{3}$') { $code = '000' }
+    $body = if ($out.Count -gt 1) { $out[0..($out.Count - 2)] -join "`n" } else { '' }
+    return @{ Code = $code; Body = $body }
+}
+
+# The provider's own tool, and only it (spec R6.1): '' when it works, else
+# what failed.
+function Test-ProviderTool([string]$Name, [string]$HostName) {
+    if ($Name -eq 'github' -or $Name -eq 'gitlab') {
+        $tool = if ($Name -eq 'github') { 'gh' } else { 'glab' }
+        $r = Test-CliAuth $tool $HostName
+        if ($r -eq 'logged in') { return '' }
+        return "$tool $r (run: $tool auth login --hostname $HostName)"
+    }
+    if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) { return 'curl not found' }
+    if (-not $env:BITBUCKET_EMAIL -or -not $env:BITBUCKET_API_TOKEN) {
+        return 'BITBUCKET_EMAIL and BITBUCKET_API_TOKEN are not both set (see INSTALL.md)'
+    }
+    $r = Invoke-BitbucketGet 'user'
+    if ($r.Code -eq '200') { return '' }
+    return "GET https://api.bitbucket.org/2.0/user answered HTTP $($r.Code) for BITBUCKET_EMAIL and BITBUCKET_API_TOKEN"
+}
+
+# Setup states (spec R8.4), one routine per provider, each printing one
+# line: what it set up, or a warning naming what to create by hand.
+function Set-GitHubStates([string]$HostName, [string]$Repo) {
+    $failed = @()
+    foreach ($s in $states) {
+        $null = Invoke-Native 'gh' @('label', 'create', $s[0], '-R', "$HostName/$Repo", '-c', $s[1], '-d', $s[2], '--force')
+        if ($LASTEXITCODE -ne 0) { $failed += $s[0] }
+    }
+    if ($failed) { Step 'warning' "labels: $($failed.Count) of $($states.Count) not created on $Repo; create them by hand in its Issues > Labels: $($failed -join ', ')" }
+    else { Step 'labels' "$($states.Count) created or updated on $Repo" }
+}
+
+function Set-GitLabStates([string]$HostName, [string]$Repo) {
+    $api = "projects/$([uri]::EscapeDataString($Repo))/labels"
+    $out = @(Invoke-Native 'glab' @('api', '--hostname', $HostName, "${api}?per_page=100"))
+    $have = if ($LASTEXITCODE -eq 0) { @(($out -join "`n" | ConvertFrom-Json) | ForEach-Object { $_.name }) } else { $null }
+    $failed = @(); $created = 0
+    foreach ($s in $states) {
+        if ($null -ne $have -and $have -contains $s[0]) { continue }
+        if ($null -eq $have) { $failed += $s[0]; continue }
+        $null = Invoke-Native 'glab' @('api', '--hostname', $HostName, '-X', 'POST', $api,
+            '-f', "name=$($s[0])", '-f', "color=#$($s[1])", '-f', "description=$($s[2])")
+        if ($LASTEXITCODE -eq 0) { $created++ } else { $failed += $s[0] }
+    }
+    if ($failed) { Step 'warning' "labels: $($failed.Count) of $($states.Count) not created on $Repo; create them by hand in its Manage > Labels: $($failed -join ', ')" }
+    else { Step 'labels' "$created created, $($states.Count - $created) already there on $Repo" }
+}
+
+# Bitbucket's API reads components and milestones but cannot create them,
+# so this checks which exist and names the rest to create by hand.
+function Set-BitbucketStates([string]$Repo) {
+    $missing = @(); $others = @()
+    $wanted = @{
+        components = @($states | Where-Object { $_[0] -like 'workflow:*' } | ForEach-Object { $_[0].Substring(9) })
+        milestones = @('epic') }
+    foreach ($kind in 'components', 'milestones') {
+        $r = Invoke-BitbucketGet "repositories/$Repo/${kind}?pagelen=100"
+        $have = if ($r.Code -eq '200') { @(($r.Body | ConvertFrom-Json).values | ForEach-Object { $_.name }) } else { @() }
+        $absent = @($wanted[$kind] | Where-Object { $have -notcontains $_ })
+        if ($absent) { $missing += "$($kind.TrimEnd('s')) $($absent -join ', ')" }
+        # Components of the person's own: the workflow takes the field over.
+        if ($kind -eq 'components') { $others = @($have | Where-Object { $wanted.components -notcontains $_ }) }
+    }
+    if ($missing) {
+        Step 'warning' "states: Bitbucket's API cannot create components or milestones; create them by hand in https://bitbucket.org/$Repo/admin (Repository settings > Issues, with the issue tracker on): $($missing -join '; ')"
+    }
+    else { Step 'states' "$($wanted.components.Count) components and the epic milestone found on $Repo" }
+    if ($others) {
+        Step 'note' "states: $Repo has components other than the workflow states: $($others -join ', '); the workflow takes components over (each issue's component holds its state)"
+    }
 }
 
 # The config files yngorch installs from a template (spec R41.1), one pair
@@ -368,11 +540,61 @@ if (-not $common -or (Split-Path -Leaf $common) -ne '.bare') {
 $root = Split-Path -Parent ([IO.Path]::GetFullPath($common))
 Write-Host "YNG Orchestrator -> $root"
 
+# 1b. The provider and its host (spec R2, R3), settled before anything is
+# written: the config's value wins, then -Provider, then detection from
+# origin's host. Written in step 3, each key only when it has no value.
+$ynga = Join-Path $root '.yngaiplaybook'
+$config = Join-Path $ynga 'yngorchestratorconfig.yml'
+$origin = Get-Origin $common
+$providerKept = Get-ConfigValue $config 'provider'
+$hostKept = Get-ConfigValue $config 'host'
+$detectHost = if ($hostKept) { $hostKept } elseif ($origin) { $origin.Host } else { '' }
+# PowerShell names are case-blind, so the result is $gitProvider, apart
+# from the -Provider parameter.
+if ($Provider) { $Provider = $Provider.ToLower() }
+if ($providerKept) {
+    $gitProvider = $providerKept.ToLower()
+    if (-not $providers.Contains($gitProvider)) {
+        throw "provider: '$providerKept' in $config is not one of $providerNames; nothing was written."
+    }
+    if ($Provider -and $Provider -ne $gitProvider) {
+        Step 'warning' "-Provider $Provider differs from provider: $providerKept in .yngaiplaybook\yngorchestratorconfig.yml; kept $providerKept (the config wins; edit it by hand to change it)"
+    }
+}
+elseif ($Provider) { $gitProvider = $Provider; $providerFrom = 'from -Provider' }
+elseif (-not $detectHost) {
+    throw "Cannot detect the git provider: there is no origin remote. Run again with -Provider github|gitlab|bitbucket; nothing was written."
+}
+else {
+    $gitProvider = ''
+    foreach ($p in $providers.Keys) { if ($providers[$p].Cloud -eq $detectHost) { $gitProvider = $p } }
+    if (-not $gitProvider) {
+        $gh = Test-CliAuth 'gh' $detectHost
+        $glab = Test-CliAuth 'glab' $detectHost
+        if ($gh -eq 'logged in' -and $glab -ne 'logged in') { $gitProvider = 'github' }
+        elseif ($glab -eq 'logged in' -and $gh -ne 'logged in') { $gitProvider = 'gitlab' }
+        else {
+            throw "Cannot tell the git provider of $detectHost (gh auth status: $gh; glab auth status: $glab). Run again with -Provider github|gitlab|bitbucket; nothing was written."
+        }
+    }
+    $providerFrom = 'detected from origin'
+}
+$gitHost = if ($detectHost) { $detectHost } else { $providers[$gitProvider].Cloud }
+$gitHostFrom = if ($origin) { 'from origin' } else { "$($gitProvider)'s cloud host" }
+if ($gitProvider -eq 'bitbucket' -and $gitHost -ne 'bitbucket.org') {
+    throw "Bitbucket on $gitHost is Bitbucket Data Center: planned, not supported. Only Bitbucket Cloud (bitbucket.org) is; nothing was written."
+}
+# GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
+# needs none (gh reads JSON itself).
+if ($gitProvider -ne 'github' -and -not (Get-Command jq -ErrorAction SilentlyContinue)) {
+    throw "jq not found: the $gitProvider provider needs jq on PATH, besides $($providers[$gitProvider].Cli). Install jq and run again; nothing was written."
+}
+
 # 2. Skill and worker into .shared\.claude\.
 $skillDir = Join-Path $root '.shared\.claude\skills\yngorchestrator'
 $agentDir = Join-Path $root '.shared\.claude\agents'
 New-Item -ItemType Directory -Force $skillDir, $agentDir | Out-Null
-Copy-Item -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
+Copy-Item -Recurse -Force (Join-Path $playbook 'skills\yngorchestrator\*') $skillDir
 Copy-Item -Force (Join-Path $playbook 'agents\slice-worker.md') $agentDir
 Step 'copied' '.shared\.claude\skills\yngorchestrator\, .shared\.claude\agents\slice-worker.md'
 # The 1.1.0 skill folder, which only this installer writes.
@@ -382,14 +604,14 @@ if (Test-Path $oldSkill) { Remove-Item -Recurse -Force $oldSkill; Step 'removed'
 # 3. The playbook's root folder, .yngaiplaybook\ (spec R23-R26). An older
 # .yngorchestrator\ (1.2.0-1.4.0) or .orchestrator\ (1.1.0) moves into it
 # first, item by item; when that is ambiguous, nothing moves or is created.
-$ynga = Join-Path $root '.yngaiplaybook'
-$config = Join-Path $ynga 'yngorchestratorconfig.yml'
 $olds = @('.yngorchestrator', '.orchestrator') | Where-Object { Test-Path -PathType Container (Join-Path $root $_) }
 $hasYnga = Test-Path -PathType Container $ynga
 if ($olds -and ($hasYnga -or @($olds).Count -gt 1)) {
     $names = @(if ($hasYnga) { '.yngaiplaybook\' }) + @($olds | ForEach-Object { "$_\" })
     Step 'warning' "found $($names -join ' '); moved nothing and left each as it is: move what you need into .yngaiplaybook\ by hand"
     foreach ($pair in $configPairs) { Step 'skipped' ".yngaiplaybook\$($pair.Target) not upgraded (move .yngaiplaybook\ by hand first, then run again)" }
+    if (-not $providerKept) { Step 'skipped' "provider: $gitProvider not written (move .yngaiplaybook\ by hand first, then run again)" }
+    if (-not $hostKept) { Step 'skipped' "host: $gitHost not written (move .yngaiplaybook\ by hand first, then run again)" }
     if ($IssuesRepo) { Step 'skipped' "issues: $IssuesRepo not written (move .yngaiplaybook\ by hand first, then run again)" }
 }
 else {
@@ -412,13 +634,27 @@ else {
     }
     New-Item -ItemType Directory -Force (Join-Path $ynga 'yngorchestratorruns') | Out-Null
     # Each config file: written whole when absent, else upgraded (R39-R41),
-    # after the migration and before the issues: write (R39.10).
+    # after the migration and before the provider:, host: and issues:
+    # writes (R39.10; yngproviders R14.2).
     foreach ($pair in $configPairs) {
         Update-ConfigFile (Join-Path $playbook $pair.Template) (Join-Path $ynga $pair.Target) ".yngaiplaybook\$($pair.Target)" $pair.Created
     }
-    $current = Get-IssuesValue $config
+    # provider: and host:, each only when it has no value yet, one line
+    # each (yngproviders R2.3, R3.2-3). A -Provider the config contradicts
+    # changes nothing (warned in step 1b).
+    if ($providerKept) { Step 'kept' "provider: $providerKept (yours)" }
+    else {
+        Set-ConfigValue $config 'provider' $gitProvider
+        Step 'wrote' "provider: $gitProvider ($providerFrom)"
+    }
+    if ($hostKept) { Step 'kept' "host: $hostKept (yours)" }
+    else {
+        Set-ConfigValue $config 'host' $gitHost
+        Step 'wrote' "host: $gitHost ($gitHostFrom)"
+    }
+    $current = Get-ConfigValue $config 'issues'
     if ($IssuesRepo -and -not $current) {
-        Set-IssuesValue $config $IssuesRepo
+        Set-ConfigValue $config 'issues' $IssuesRepo
         Step 'wrote' "issues: $IssuesRepo into .yngaiplaybook\yngorchestratorconfig.yml"
     }
     elseif ($IssuesRepo -and $current -ne $IssuesRepo) {
@@ -468,39 +704,24 @@ $out | Where-Object { $_ -match '^(warn|error)\b' } | ForEach-Object { Write-Hos
 if ($LASTEXITCODE -ne 0) { Step 'warning' 'yngshared reported problems above (symlinks need Developer Mode or an elevated shell)' }
 else { Step 'linked' 'every worktree and the root .claude\ (yngshared -link -All)' }
 
-# 6. Labels, when gh is available, in the issues repo: -IssuesRepo, else
-# the config's issues: value, else origin's repo (spec R31.3).
-$configIssues = Get-IssuesValue $config
-if ($SkipLabels) { Step 'skipped' 'labels (-SkipLabels)' }
-elseif (-not (Get-Command gh -ErrorAction SilentlyContinue)) { Step 'skipped' 'labels (gh not found)' }
+# 6. The provider's tool, and only its tool (yngproviders R6.1), then the
+# workflow states (R8.4) in the issues repo: -IssuesRepo, else the config's
+# issues: value, else origin's repo (spec R31.3).
+$toolProblem = Test-ProviderTool $gitProvider $gitHost
+if ($toolProblem) { Step 'warning' "$($gitProvider): $toolProblem" }
+else { Step 'checked' "$($providers[$gitProvider].Check) on $gitHost" }
+$configIssues = Get-ConfigValue $config 'issues'
+if ($SkipLabels) { Step 'skipped' 'workflow states (-SkipLabels)' }
+elseif ($toolProblem) { Step 'skipped' "workflow states (the $gitProvider check above failed)" }
 elseif (-not $IssuesRepo -and $configIssues -and $configIssues -notmatch $repoPattern) {
-    Step 'warning' "labels skipped: the config's issues: '$configIssues' is not <owner>/<repo>"
+    Step 'warning' "workflow states skipped: the config's issues: '$configIssues' is not <owner>/<repo>"
 }
 else {
-    $repo = if ($IssuesRepo) { $IssuesRepo }
-            elseif ($configIssues) { $configIssues }
-            else {
-                $url = try { & git --git-dir=$common remote get-url origin 2>$null } catch { $null }
-                if ($url) { $url -replace '\.git$', '' }
-            }
-    if (-not $repo) { Step 'skipped' 'labels (no origin remote)' }
-    else {
-        $labels = @(
-            @('epic',                     '3e4b9e', 'Feature: tracker card plus integration branch'),
-            @('workflow:needs-triage',    'fbca04', 'Triage fills in every label'),
-            @('workflow:needs-info',      'd876e3', 'A person must answer before work starts'),
-            @('workflow:ready-for-agent', '0e8a16', 'Gate 1 passed: an agent may pick it up (set by a person, or by plan approval if auto-promote: yes)'),
-            @('workflow:ready-for-human', '1d76db', 'Gate 1 passed: a person picks it up'),
-            @('workflow:in-progress',     'c5def5', 'Being worked; no PR yet (set by the dispatcher)'),
-            @('workflow:in-review',       '5319e7', 'PR open, waiting for a person (set by the dispatcher)'))
-        $failed = 0
-        foreach ($l in $labels) {
-            & gh label create $l[0] -R $repo -c $l[1] -d $l[2] --force 2>$null | Out-Null
-            if ($LASTEXITCODE -ne 0) { $failed++ }
-        }
-        if ($failed) { Step 'warning' "labels: $failed of $($labels.Count) failed (is gh logged in? gh auth status)" }
-        else { Step 'labels' "$($labels.Count) created or updated on $repo" }
-    }
+    $repo = if ($IssuesRepo) { $IssuesRepo } elseif ($configIssues) { $configIssues } elseif ($origin) { $origin.Path }
+    if (-not $repo) { Step 'skipped' 'workflow states (no origin remote)' }
+    elseif ($gitProvider -eq 'github') { Set-GitHubStates $gitHost $repo }
+    elseif ($gitProvider -eq 'gitlab') { Set-GitLabStates $gitHost $repo }
+    else { Set-BitbucketStates $repo }
 }
 
 # 7. The yngv viewer, per user (not per project): yngv.ps1 and a yngv.cmd

@@ -49,29 +49,19 @@ Done when you hold `required` or `auto` for this pull request. On
 
 ## 2. Check the conditions
 
-`auto` merges only when every one holds:
+Read the pull request with *pr status* first, on every provider
+(R13.1). `auto` merges only when every one holds:
 
 - the report's `STATUS` is `done` (for `epic-to-main`: every slice
   issue of the Epic is closed);
-- the pull request is open, comes from the expected branch, targets the
-  expected base, and is mergeable:
-
-  ``` bash
-  gh pr view <PR> -R <code repo> --json state,headRefName,baseRefName,mergeable
-  ```
-
-  expecting `OPEN`, the branch, the base, and `MERGEABLE`;
-- every check passed, or the pull request has none:
-
-  ``` bash
-  gh pr checks <PR> -R <code repo>
-  ```
-
+- the pull request is `OPEN`, its head is the expected branch, its base
+  the expected base, and it is mergeable (`yes`);
+- its checks are `passed`, or `none`: every check or pipeline passed,
+  or the pull request has none;
 - the review record is "none": an open decision is the person's.
 
-When any one fails, the pull request is `required` after all. Comment
-the reason on it
-(`gh pr comment <PR> -R <code repo> --body "Auto-merge held: <condition>"`), log
+When any one fails, the pull request is `required` after all. *Comment*
+the reason on the pull request (`Auto-merge held: <condition>`), log
 `merge held <condition>`, and stop.
 
 Done when every condition holds, or the pull request is held with its
@@ -79,16 +69,17 @@ reason.
 
 ## 3. Merge
 
-Merge with a merge commit (the guide merges rather than rebases shared
-branches) and delete the head branch:
-
-``` bash
-gh pr merge <PR> -R <code repo> --merge --delete-branch
-```
+*Merge pr*: a merge commit (the guide merges rather than rebases shared
+branches), and the head branch deleted (R13.2).
 
 Log `merged <PR> auto`. In an Epic run, for a slice, run the *On a
 merge* path of [track.md](track.md) now: it closes the issue and
 removes the worktree. A slice or standalone run goes on with step 7 of
 [scoped.md](scoped.md), which does the same for its one issue.
+
+For `epic-to-main`, *read issue* for the Epic. The pull request's
+closing reference closes it where the provider can; while it is still
+open, *close* it with the comment ``Merged into `main` by <PR url>.``
+(R12.2), and log `closed`.
 
 Done when the pull request shows `MERGED` and its issue is closed.
