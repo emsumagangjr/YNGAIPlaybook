@@ -160,7 +160,9 @@ Amends INSTALL.md, *Before you start* and step 1.
     <host>`, or, for Bitbucket, `curl` present and `GET
     https://api.bitbucket.org/2.0/user` succeeding with
     `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. GitLab and Bitbucket
-    also need `jq` on PATH (GitHub's `gh` has `--jq` built in). A failed check is a
+    also need `jq` on PATH (GitHub's `gh` has `--jq` built in): with
+    `provider: gitlab` or `bitbucket` and no `jq`, the installer stops
+    before anything is written, naming `jq`. Any other failed check is a
     `warning` naming what failed and how to fix it; the install goes on
     and skips the workflow states (R8.4).
 2.  Bitbucket credentials are read from those two environment variables
@@ -253,6 +255,9 @@ Amends INSTALL.md, *Before you start* and step 1.
         create them, so the installer reads both and names each missing
         component and the `epic` milestone in one `warning`, pointing at
         the repository's settings (`https://bitbucket.org/<workspace>/<repo>/admin`).
+        When the repository already has components other than the six
+        workflow states, the installer prints a `note` naming them and
+        saying the workflow takes components over; the install goes on.
     -   A label or component that could not be created is named in a
         `warning`, with where to create it by hand.
 
