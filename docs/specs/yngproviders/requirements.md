@@ -160,7 +160,9 @@ Amends INSTALL.md, *Before you start* and step 1.
     <host>`, or, for Bitbucket, `curl` present and `GET
     https://api.bitbucket.org/2.0/user` succeeding with
     `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. GitLab and Bitbucket
-    also need `jq` on PATH (GitHub's `gh` has `--jq` built in). A failed check is a
+    also need `jq` on PATH (GitHub's `gh` has `--jq` built in): with
+    `provider: gitlab` or `bitbucket` and no `jq`, the installer stops
+    before anything is written, naming `jq`. Any other failed check is a
     `warning` naming what failed and how to fix it; the install goes on
     and skips the workflow states (R8.4).
 2.  Bitbucket credentials are read from those two environment variables
