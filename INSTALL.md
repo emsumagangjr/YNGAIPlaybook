@@ -408,27 +408,32 @@ glab repo create you/myproject --private --readme
 
 Bitbucket Cloud, with the [API token](#bitbucket-api-token) variables
 set: create the repository through the API, with its issue tracker on,
-then commit and push a README to `main`. The credentials go to `curl`
-on its standard input, never on its command line:
+then commit its first README to `main` through the API too (the
+*create repo* operation of the Bitbucket provider file), so no git
+sign-in is needed yet. The credentials go to `curl` on its standard
+input, never on its command line:
 
 ``` bash
-curl -s -K - -X POST -H 'Content-Type: application/json' \
+curl -sS -f -K - -X POST -H 'Content-Type: application/json' \
   -d '{"scm": "git", "is_private": true, "has_issues": true}' \
   https://api.bitbucket.org/2.0/repositories/myworkspace/myproject <<EOF
 user = "$BITBUCKET_EMAIL:$BITBUCKET_API_TOKEN"
 EOF
-git init -b main myproject-readme && cd myproject-readme
-echo '# myproject' > README.md
-git add README.md && git commit -m 'Add README'
-git push https://bitbucket.org/myworkspace/myproject.git main
-cd .. && rm -rf myproject-readme
+scratch=$(mktemp -d)
+printf '# myproject\n' > "$scratch/README.md"
+curl -sS -f -K - -X POST \
+  -F "README.md=@$scratch/README.md" -F branch=main -F 'message=Initial commit' \
+  https://api.bitbucket.org/2.0/repositories/myworkspace/myproject/src <<EOF
+user = "$BITBUCKET_EMAIL:$BITBUCKET_API_TOKEN"
+EOF
+rm -rf "$scratch"
 ```
 
-The `git push` signs in to bitbucket.org. With Git Credential Manager
-(Git for Windows' default), it prompts once and stores the sign-in.
-Otherwise use your account email as the username and the same API
-token as the password, or use an SSH key and the SSH clone URL
-(`git@bitbucket.org:myworkspace/myproject.git`).
+Git signs in to bitbucket.org later, at the bare clone below and at
+every push. With Git Credential Manager (Git for Windows' default), it
+prompts once and stores the sign-in. Otherwise use your account email
+as the username and the same API token as the password, or use an SSH
+key and the SSH clone URL (`git@bitbucket.org:myworkspace/myproject.git`).
 
 **2. Lay it out**, the same on every provider, with your repository's
 clone URL (`https://github.com/you/myproject.git`,

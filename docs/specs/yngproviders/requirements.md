@@ -177,8 +177,9 @@ Amends INSTALL.md, *Before you start* and step 1.
     install check, and `admin:repository:bitbucket` only for creating a
     repository (R5); the Bitbucket smoke run (R15) confirms these two
     before release. It also says how to set the variables in PowerShell
-    and bash, user-wide, and how git authenticates the first push of a
-    new Bitbucket repository.
+    and bash, user-wide, and how git signs in to bitbucket.org for the
+    bare clone and every push; creating a new Bitbucket repository
+    needs no git sign-in (R5).
 
 ## R7 Provider files
 
@@ -384,8 +385,13 @@ Amends yngorchestrator R7.
     operations to implement (R7.1), the states mapping to choose (R8),
     the provenance rule to define (R10), and the smoke run (R15).
 3.  `guides/epic-workflow.md`, INSTALL.md and the skill describe the
-    workflow by operation, provider-neutral. Provider commands appear
-    only in the provider files and in INSTALL.md's per-provider setup.
+    workflow by operation, provider-neutral. Provider commands live in
+    the provider files and in INSTALL.md's per-provider setup; the
+    guide shows one only as a named example ("on GitHub, ..."). The
+    guide names the operations of R7.1, the supported providers, the
+    planned ones, and that more will follow. INSTALL.md's Bitbucket
+    new-project steps create the first README through *create repo*
+    (R5), not a local commit and `git push`.
 
 ## R17 Version
 
