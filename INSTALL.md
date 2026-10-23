@@ -98,6 +98,14 @@ export BITBUCKET_EMAIL='you@example.com'
 export BITBUCKET_API_TOKEN='<the token>'
 ```
 
+**Warning: the workflow takes over the issues repo's components.** On
+Bitbucket an issue's workflow state is its component (`needs-triage`,
+`ready-for-agent`, ...), and an issue holds one. Setting a state
+replaces whatever component the issue had, so a project that uses
+components for something else (areas, teams) loses that use. The
+installer prints a `note` when it finds components other than the
+workflow's.
+
 The token stays in these two variables only. Nothing in the playbook
 writes it to the config, the project, a run log, a comment or a
 report, or prints it; the installer hands it to `curl` on its standard
