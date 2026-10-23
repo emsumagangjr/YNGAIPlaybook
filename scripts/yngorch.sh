@@ -71,7 +71,7 @@
 # a newer template brings.
 #
 # Usage: yngorch.sh [--project <path>] [--provider github|gitlab|bitbucket]
-#                   [--issues-repo <owner>/<repo>]
+#                   [--issues-repo <path>]
 #                   [--skip-labels] [--skip-viewer] [--bin-dir <path>]
 #
 #   --provider     github, gitlab or bitbucket: the git provider, when it
@@ -79,11 +79,13 @@
 #                  Written into the config's provider: key only when it has
 #                  no value yet; a different value already there wins, with
 #                  a warning.
-#   --issues-repo  <owner>/<repo> of the repository holding this project's
+#   --issues-repo  the path of the repository holding this project's
 #                  issues, on the same provider, when they live apart from
-#                  the code. Written into the config's issues: key only when
-#                  it has no value yet, and used for the workflow states. Any
-#                  other form stops the install before anything is written.
+#                  the code: <owner>/<repo> on GitHub, <workspace>/<repo> on
+#                  Bitbucket, <group>[/<subgroup>...]/<project> on GitLab.
+#                  Written into the config's issues: key only when it has no
+#                  value yet, and used for the workflow states. Any other
+#                  form stops the install before anything is written.
 #   --skip-labels  do not touch the repository's workflow states (labels, or
 #                  Bitbucket components and milestone).
 # Requires: bash, git. For the check and the workflow states, the provider's
@@ -107,7 +109,7 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --project) project=${2:?--project needs a path}; shift 2 ;;
         --provider) provider=${2:?--provider needs github, gitlab or bitbucket}; shift 2 ;;
-        --issues-repo) issues_repo=${2:?--issues-repo needs <owner>/<repo>}; shift 2 ;;
+        --issues-repo) issues_repo=${2:?--issues-repo needs a repository path}; shift 2 ;;
         --skip-labels) skip_labels=1; shift ;;
         --skip-viewer) skip_viewer=1; shift ;;
         --bin-dir) bin_dir=${2:?--bin-dir needs a path}; shift 2 ;;
@@ -120,13 +122,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 playbook=$(dirname "$here")
 step() { printf '  %-8s %s\n' "$1" "$2"; }
 
-# The issues repo (spec R28, R31): <owner>/<repo>, checked before anything
-# is written.
-is_repo() { printf '%s' "$1" | grep -Eq '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'; }
-if [ -n "$issues_repo" ] && ! is_repo "$issues_repo"; then
-    echo "--issues-repo '$issues_repo' is not <owner>/<repo>; nothing was written." >&2
-    exit 2
-fi
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
 # The supported providers (spec R1.1): each one's cloud host, and what the
@@ -155,6 +150,22 @@ provider_cli() {
     esac
 }
 is_provider() { case "$1" in github|gitlab|bitbucket) return 0 ;; *) return 1 ;; esac; }
+# A repository's path on each provider (yngproviders R11.2), as
+# skills/yngorchestrator/providers/README.md gives it: its form, and the
+# pattern that checks it.
+path_form() {
+    case "$1" in
+        github) echo "<owner>/<repo>" ;;
+        gitlab) echo "<group>[/<subgroup>...]/<project>" ;;
+        bitbucket) echo "<workspace>/<repo>" ;;
+    esac
+}
+path_pattern() {
+    case "$1" in
+        gitlab) echo '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)+$' ;;
+        *) echo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' ;;
+    esac
+}
 
 provider=$(lower "$provider")
 if [ -n "$provider" ] && ! is_provider "$provider"; then
@@ -602,6 +613,13 @@ if [ "$git_provider" = bitbucket ] && [ "$git_host" != bitbucket.org ]; then
     echo "Bitbucket on $git_host is Bitbucket Data Center: planned, not supported. Only Bitbucket Cloud (bitbucket.org) is; nothing was written." >&2
     exit 1
 fi
+# The issues repo (spec R28, R31; yngproviders R11.2): the configured
+# provider's path, checked before anything is written.
+is_repo() { printf '%s' "$1" | grep -Eq "$(path_pattern "$git_provider")"; }
+if [ -n "$issues_repo" ] && ! is_repo "$issues_repo"; then
+    echo "--issues-repo '$issues_repo' is not a $git_provider path ($(path_form "$git_provider")); nothing was written." >&2
+    exit 2
+fi
 # GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
 # needs none (gh reads JSON itself).
 if [ "$git_provider" != github ] && ! command -v jq >/dev/null 2>&1; then
@@ -737,7 +755,7 @@ config_issues=$(config_value "$config" issues)
 if [ "$skip_labels" = 1 ]; then step skipped "workflow states (--skip-labels)"
 elif [ -n "$tool_problem" ]; then step skipped "workflow states (the $git_provider check above failed)"
 elif [ -z "$issues_repo" ] && [ -n "$config_issues" ] && ! is_repo "$config_issues"; then
-    step warning "workflow states skipped: the config's issues: '$config_issues' is not <owner>/<repo>"
+    step warning "workflow states skipped: the config's issues: '$config_issues' is not a $git_provider path ($(path_form "$git_provider"))"
 else
     repo=${issues_repo:-${config_issues:-$origin_path}}
     if [ -z "$repo" ]; then step skipped "workflow states (no origin remote)"

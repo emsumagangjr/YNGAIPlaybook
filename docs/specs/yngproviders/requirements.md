@@ -311,7 +311,7 @@ Amends yngorchestrator R4.1.
 
 ## R11 Issues repo on the same provider
 
-Amends yngorchestrator R28.3.
+Amends yngorchestrator R28.3 and R31.
 
 1.  `issues:` names a project on the same provider and host as the
     code repo. Cross-provider issues are planned (R1.2).
@@ -319,6 +319,13 @@ Amends yngorchestrator R28.3.
     GitHub and Bitbucket (`<workspace>/<repo>`), `<group>[/<subgroup>...]/<project>`
     on GitLab. Any other form stops the run before the lock, naming
     it.
+3.  `yngorch` checks `-IssuesRepo` (`.ps1`) and `--issues-repo`
+    (`.sh`), and the config's `issues:`, against the configured
+    provider's path pattern (`providers/README.md`), once the provider
+    is settled (R2). A flag in any other form stops the install before
+    anything is written, naming the provider's path form; a config
+    value in any other form, with no flag, skips the workflow states
+    with a warning naming it (yngorchestrator R31.3-4).
 
 ## R12 Linking and closing
 

@@ -94,11 +94,12 @@
     there wins, with a warning.
 
 .PARAMETER IssuesRepo
-    <owner>/<repo> of the repository holding this project's issues, on the
-    same provider, when they live apart from the code. Written into the
-    config's issues: key only when it has no value yet, and used for the
-    workflow states. Any other form stops the install before anything is
-    written.
+    The path of the repository holding this project's issues, on the same
+    provider, when they live apart from the code: <owner>/<repo> on
+    GitHub, <workspace>/<repo> on Bitbucket,
+    <group>[/<subgroup>...]/<project> on GitLab. Written into the config's
+    issues: key only when it has no value yet, and used for the workflow
+    states. Any other form stops the install before anything is written.
 
 .PARAMETER SkipLabels
     Do not touch the repository's workflow states (labels, or Bitbucket
@@ -141,13 +142,6 @@ $playbook = Split-Path -Parent $PSScriptRoot
 
 function Step([string]$Status, [string]$Text) { Write-Host ("  {0,-8} {1}" -f $Status, $Text) }
 
-# The issues repo (spec R28, R31): <owner>/<repo>, checked before anything
-# is written.
-$repoPattern = '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'
-if ($PSBoundParameters.ContainsKey('IssuesRepo') -and $IssuesRepo -notmatch $repoPattern) {
-    throw "-IssuesRepo '$IssuesRepo' is not <owner>/<repo>; nothing was written."
-}
-
 # The config's top-level <Key>: value (issues, provider, host); '' when
 # absent or empty.
 function Get-ConfigValue([string]$Path, [string]$Key) {
@@ -181,12 +175,17 @@ function Set-ConfigValue([string]$Path, [string]$Key, [string]$Value) {
     [IO.File]::WriteAllBytes($Path, $latin.GetBytes($text))
 }
 
-# The supported providers (spec R1.1): each one's cloud host, and what the
-# install checks for it (R6.1). A provider added later is one more entry.
+# The supported providers (spec R1.1): each one's cloud host, what the
+# install checks for it (R6.1), and a repository's path on it (R11.2), its
+# form and pattern as skills\yngorchestrator\providers\README.md gives
+# them. A provider added later is one more entry.
 $providers = [ordered]@{
-    github    = @{ Cloud = 'github.com';    Cli = 'gh';   Check = 'gh auth status' }
-    gitlab    = @{ Cloud = 'gitlab.com';    Cli = 'glab'; Check = 'glab auth status' }
-    bitbucket = @{ Cloud = 'bitbucket.org'; Cli = 'curl'; Check = 'curl and the Bitbucket API (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN)' }
+    github    = @{ Cloud = 'github.com';    Cli = 'gh';   Check = 'gh auth status'
+                   PathForm = '<owner>/<repo>'; PathPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
+    gitlab    = @{ Cloud = 'gitlab.com';    Cli = 'glab'; Check = 'glab auth status'
+                   PathForm = '<group>[/<subgroup>...]/<project>'; PathPattern = '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)+$' }
+    bitbucket = @{ Cloud = 'bitbucket.org'; Cli = 'curl'; Check = 'curl and the Bitbucket API (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN)'
+                   PathForm = '<workspace>/<repo>'; PathPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' }
 }
 $providerNames = @($providers.Keys) -join ', '
 
@@ -584,6 +583,13 @@ $gitHostFrom = if ($origin) { 'from origin' } else { "$($gitProvider)'s cloud ho
 if ($gitProvider -eq 'bitbucket' -and $gitHost -ne 'bitbucket.org') {
     throw "Bitbucket on $gitHost is Bitbucket Data Center: planned, not supported. Only Bitbucket Cloud (bitbucket.org) is; nothing was written."
 }
+# The issues repo (spec R28, R31; yngproviders R11.2): the configured
+# provider's path, checked before anything is written.
+$repoPattern = $providers[$gitProvider].PathPattern
+$repoForm = "a $gitProvider path ($($providers[$gitProvider].PathForm))"
+if ($PSBoundParameters.ContainsKey('IssuesRepo') -and $IssuesRepo -notmatch $repoPattern) {
+    throw "-IssuesRepo '$IssuesRepo' is not $repoForm; nothing was written."
+}
 # GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
 # needs none (gh reads JSON itself).
 if ($gitProvider -ne 'github' -and -not (Get-Command jq -ErrorAction SilentlyContinue)) {
@@ -714,7 +720,7 @@ $configIssues = Get-ConfigValue $config 'issues'
 if ($SkipLabels) { Step 'skipped' 'workflow states (-SkipLabels)' }
 elseif ($toolProblem) { Step 'skipped' "workflow states (the $gitProvider check above failed)" }
 elseif (-not $IssuesRepo -and $configIssues -and $configIssues -notmatch $repoPattern) {
-    Step 'warning' "workflow states skipped: the config's issues: '$configIssues' is not <owner>/<repo>"
+    Step 'warning' "workflow states skipped: the config's issues: '$configIssues' is not $repoForm"
 }
 else {
     $repo = if ($IssuesRepo) { $IssuesRepo } elseif ($configIssues) { $configIssues } elseif ($origin) { $origin.Path }
