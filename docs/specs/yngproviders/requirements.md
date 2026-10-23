@@ -233,6 +233,9 @@ Amends INSTALL.md, *Before you start* and step 1.
         create them, so the installer reads both and names each missing
         component and the `epic` milestone in one `warning`, pointing at
         the repository's settings (`https://bitbucket.org/<workspace>/<repo>/admin`).
+        When the repository already has components other than the six
+        workflow states, the installer prints a `note` naming them and
+        saying the workflow takes components over; the install goes on.
     -   A label or component that could not be created is named in a
         `warning`, with where to create it by hand.
 

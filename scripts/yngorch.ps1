@@ -34,7 +34,8 @@
          "gh auth status --hostname" and "glab auth status --hostname"
          succeeds. Neither or both stops the install, asking for
          -Provider. Bitbucket on a host other than bitbucket.org (Data
-         Center) stops it too: planned, not supported.
+         Center) stops it too: planned, not supported. GitLab and Bitbucket
+         without jq on PATH stop it as well, naming jq.
       2. Copy the skill and worker into .shared\.claude\ (upgrades in place).
       3. Fill .yngaiplaybook\: yngorchestratorconfig.yml from the template
          when absent; when present, add the settings and keys the template
@@ -80,6 +81,7 @@
       (GitHub) or glab (GitLab) logged in to the host, or curl with
       BITBUCKET_EMAIL and BITBUCKET_API_TOKEN set (Bitbucket Cloud). The
       token is never printed or written anywhere.
+    - jq on PATH, for GitLab and Bitbucket; GitHub does not need it.
 
 .PARAMETER Project
     Any folder inside the project: the root, or any worktree. Default: the
@@ -182,9 +184,9 @@ function Set-ConfigValue([string]$Path, [string]$Key, [string]$Value) {
 # The supported providers (spec R1.1): each one's cloud host, and what the
 # install checks for it (R6.1). A provider added later is one more entry.
 $providers = [ordered]@{
-    github    = @{ Cloud = 'github.com';    Check = 'gh auth status' }
-    gitlab    = @{ Cloud = 'gitlab.com';    Check = 'glab auth status' }
-    bitbucket = @{ Cloud = 'bitbucket.org'; Check = 'curl and the Bitbucket API (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN)' }
+    github    = @{ Cloud = 'github.com';    Cli = 'gh';   Check = 'gh auth status' }
+    gitlab    = @{ Cloud = 'gitlab.com';    Cli = 'glab'; Check = 'glab auth status' }
+    bitbucket = @{ Cloud = 'bitbucket.org'; Cli = 'curl'; Check = 'curl and the Bitbucket API (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN)' }
 }
 $providerNames = @($providers.Keys) -join ', '
 
@@ -293,7 +295,7 @@ function Set-GitLabStates([string]$HostName, [string]$Repo) {
 # Bitbucket's API reads components and milestones but cannot create them,
 # so this checks which exist and names the rest to create by hand.
 function Set-BitbucketStates([string]$Repo) {
-    $missing = @()
+    $missing = @(); $others = @()
     $wanted = @{
         components = @($states | Where-Object { $_[0] -like 'workflow:*' } | ForEach-Object { $_[0].Substring(9) })
         milestones = @('epic') }
@@ -302,11 +304,16 @@ function Set-BitbucketStates([string]$Repo) {
         $have = if ($r.Code -eq '200') { @(($r.Body | ConvertFrom-Json).values | ForEach-Object { $_.name }) } else { @() }
         $absent = @($wanted[$kind] | Where-Object { $have -notcontains $_ })
         if ($absent) { $missing += "$($kind.TrimEnd('s')) $($absent -join ', ')" }
+        # Components of the person's own: the workflow takes the field over.
+        if ($kind -eq 'components') { $others = @($have | Where-Object { $wanted.components -notcontains $_ }) }
     }
     if ($missing) {
         Step 'warning' "states: Bitbucket's API cannot create components or milestones; create them by hand in https://bitbucket.org/$Repo/admin (Repository settings > Issues, with the issue tracker on): $($missing -join '; ')"
     }
     else { Step 'states' "$($wanted.components.Count) components and the epic milestone found on $Repo" }
+    if ($others) {
+        Step 'note' "states: $Repo has components other than the workflow states: $($others -join ', '); the workflow takes components over (each issue's component holds its state)"
+    }
 }
 
 # The config files yngorch installs from a template (spec R41.1), one pair
@@ -576,6 +583,11 @@ $gitHost = if ($detectHost) { $detectHost } else { $providers[$gitProvider].Clou
 $gitHostFrom = if ($origin) { 'from origin' } else { "$($gitProvider)'s cloud host" }
 if ($gitProvider -eq 'bitbucket' -and $gitHost -ne 'bitbucket.org') {
     throw "Bitbucket on $gitHost is Bitbucket Data Center: planned, not supported. Only Bitbucket Cloud (bitbucket.org) is; nothing was written."
+}
+# GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
+# needs none (gh reads JSON itself).
+if ($gitProvider -ne 'github' -and -not (Get-Command jq -ErrorAction SilentlyContinue)) {
+    throw "jq not found: the $gitProvider provider needs jq on PATH, besides $($providers[$gitProvider].Cli). Install jq and run again; nothing was written."
 }
 
 # 2. Skill and worker into .shared\.claude\.
