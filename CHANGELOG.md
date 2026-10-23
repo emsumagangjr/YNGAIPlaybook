@@ -4,6 +4,35 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.11.0] — 2026-10-23
+
+The git provider is a setting: the orchestrator and its installer work with GitHub, GitLab and Bitbucket Cloud, and more providers will follow.
+
+### Added
+- `skills/yngorchestrator/providers/` holds one file per provider: `github.md` (`gh`), `gitlab.md` (`glab api` on REST v4, with `jq`) and `bitbucket.md` (Bitbucket Cloud's REST API with `curl` and `jq`). Each implements the same named operations, listed once in `providers/README.md` with their inputs and outputs: *read issue*, *set state*, *mark epic*, *list children*, *read parent*, *link child*, *provenance*, *comment*, *close / reopen*, *create issue*, *edit body*, *create pr*, *pr status*, *list prs*, *merge pr*, *create repo* and *setup states*. The README also has *Adding a provider* and the smoke-run checklist.
+- The config gains top-level `provider:` (`github | gitlab | bitbucket`) and `host:` keys. Absent, they mean `github` and the provider's cloud host, so every existing install runs unchanged; a reinstall adds both. The orchestrator reads them fresh at the start of every run and loads that provider's file only; a provider with no file, or a `host:` with a scheme or a path, stops the run before the lock.
+- `yngorch` (`.ps1` and `.sh`) detects the provider: from the config, else from `origin`'s host (`github.com`, `gitlab.com`, `bitbucket.org` by name; any other host by whether exactly one of `gh` and `glab` is logged in to it). When it cannot tell, it stops before writing anything and asks for `-Provider` / `--provider`. It writes `provider:` and `host:` only when they have no value, with one `wrote` or `kept` line each. A Bitbucket host other than `bitbucket.org` (Data Center) stops it as planned, not supported.
+- The installer checks only the configured provider's tool: `gh` or `glab` logged in to the host, or for Bitbucket `curl` and `GET /2.0/user` with `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. GitLab and Bitbucket need `jq`; without it the install stops before writing anything. Bitbucket credentials are read from the two environment variables only, handed to `curl` on its standard input, and never written or printed.
+- A new project's repository is created with a first commit on `main` on every provider (*create repo*): `gh repo create --add-readme`, `glab repo create --readme`, or on Bitbucket a `POST /2.0/repositories/<workspace>/<repo>` and its first README committed through `POST .../src`, so no git sign-in is needed to create it.
+- README and INSTALL carry a **Supported providers** table, a **Planned** list (Azure DevOps, Bitbucket Data Center, Jira as an issue tracker, Gitea/Forgejo, an issues repo on a different provider from the code) and the line that more providers will be added. INSTALL gains the Bitbucket API token's scopes, how to set its two variables in PowerShell and bash, and per-provider setup.
+
+### Changed
+- The step files and `agents/slice-worker.md` name operations, never commands; no `gh`, `glab` or `curl` call is left in them. The dispatch prompt gains a `PROVIDER:` field (provider, host and the provider file's path), so the worker loads the same file; a prompt without it is read as `github` on `github.com`.
+- The workflow states keep one set of names on every provider. GitHub and GitLab hold them as plain labels (single colon, no scoped labels); Bitbucket holds them in the issue's component, without the `workflow:` prefix, with Epics in an `epic` milestone. Bitbucket's API cannot create components or milestones, so the installer names each missing one in a `warning`, and a `note` when the repository uses components for anything else, since the workflow takes them over.
+- Parent and child: GitHub keeps native sub-issues; on GitLab and Bitbucket a slice's body holds one `Parent: #<n>` line, and on GitLab a `relates_to` link too.
+- Gate 1 provenance is defined per provider: GitHub's timeline `labeled` event by a `User`; GitLab's label event by a user with `bot: false`, not a Ghost User, and `active`; Bitbucket's change record by an author of `type: user` whose account is active. Access tokens, bots and apps fail on every provider, and the orchestrator still never sets `ready-for-agent` itself.
+- `issues:` names a project on the same provider and host, in the provider's path form (GitLab's nested groups included). Fix and Epic pull requests use the provider's closing reference; where the provider does not close the issue on merge (a Bitbucket issues repo apart from the code, GitLab with auto-close off), the orchestrator closes it and logs it.
+- `auto` merges check *pr status* on every provider (GitLab's head pipeline and `detailed_merge_status`; Bitbucket's commit statuses and diffstat conflicts). *Merge pr* always makes a merge commit and deletes the head branch; a GitLab project set to fast-forward or always-squash stops it, naming the setting.
+- `guides/epic-workflow.md` describes the workflow by operation, provider-neutral, with provider commands only as named examples. Section 6 names the workflow states (single colon) and how each provider holds them, and section 25 gains *Providers*: the supported and planned providers, the `provider:` and `host:` keys, and the operations. INSTALL's Bitbucket new-project steps create the first README through *create repo* instead of a local commit and `git push`.
+
+### Decisions
+- Refused, in `docs/specs/yngproviders/decisions.md`: commands worked out at runtime (Gate 1 cannot rest on improvised commands); Azure DevOps, Bitbucket Data Center, Jira and cross-provider issues repos in the first set (planned, behind the same seam); raw REST for every provider (`gh` and `glab` are what the person has logged in); GitLab scoped labels, child Tasks and Premium epics; a `yngprovider` wrapper script and per-step command tables; making `provider:` required; Bitbucket credentials from a credential manager or file; pushing a new Bitbucket repository's README with git; and trusting the command references without a live run.
+
+### Not yet done
+- The smoke runs (one end-to-end run on each of GitHub, GitLab and Bitbucket in a `yngsandbox` repository, emsumagangjr/YNGAIPlaybook#107) are still pending. Until they pass, the GitLab and Bitbucket files are written from each provider's API reference, and the open checks in `bitbucket.md`'s *Smoke run checks* stand.
+
+---
+
 ## [1.10.0] — 2026-10-14
 
 A worktree's folder names its issue, and a slice's folder names its Epic too; the issue records its branch and worktree.

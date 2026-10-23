@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.10.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.11.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -36,8 +36,9 @@ A person decides what an agent works on and how what it produces is
 merged: by hand, or by a rule the person configured. Either way, people
 stay in control. The two human gates are described in section 6:
 
-> **Gate 1: a person promotes the issue, by its label or by approving
-> the plan. Gate 2: a person decides the merge, by hand or by config.**
+> **Gate 1: a person promotes the issue, by setting its workflow state
+> or by approving the plan. Gate 2: a person decides the merge, by hand or by
+> config.**
 
 Terminology used throughout: an **Epic** is a feature (a tracker card
 plus an integration branch). A **slice** is one independently
@@ -47,7 +48,14 @@ word *task*, because a slice is named for the outcome it delivers, not
 the step it takes.
 
 `MR` (merge request) and `PR` (pull request) mean the same thing in this
-guide; use whichever term your Git host uses.
+guide; use whichever term your Git host uses (GitLab says merge request,
+GitHub and Bitbucket pull request).
+
+The guide describes the workflow by what happens to an issue or a pull
+request, not by any one provider's commands. Where it shows a provider
+command, it names the provider, as an example; the YNG Orchestrator's
+provider files hold the real calls for each one (section 25,
+*Providers*).
 
 ------------------------------------------------------------------------
 
@@ -235,7 +243,8 @@ The pattern is `epic/<n>-<name>` in `epic<n>-<name>`,
 in `fix<n>-<name>`: `<n>` is the issue's number and `<e>` the number of
 the slice's Epic, its parent issue, both unpadded. A folder listing then
 tells which issue each worktree is for, and which Epic a slice belongs
-to. The examples in this guide use plain issue numbers, as GitHub does.
+to. The examples in this guide use plain issue numbers, as GitHub,
+GitLab and Bitbucket do.
 
 Use the tracker's issue ID in the branch name. A tracker with keyed IDs
 puts the key in as written, in the branch and the folder alike:
@@ -362,10 +371,10 @@ places a person must stand are **promotion** and **merge**. Everything
 else may run unattended.
 
 ``` text
-no workflow label          Inbox
+no workflow state          Inbox
         │
         ▼
-workflow::needs-triage     triage fills in every label
+workflow:needs-triage      triage fills in every field
         │
         ▼
 GATE 1  a person promotes  move the card, approve the triage, or approve the plan
@@ -389,12 +398,20 @@ GATE 2  a person decides the merge by hand, or by config (see below)
                   Closed
 ```
 
-`workflow::needs-info` sits beside this flow: a question that must be
+`workflow:needs-info` sits beside this flow: a question that must be
 answered by a person before work can start. The issue is assigned to
 whoever can answer and does not reach an agent until it is answered.
 
-The names above assume a tracker with scoped labels. On a tracker
-without them, use a single status field with the same values.
+These **workflow states** have the same names on every provider:
+`workflow:needs-triage`, `workflow:needs-info`,
+`workflow:ready-for-agent`, `workflow:ready-for-human`,
+`workflow:in-progress`, `workflow:in-review`, and `epic` for an Epic.
+Where the provider has labels, each is a plain label with that name
+(GitHub, GitLab). Where it has none, the issue holds its state in one
+field with one value per issue: on Bitbucket, the issue's component,
+named without the `workflow:` prefix, with Epics in an `epic`
+milestone. An issue holds one workflow state at a time; moving it to a
+new one removes the old.
 
 ### Never promoted to `ready-for-agent`
 
@@ -410,21 +427,24 @@ Regardless of how confident triage is, these go to `ready-for-human`:
 
 ### Gate 1 is a convention until something checks it
 
-Tracker permissions are usually per action, not per label value: any
-identity that can set labels can set `ready-for-agent`. "Triage never
-promotes" is therefore a rule in this guide, not something the
-permission model enforces.
+Tracker permissions are usually per action, not per state value: any
+identity that can set an issue's state can set `ready-for-agent`.
+"Triage never promotes" is therefore a rule in this guide, not
+something the permission model enforces.
 
 What enforces it is a provenance check at the point of dispatch. Before
 creating a worktree, the dispatcher reads the issue's activity history,
-confirms `ready-for-agent` was applied by a human account, and refuses
-to dispatch if a bot applied it. A bot can still set the label, but
-nothing acts on it, and a bot-applied promotion becomes a visible
+confirms `ready-for-agent` was set by a human account, and refuses
+to dispatch if a bot, an app or an access token set it. Each provider
+records this differently (on GitHub, the issue timeline's `labeled`
+event; on GitLab, its label events; on Bitbucket, its change records),
+and each provider file defines the test. A bot can still set the
+state, but nothing acts on it, and a bot-applied promotion becomes a visible
 anomaly in the activity log instead of silently producing code. The one
 other way through the check is *Gate 1 by plan approval* (below), which
 leaves its own record.
 
-### Who moves the labels
+### Who moves the states
 
 Agents do not update issues. The **dispatcher** does (or the person
 running the agents, if there is no dispatcher), and it is the only
@@ -433,7 +453,7 @@ as an agent: the *YNG Orchestrator*.
 
 | Transition                      | Set by             | When                                            |
 |---------------------------------|--------------------|-------------------------------------------------|
-| to `needs-triage`               | triage agent       | it has filled in the other labels               |
+| to `needs-triage`               | triage agent       | it has filled in the other labels or fields     |
 | to `ready-for-agent` / `-human` | a person           | Gate 1; or the dispatcher, at a plan the person approved (*Gate 1 by plan approval*) |
 | to `in-progress`                | dispatcher         | it hands the work out, after the provenance check |
 | to `in-review`                  | dispatcher         | the MR opens                                    |
@@ -456,14 +476,14 @@ Epic's plan: the dispatcher proposes the plan, the person approves it,
 and that approval is the promotion. The choice to work this way lives
 in the same config as *Gate 2 by policy* below, as `auto-promote: yes`.
 Absent, or any value other than `yes` or `true`, it is `no`, and every
-slice waits for a person's label as above.
+slice waits for a person's promotion as above.
 
 What it allows:
 
 -   each slice the approved plan routes to an agent is created at
     `ready-for-agent`, and dispatch starts in the same run;
 -   on a re-plan, only the new slices the person approved are promoted;
-    existing slices keep their labels.
+    existing slices keep their states.
 
 What it never allows:
 
@@ -471,13 +491,13 @@ What it never allows:
     list, or one the planner was unsure about: it is created at
     `ready-for-human`. Plan approval cannot override the list;
 -   promoting a standalone issue, or a slice created by hand: those
-    reach an agent only through a person's label, whatever the config
+    reach an agent only through a person's promotion, whatever the config
     says;
 -   outliving a switch back to `no`: a slice promoted under `yes` then
-    waits for a person's label.
+    waits for a person's promotion.
 
-Its record, since the dispatcher applies the label through the
-person's own token and the timeline alone would read it as theirs:
+Its record, since the dispatcher sets the state through the person's
+own token and the issue's history alone would read it as theirs:
 
 -   a comment on the slice: `Promoted by plan approval (auto-promote:
     yes), <date>. Plan approved by the person in the orchestrator
@@ -486,12 +506,12 @@ person's own token and the timeline alone would read it as theirs:
     approval`.
 
 The provenance check then passes a slice by either route: a person
-applied the last `ready-for-agent`, as above; or the config says `yes`
-now, the slice is a sub-issue of the Epic being run, and the Epic's
-run log has its line. The label the dispatcher set at creation never
+set the last `ready-for-agent`, as above; or the config says `yes`
+now, the slice is a child of the Epic being run, and the Epic's
+run log has its line. The state the dispatcher set at creation never
 counts as a person's, and a plan promotion is used once: a slice put
 back to `ready-for-agent` later, after a dispatch or a hand-back,
-needs a person's label. See section 25.
+needs a person's promotion. See section 25.
 
 ### Gate 2 by policy
 
@@ -508,8 +528,10 @@ section 25.
 
 ### Slice completion
 
-Closing keywords (`Closes #431`) fire only on merges into the default
-branch, so a slice merged into an Epic branch does **not** auto-close.
+A closing reference in a pull request (on GitHub and GitLab,
+`Closes #431`) closes its issue only on a merge into the default
+branch, and on some providers or settings not even then. A slice
+merged into an Epic branch does **not** auto-close.
 Left alone, every slice issue would stay open until the Epic lands and
 then dozens would close at once.
 
@@ -525,11 +547,14 @@ until it is suddenly right.
 
 ## 7. Initial Repository Setup
 
-Assume the remote repository is:
+Assume the remote repository is, on GitHub for this example:
 
 ``` text
 git@github.com:username/myproject.git
 ```
+
+Any provider's clone URL works the same way (`git@gitlab.com:...`,
+`git@bitbucket.org:...`, or your own server's).
 
 Create the project directory and its shared local-files folder:
 
@@ -1475,8 +1500,10 @@ skills/yngorchestrator/dispatch.md  Gate 1 check, worktree, launch a worker
 skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
 skills/yngorchestrator/report.md    the completion report every worker ends with
+skills/yngorchestrator/providers/README.md  the operations every provider implements; adding a provider
+skills/yngorchestrator/providers/<provider>.md  one provider's commands: github.md, gitlab.md, bitbucket.md
 agents/slice-worker.md              the worker: one slice, worktree to PR
-templates/yngorchestratorconfig.yml the project's config: issues repo, auto-promote: no, merge rules at all-required
+templates/yngorchestratorconfig.yml the project's config: provider and host, issues repo, auto-promote: no, merge rules at all-required
 templates/yngaiplaybookreadme.md    the README of the project's .yngaiplaybook/ folder
 ```
 
@@ -1501,13 +1528,13 @@ with no extra channel:
 It keeps to both gates:
 
 -   **Gate 1.** It creates slice issues at `workflow:needs-triage` and
-    dispatches only issues a person labelled `workflow:ready-for-agent`,
-    checking the issue timeline for who applied the label. With
+    dispatches only issues a person moved to `workflow:ready-for-agent`,
+    checking with *provenance* who set that state. With
     `auto-promote: yes`, the person's approval of the plan promotes its
     agent slices instead, with a record on each (see *Auto-promote*
     below).
--   **Gate 2.** Workers open pull requests; the orchestrator labels them
-    `workflow:in-review` and applies the merge rule for the path (see
+-   **Gate 2.** Workers open pull requests; the orchestrator moves their
+    issues to `workflow:in-review` and applies the merge rule for the path (see
     *Merge rules* below). On `required` it tells the person; after a
     merge, by either, it closes the slice issue and removes the
     worktree.
@@ -1527,7 +1554,7 @@ myproject/
 ├── .claude/                     # linked from .shared/.claude/, for a session at the root
 ├── .yngaiplaybook/              # the playbook's files, never committed
 │   ├── README.md                # the folder explained, written by yngorch
-│   ├── yngorchestratorconfig.yml # issues repo, auto-promote, merge rules
+│   ├── yngorchestratorconfig.yml # provider, issues repo, auto-promote, merge rules
 │   ├── yngorchestratorconfig.yml.bak # the config before a reinstall added to it
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
@@ -1550,6 +1577,68 @@ folder's `README.md`, which `yngorch` rewrites on every install from
 [templates/yngaiplaybookreadme.md](../templates/yngaiplaybookreadme.md),
 says what each file is for, who owns it, and how to change it.
 
+### Providers
+
+The orchestrator and its worker work with the project's git provider
+through the provider's own tool. Supported:
+
+| Provider  | Hosting                              | Tool |
+|-----------|--------------------------------------|------|
+| GitHub    | github.com, GitHub Enterprise Server | `gh`, logged in to the host |
+| GitLab    | gitlab.com, GitLab self-managed      | `glab`, logged in to the host, and `jq` |
+| Bitbucket | bitbucket.org (Cloud only)           | its REST API with `curl` and `jq`, an API token in two environment variables |
+
+**Planned:** Azure DevOps, Bitbucket Data Center, Jira as an issue
+tracker, Gitea/Forgejo, and an issues repo on a different provider
+from the code. More providers will follow, each behind the same seam.
+[INSTALL.md](../INSTALL.md) has each provider's setup.
+
+The config names the provider with two top-level keys:
+
+``` yaml
+provider: gitlab        # github | gitlab | bitbucket; absent: github
+host: gitlab.com        # the provider's host; absent: its cloud host
+```
+
+The installer works them out (from `origin`'s host, or from which tool
+is logged in to a self-hosted one), and writes each only when it has
+no value yet. The orchestrator reads both fresh at the start of every
+run and loads the one provider file for that provider; a provider with
+no file stops the run before the lock.
+
+The steps never call a provider directly. They name **operations**,
+and the provider file turns each into its provider's commands:
+
+| Operation      | What it does |
+|----------------|--------------|
+| read issue     | an issue's title, body, open or closed, and workflow state |
+| set state      | move the issue to one workflow state, removing the old |
+| mark epic      | mark an issue as an Epic, or test whether it is one |
+| list children  | the slices of an Epic |
+| read parent    | the Epic of a slice |
+| link child     | attach a slice to its Epic |
+| provenance     | who set `ready-for-agent`, and whether that was a person (Gate 1) |
+| comment        | comment on an issue or a pull request |
+| close / reopen | close or reopen an issue |
+| create issue   | create an issue at a workflow state |
+| edit body      | replace an issue's body (its `Branch:` line) |
+| create pr      | open a pull request from a branch into a base |
+| pr status      | a pull request's state, head, base, mergeable, and checks |
+| list prs       | pull requests by head branch, in any state |
+| merge pr       | merge with a merge commit and delete the head branch |
+| create repo    | a new private repository with a first commit on `main` |
+| setup states   | create the workflow states and `epic` on the issues repo |
+
+Their inputs and outputs are the same on every provider, so a run
+reads the same on each. Where providers differ, the file says how:
+an Epic's slices are native sub-issues on GitHub and a `Parent: #<n>`
+line in the slice's body on GitLab and Bitbucket; the workflow states
+are labels on GitHub and GitLab and components on Bitbucket. Adding a
+provider is one file that implements every operation, the installer's
+detection and checks for it, and one end-to-end smoke run in a sandbox repository
+([providers/README.md](../skills/yngorchestrator/providers/README.md),
+*Adding a provider*).
+
 ### Auto-promote
 
 `.yngaiplaybook/yngorchestratorconfig.yml` in the project root records
@@ -1559,7 +1648,7 @@ the person's Gate 1 decision in advance, as one top-level key:
 auto-promote: no   # yes | no
 ```
 
--   `no`: the person promotes each slice by its label, after planning.
+-   `no`: the person promotes each slice by moving it to `ready-for-agent`, after planning.
     This is the default for a missing file, a missing key, or any value
     other than `yes` or `true` (any case).
 -   `yes`: approving an Epic's plan promotes the slices it routes to an
@@ -1610,9 +1699,11 @@ wait for a person. Every change to `main` still passes a person.
 
 ### Issues repo
 
-A project may keep its issues in a separate GitHub repository, its
-**issues repo**, while code, branches and pull requests stay in
-`origin`'s repository, its **code repo**. Use one when the issues
+A project may keep its issues in a separate repository, its
+**issues repo**, on the same provider and host, while code, branches
+and pull requests stay in `origin`'s repository, its **code repo**. An
+issues repo on a different provider from the code is planned, not
+supported. Use one when the issues
 belong apart from the code: a public tracker for a private codebase,
 issues that people without access to the code must reach, or a code
 repo with its issues turned off. A project has one issues repo; one
@@ -1621,39 +1712,49 @@ issues repo serving several code repos is not supported.
 The same config file names it with a top-level key:
 
 ``` yaml
-issues: acme/tracker   # <owner>/<repo>; absent or empty: origin's repo
+issues: acme/tracker   # the provider's path; absent or empty: origin's repo
 merge:
   ...
 ```
 
-Absent, empty, or naming the code repo itself, the issues repo is the
-code repo, and the project works as before. The orchestrator reads the
-key fresh at the start of every run; a value that is not
-`<owner>/<repo>` stops the run before it takes the lock. The key is
-yours: the installer writes it only when it has no value yet (see
-*Install* below).
+The value is the provider's path: `<owner>/<repo>` on GitHub,
+`<workspace>/<repo>` on Bitbucket, `<group>[/<subgroup>...]/<project>`
+on GitLab. Absent, empty, or naming the code repo itself, the issues
+repo is the code repo, and the project works as before. The
+orchestrator reads the key fresh at the start of every run; a value
+not in the provider's path form stops the run before it takes the
+lock. The key is yours: the installer writes it only when it has no
+value yet (see *Install* below).
 
-In a run, every issue command (reading the issue, its parent and
-sub-issues, labels, comments, closing and reopening, creating slice
-issues, the Gate 1 timeline) targets the issues repo, and every code
-command (fetching, branches, worktrees, pull requests, their checks,
-merges) targets the code repo. Each `gh` call names its repository
-with `-R`. Issue numbers, run logs and branch names
-(`slice/<n>-<name>`) are the issues repo's.
+In a run, every issue operation (*read issue*, *set state*, *mark
+epic*, *list children*, *read parent*, *link child*, *provenance*,
+*comment* on an issue, *close / reopen*, *create issue*, *edit body*)
+targets the issues repo, and everything on code (fetching, branches,
+worktrees, *create pr*, *pr status*, *list prs*, *merge pr*) targets
+the code repo. Every call names its repository and host, never
+leaving either to a tool's default (on GitHub, for example, `gh` with
+`-R <owner>/<repo>` and `GH_HOST`). Issue numbers, run logs and branch
+names (`slice/<n>-<name>`) are the issues repo's.
 
 From the code repo's side, an issue is always named by its **full
-reference**, `<owner>/<repo>#<n>`, so a link never lands on the code
-repo's own `#<n>`. This holds with or without the `issues:` key:
+reference**, the provider's path then `#<n>` (`acme/tracker#42`), so a
+link never lands on the code repo's own `#<n>`. This holds with or
+without the `issues:` key:
 
 -   the worker's dispatch prompt, commits and pull requests name the
     issue as `acme/tracker#42`;
 -   a slice's pull request into the Epic says `Implements
     acme/tracker#42`; the orchestrator closes the slice after its
-    merge, as before, since closing keywords fire only on the default
-    branch;
--   a fix pull request, and the Epic's pull request into `main`, say
-    `Closes acme/tracker#42`, so merging into `main` closes the issue
-    in the issues repo;
+    merge, as before, since a closing reference acts only on the
+    default branch;
+-   a fix pull request, and the Epic's pull request into `main`, name
+    the issue with the provider's closing reference (`Closes
+    acme/tracker#42` on GitHub and GitLab; `Closes #42` on Bitbucket,
+    which closes only an issue in the same repository), so merging
+    into `main` closes it. Where the provider does not close it (a
+    Bitbucket issues repo apart from the code, or a GitLab project with
+    auto-close turned off), the orchestrator closes it after the merge
+    and logs it;
 -   a URL given to `/yngorchestrator` must name the issues repo; a URL
     naming any other repository, the code repo included, stops the
     run.
@@ -1680,12 +1781,22 @@ to yours, as below) and
 `.yngaiplaybook/README.md`, hides the links with
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree, and `.shared/.claude/` into the root's own `.claude/`,
-through `yngshared`, creates the workflow labels
-with `gh` when it is installed, in the issues repo, and puts `yngv`, the file viewer, in
+through `yngshared`, sets up the workflow states in the issues repo
+(*setup states*) when the provider's tool check passes, and puts `yngv`, the file viewer, in
 your `~/.local/bin` (on Windows it also adds that folder to your user
 PATH; on macOS/Linux it prints the line to add when it is missing).
 Then set `auto-promote:` and your merge rules in
 `.yngaiplaybook/yngorchestratorconfig.yml`.
+
+Before it writes anything, it settles the provider and host (see
+*Providers* above); it then checks that provider's tool, and only that
+one, and a failed check is a `warning` that skips the workflow states.
+When it cannot tell the provider (no `origin`, or a self-hosted
+host that neither or both of `gh` and `glab` are logged in to), it
+stops and asks for `-Provider github|gitlab|bitbucket` /
+`--provider`. A provider whose API cannot create the states (Bitbucket
+cannot create components or milestones) gets a `warning` naming each
+one to create by hand, and where.
 
 Run the same command again to upgrade, or after creating a worktree to
 link it. Upgrading from 1.1.0-1.4.0,
@@ -1696,7 +1807,7 @@ writes nothing there and warns. A root with an old folder and no
 `.yngaiplaybook/` stops `/yngorchestrator`, which names `yngorch` to
 run. The orchestrator links the worktrees it creates itself. `-Project <path>` / `--project
 <path>` installs into a project other than the current folder, and
-`-SkipLabels` / `--skip-labels` leaves the labels alone, and
+`-SkipLabels` / `--skip-labels` leaves the workflow states alone, and
 `-SkipViewer` / `--skip-viewer` leaves `yngv` out.
 
 A reinstall keeps every setting you have and adds the new ones. When
@@ -1732,19 +1843,20 @@ the orchestrator ignores it. Run it again and it adds nothing. When an
 old folder stops the migration, the config is not upgraded either, and
 a `skipped` line says so.
 
-`-IssuesRepo <owner>/<repo>` / `--issues-repo <owner>/<repo>` sets the
-issues repo. It writes `issues: <owner>/<repo>` into the config only
-when the config has no `issues:` value yet; an existing value is kept
-and reported, never overwritten. A value that is not `<owner>/<repo>`,
-a URL included, stops the install before anything is written. The
-labels go to the flag's repository, else the config's `issues:` value,
-else `origin`'s repository. A flag that differs from a kept config
-value still sends the labels to the flag's repository, while the runs
-follow the config: edit the config if the flag was the one you meant.
+`-IssuesRepo <path>` / `--issues-repo <path>` sets the issues repo, in
+the provider's path form. It writes `issues: <path>` into the config
+only when the config has no `issues:` value yet; an existing value is
+kept and reported, never overwritten. Any other form, a URL included,
+stops the install before anything is written. The workflow states go
+to the flag's repository, else the config's `issues:` value, else
+`origin`'s repository. A flag that differs from a kept config value
+still sends the states to the flag's repository, while the runs follow
+the config: edit the config if the flag was the one you meant.
 
 These are Claude Code's folders. Another agent that supports skills and
-subagents takes the same files in its own folders. The commands inside
-are written for GitHub (`gh`); on another tracker, use its equivalents.
+subagents takes the same files in its own folders. The step files name
+operations; the provider file for the config's `provider:` holds the
+commands.
 
 ### Run
 
@@ -1754,7 +1866,8 @@ number, `#<n>` or the issue's URL. With no argument inside a worktree,
 it takes the Epic recorded on the current branch. It checks that the
 issue belongs to the issues repo (`origin`'s repository unless the
 config names another) and tells its kind: an Epic
-(the `epic` label, or sub-issues), a slice (it has a parent issue), or
+(marked as one, by *mark epic*, or with children), a slice (it has a
+parent issue), or
 a standalone issue (neither). A closed issue is shown with its branch
 and pull requests, and reopened only when you say yes.
 
@@ -1826,7 +1939,7 @@ reviewed, tested, and validated Epic branch (work with no Epic follows
 the standalone-fix path).
 
 Two people-only gates govern the flow: a person promotes an issue before
-an agent may start it, by its label or by approving the plan, and a
+an agent may start it, by setting its workflow state or by approving the plan, and a
 person decides every merge, by hand or by config. The Epic is a feature of roughly two weeks or less, its slices
 are named for outcomes, and its spec is versioned on the Epic branch
 beside the code.
