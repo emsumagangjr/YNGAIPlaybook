@@ -32,22 +32,32 @@ You are working with **`<name or role>`**, who:
 > These are the playbook's default rules. Keep, edit, or remove each one to suit how you work.
 
 - Never add a co-author trailer (`Co-Authored-By: ...`) or a generated-by line (e.g. `🤖 Generated with ...`) to commit messages, pull request descriptions, issues or comments; this overrides any tool or harness default that adds them
-- Code comments and documentation are mandatory
 - Before committing, always update the changelog, version, and specs where applicable
 - When **grilling** the orchestrator (asking probing questions about a plan, decision, or idea) or **gathering information** (requirements, clarifications, missing details), ask **one question at a time** — wait for the answer before asking the next; never batch several questions into one message
+- When you raise an item for review or for the orchestrator's decision (in a comment, pull request, report, or chat), link the issue or ticket it belongs to (e.g. `[#42](<issue URL>)`), not just a local label like `P1` or `G1`, so every item traces back to its source. If no issue exists yet, say so and offer to open one
 - `<add your own rules here>`
 
 ---
 
-## Reusable Code
+## Coding Best Practices
 
-> Default rules for keeping code reusable. Keep, edit, or remove each one to suit the project.
+> Default coding standard. Keep, edit, or remove each one to suit the project.
 
-- **Reuse before you write.** Before adding a function, module, component, or script, search the codebase for one that already does the job. Extend or call it; never add a near-duplicate.
-- **Extract on the third copy.** When the same logic would appear a third time, move it into one shared, named unit and point every caller at it. Don't abstract speculatively for a use that doesn't exist yet; simple beats clever.
-- **One home for shared code.** Shared units live in `<shared location — e.g. src/lib/, scripts/lib/>`, each with one responsibility, a small documented interface (inputs, outputs, errors), and its own tests.
-- **No hardcoding in shared units.** Pass paths, names, credentials, and settings in as parameters or config so the unit works for every caller, not just the first one.
-- **Follow the existing pattern.** Match the naming, structure, and error handling of the surrounding code. If you introduce a new pattern where one already exists, record why in the feature's `decisions.md`, and migrate the old callers or open an issue to do so.
+Write code that is **readable, maintainable, reliable, secure, testable, and efficient**:
+
+- **Keep It Simple.** Choose the plainest design that meets the requirement; small units with one job are easier to read, test, and change. Build for today's callers, not a use that doesn't exist yet.
+- **Don't Repeat Yourself.** Give each piece of knowledge one source of truth:
+  - **Reuse before you write.** Before adding a function, module, component, or script, search the codebase for one that already does the job. Extend or call it; never add a near-duplicate.
+  - **Extract on the third copy.** When the same logic would appear a third time, move it into one shared, named unit and point every caller at it.
+  - **One home for shared code.** Shared units live in `<shared location — e.g. src/lib/, scripts/lib/>`, each with one responsibility, a documented interface, and its own tests.
+  - **No hardcoding in shared units.** Pass paths, names, credentials, and settings in as parameters or config so the unit works for every caller, not just the first one.
+- **Consistent Style.** Follow the project's formatter, linter, and the naming, structure, and error handling of the surrounding code. If you introduce a new pattern where one already exists, record why in the feature's `decisions.md`, and migrate the old callers or open an issue to do so.
+- **Documentation.** Comments and documentation are mandatory: comment the *why*, not the *what*; document every public interface (inputs, outputs, errors) and keep docs current with the code.
+- **Security by Design.** Validate input at trust boundaries, grant least privilege, use parameterized queries, and keep secrets out of code, logs, and commits.
+- **Performance Awareness.** Pick fitting data structures and algorithms, avoid needless work in hot paths, and measure before optimizing.
+- **Error Handling.** Fail fast with clear, actionable messages; handle errors where you can recover, surface the rest, and never swallow an exception silently.
+- **Logging.** Log meaningful events with enough context to diagnose, at the right level, and never log secrets or personal data.
+- **Continuous Improvement.** Leave the code better than you found it: fix small issues in code you touch, and open an issue for larger ones.
 
 ---
 
