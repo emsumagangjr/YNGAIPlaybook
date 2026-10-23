@@ -158,7 +158,7 @@ while IFS=$'\t' read -r uid login at; do
     verdict=$(printf '%s' "$u" |
       jq -r 'if .bot == true then "not human: bot: true"
              elif .bot != false then "not human: no bot field"
-             elif .username == "ghost" then "not human: the Ghost User"
+             elif (.username // "" | test("^ghost[0-9]*$")) then "not human: the Ghost User"
              elif .state != "active" then "not human: state: \(.state // "none")"
              else "human" end' | tr -d '\r')
   fi
@@ -170,14 +170,16 @@ An application is a **human**'s when its event names an account and
 `GET /users/:id` gives that account all three:
 
 - `bot: false`;
-- a username other than `ghost`;
+- a username not matching `^ghost[0-9]*$`;
 - `state: active`.
 
 Otherwise it is not, and the verdict names the first that fails.
 Project and group access tokens act as bot users, and service accounts
 are bot users: all of them read `bot: true` and fail. A deleted
-account's events pass to the Ghost User (`ghost`), which is no bot but
-no person either. A blocked, deactivated or banned account is not
+account's events pass to the Ghost User, which is no bot but no person
+either. Its username is `ghost`, or `ghost1` and so on when `ghost` was
+already taken, so the pattern refuses those, while `ghostly` or
+`aghost` pass. A blocked, deactivated or banned account is not
 `active` (R10.1). A users call that fails stops the step,
 so no application is judged without its account. A `remove` event is
 no application: the latest `add` is the one that counts.
