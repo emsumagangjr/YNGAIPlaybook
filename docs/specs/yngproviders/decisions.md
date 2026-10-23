@@ -60,3 +60,17 @@ Dated log of options refused, one line of why each.
 - **2026-10-23** Refused: issue and comment text passed as `glab api`
   fields. `-F` reads a value starting with `[` or `{` as JSON; every
   text payload is built by `jq` and sent with `--input`.
+- **2026-10-23** Refused: parsing Bitbucket's JSON without `jq`. `sed` on
+  JSON breaks on the first nested field; `jq` is one small binary.
+- **2026-10-23** Refused: setting a Bitbucket component with `PUT` on the
+  issue. `POST .../changes` is the call documented to make a change
+  record, and provenance reads only change records.
+- **2026-10-23** Refused: creating a Bitbucket issue with its component
+  set. Creation makes no change record, so provenance would list no
+  application, and plan approval needs exactly one.
+- **2026-10-23** Refused: pushing a new Bitbucket repository's README with
+  git. It needs a git credential beside the API token; `POST .../src`
+  commits with the token alone.
+- **2026-10-23** Refused: finding Bitbucket children with a BBQL filter on
+  the body. `~` is a substring match (`#1` finds `#12`); `jq` matches the
+  whole `Parent:` line.
