@@ -235,7 +235,12 @@ Amends INSTALL.md, *Before you start* and step 1.
     An Epic is an issue in the `epic` milestone. *Set state*, *mark
     epic*, *close* and *reopen* post to the issue's `/changes`, so each
     leaves a change record (R10); *create issue* creates the issue
-    without a component, then sets its state that way.
+    without a component, then sets its state that way. The workflow
+    takes over the issues repo's components: *set state* replaces an
+    issue's component, so a project using components for anything
+    else loses that use. The installer prints a `note` naming any
+    components other than the workflow's that exist, and the Bitbucket
+    provider file and INSTALL.md's Bitbucket setup warn of it.
 4.  *Setup states* creates the labels (GitHub, GitLab) or the
     components and the `epic` milestone (Bitbucket). Where the provider
     cannot create one through its API, the installer prints a `warning`

@@ -26,10 +26,15 @@ to confirm them.
 States are the issue's **component**, named without the `workflow:`
 prefix: `needs-triage`, `needs-info`, `ready-for-agent`,
 `ready-for-human`, `in-progress`, `in-review` (R8.3). An issue holds
-one component, so it holds one state; on a Bitbucket issues repo the
-component belongs to the workflow. An Epic is an issue in the `epic`
+one component, so it holds one state. An Epic is an issue in the `epic`
 **milestone**. A slice names its Epic with one body line,
 `Parent: #<epic>` (R9.2).
+
+**Warning: the workflow takes over the issues repo's components.**
+*Set state* replaces whatever component an issue had, so a project that
+uses components for something else (areas, teams) loses that use on
+every issue the orchestrator touches. The installer prints a `note`
+when components other than the workflow's exist (R8.3).
 
 Issue numbers and pull request numbers are separate on Bitbucket: `<n>`
 always names an issue, and a pull request's address is
