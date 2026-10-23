@@ -53,8 +53,8 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
     | Provider  | Hosting                                  | CLI and auth                                     |
     |-----------|------------------------------------------|--------------------------------------------------|
     | GitHub    | github.com, GitHub Enterprise Server     | `gh`, logged in (`gh auth status --hostname`)    |
-    | GitLab    | gitlab.com, GitLab self-managed          | `glab`, logged in (`glab auth status --hostname`) |
-    | Bitbucket | bitbucket.org (Cloud only)               | REST with `curl`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` (R6) |
+    | GitLab    | gitlab.com, GitLab self-managed          | `glab`, logged in (`glab auth status --hostname`), and `jq` |
+    | Bitbucket | bitbucket.org (Cloud only)               | REST with `curl` and `jq`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` (R6) |
 
 2.  Planned, named as such wherever the supported list appears (R16):
     Azure DevOps, Bitbucket Data Center, Jira as an issue tracker,
@@ -129,6 +129,11 @@ Amends INSTALL.md, *For the agent doing the install*, step 2.
     owner, group or workspace.
 3.  It then proposes the folders and commands as today and waits for
     the person's yes.
+4.  For an existing project, the agent takes the provider from the
+    config's `provider:`, else from `origin`'s host by R3.1, and asks
+    by R4.2 only when neither settles it. A provider settled by asking
+    reaches the installer as `-Provider` / `--provider`. It checks only
+    that provider's tool (R6.1).
 
 ## R5 Repository creation
 
@@ -138,8 +143,8 @@ Amends INSTALL.md, *For the agent doing the install*, step 2.
     | Provider  | Create |
     |-----------|--------|
     | GitHub    | `gh repo create <owner>/<repo> --private --add-readme` |
-    | GitLab    | `glab repo create <group>/<project> --private --readme` |
-    | Bitbucket | `POST /2.0/repositories/<workspace>/<repo>` with `is_private: true` and `has_issues: true`, then a README committed and pushed to `main` |
+    | GitLab    | `GITLAB_HOST=<host> glab repo create <group>/<project> --private --readme --defaultBranch main --skipGitInit` |
+    | Bitbucket | `POST /2.0/repositories/<workspace>/<repo>` with `is_private: true` and `has_issues: true`, then a README committed to `main` through `POST .../src`, so no git credential is needed |
 
 2.  The bare clone and worktree commands are the same for every
     provider, with the provider's clone URL.
@@ -154,7 +159,8 @@ Amends INSTALL.md, *Before you start* and step 1.
     `gh auth status --hostname <host>`, `glab auth status --hostname
     <host>`, or, for Bitbucket, `curl` present and `GET
     https://api.bitbucket.org/2.0/user` succeeding with
-    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. A failed check is a
+    `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN`. GitLab and Bitbucket
+    also need `jq` on PATH (GitHub's `gh` has `--jq` built in). A failed check is a
     `warning` naming what failed and how to fix it; the install goes on
     and skips the workflow states (R8.4).
 2.  Bitbucket credentials are read from those two environment variables
@@ -163,8 +169,14 @@ Amends INSTALL.md, *Before you start* and step 1.
     or echoes them. The installer hands them to `curl` on its standard
     input (`curl -K -`), never on its command line.
 3.  INSTALL.md lists the Bitbucket API token scopes the orchestrator
-    needs (repository, pull request and issue, read and write) and how
-    to set the variables in PowerShell and bash.
+    needs (repository, pull request and issue, read and write:
+    `read:`/`write:repository:bitbucket`, `read:`/`write:pullrequest:bitbucket`,
+    `read:`/`write:issue:bitbucket`), `read:user:bitbucket` for the
+    install check, and `admin:repository:bitbucket` only for creating a
+    repository (R5); the Bitbucket smoke run (R15) confirms these two
+    before release. It also says how to set the variables in PowerShell
+    and bash, user-wide, and how git authenticates the first push of a
+    new Bitbucket repository.
 
 ## R7 Provider files
 
@@ -220,7 +232,15 @@ Amends INSTALL.md, *Before you start* and step 1.
     removes the previous `workflow:` label in one call.
 3.  Bitbucket: the issue's `component` holds the state, named without
     the `workflow:` prefix (`needs-triage`, `ready-for-agent`, ...).
-    An Epic is an issue in the `epic` milestone.
+    An Epic is an issue in the `epic` milestone. *Set state*, *mark
+    epic*, *close* and *reopen* post to the issue's `/changes`, so each
+    leaves a change record (R10); *create issue* creates the issue
+    without a component, then sets its state that way. The workflow
+    takes over the issues repo's components: *set state* replaces an
+    issue's component, so a project using components for anything
+    else loses that use. The installer prints a `note` naming any
+    components other than the workflow's that exist, and the Bitbucket
+    provider file and INSTALL.md's Bitbucket setup warn of it.
 4.  *Setup states* creates the labels (GitHub, GitLab) or the
     components and the `epic` milestone (Bitbucket). Where the provider
     cannot create one through its API, the installer prints a `warning`
@@ -243,9 +263,10 @@ Amends INSTALL.md, *Before you start* and step 1.
 
 1.  GitHub: native sub-issues, as today.
 2.  GitLab and Bitbucket: a slice is an ordinary issue whose body holds
-    one line `Parent: #<n>` naming its Epic in the issues repo. On
-    GitLab, *link child* also adds a `relates_to` issue link, so the
-    Epic's page lists its slices.
+    one line `Parent: #<n>` naming its Epic in the issues repo.
+    *Link child* writes the line when the body has none; a body naming
+    another Epic stops it. On GitLab, *link child* also adds a
+    `relates_to` issue link, once, so the Epic's page lists its slices.
 3.  *List children* on GitLab and Bitbucket finds the issues whose body
     holds that line for the Epic. *Read parent* reads it from the
     slice's body.
@@ -260,12 +281,22 @@ Amends yngorchestrator R4.1.
       type `User`, no `[bot]` login, and no `performed_via_github_app`.
     - GitLab: the latest `add` event for `workflow:ready-for-agent` in
       `GET /projects/:id/issues/:iid/resource_label_events`, whose
-      user has `bot: false` in `GET /users/:id`. Project and group
-      access tokens and service accounts are bot users and fail.
+      user has `bot: false`, a username not matching `^ghost[0-9]*$`
+      and `state: active` in `GET /users/:id`. Project and group access
+      tokens and service accounts are bot users and fail; so does an
+      event naming no account, a user without `bot: false`, the Ghost
+      User (a deleted account's events: `ghost`, or `ghost1` and so on
+      when that name was taken), or a user whose state is not `active`
+      (blocked, deactivated, banned and the like).
     - Bitbucket: the latest change in `GET .../issues/<id>/changes`
       that sets `component` to `ready-for-agent`, whose author has
       `type: user`. Workspace, project and repository access tokens
-      act as `app_user` and fail.
+      act as `app_user` and fail. A change with no author (a closed
+      or deleted account) fails, and so does one whose author's
+      account, read with `GET /users/<uuid>`, is not
+      `account_status: active` or cannot be read. An issue created
+      with the component already at `ready-for-agent` has no such
+      change, and fails.
 2.  A change made with the person's own token passes on every
     provider, so the orchestrator never sets `ready-for-agent` itself.
     Each provider file says so beside its check.
@@ -292,8 +323,9 @@ Amends yngorchestrator R30.
     <owner>/<repo>#<n>` (GitHub), `Closes <group>/<project>#<n>`
     (GitLab), `Closes #<n>` (Bitbucket, same repository only).
 2.  When the provider does not close the issue on merge (Bitbucket
-    with a separate issues repo, or any case its keywords do not
-    cover), the orchestrator closes it with *close* after the merge
+    with a separate issues repo, a GitLab project with *Auto-close
+    referenced issues on default branch* turned off, or any case its
+    keywords do not cover), the orchestrator closes it with *close* after the merge
     and logs it.
 
 ## R13 Merge
@@ -303,8 +335,15 @@ Amends yngorchestrator R7.
 1.  `auto` merges check *pr status* first, on every provider: open,
     the expected head and base, mergeable, and every check or pipeline
     passed. Any other result holds the merge with a comment, as today.
+    On GitLab, the checks are the merge request's head pipeline, and
+    mergeable is its `detailed_merge_status` reading `mergeable`.
+    On Bitbucket, the checks are the pull request's commit statuses,
+    and mergeable is `no` when its diffstat names a conflict.
 2.  *Merge pr* uses a merge commit and deletes the head branch on
-    every provider.
+    every provider. On GitLab the merge commit comes from the project's
+    merge method: `merge` or `rebase_merge` pass; a fast-forward
+    project, or one that always squashes, stops *merge pr*, naming the
+    setting for the person to change.
 
 ## R14 Existing installs
 
