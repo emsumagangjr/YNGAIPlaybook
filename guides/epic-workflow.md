@@ -199,8 +199,9 @@ Three objects, three jobs:
 
 The separation is the point. When a feature is rebuilt, the issues and
 the Epic survive because they describe outcomes; only the spec and the
-code change. The Epic gets the tracker's native parent-child progress
-rollup, so nobody maintains a checklist by hand. The spec gets version
+code change. The Epic gets the tracker's parent-child link (native
+sub-issues on GitHub; a `Parent:` line in each slice on GitLab and
+Bitbucket), so nobody maintains a checklist by hand. The spec gets version
 history, so it is diffed and reviewed alongside the code it describes.
 
 Do not put the spec in a single umbrella issue. An umbrella issue is the
