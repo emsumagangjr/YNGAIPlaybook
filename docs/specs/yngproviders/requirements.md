@@ -270,9 +270,12 @@ Amends yngorchestrator R4.1.
       type `User`, no `[bot]` login, and no `performed_via_github_app`.
     - GitLab: the latest `add` event for `workflow:ready-for-agent` in
       `GET /projects/:id/issues/:iid/resource_label_events`, whose
-      user has `bot: false` in `GET /users/:id`. Project and group
-      access tokens and service accounts are bot users and fail; so
-      does an event naming no account, or a user without `bot: false`.
+      user has `bot: false`, a username other than `ghost` and
+      `state: active` in `GET /users/:id`. Project and group access
+      tokens and service accounts are bot users and fail; so does an
+      event naming no account, a user without `bot: false`, the Ghost
+      User (a deleted account's events), or a user whose state is not
+      `active` (blocked, deactivated, banned and the like).
     - Bitbucket: the latest change in `GET .../issues/<id>/changes`
       that sets `component` to `ready-for-agent`, whose author has
       `type: user`. Workspace, project and repository access tokens

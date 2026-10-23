@@ -142,7 +142,8 @@ linked=$(glab api --hostname <host> "projects/<issues id>/issues/<n>/links" |
 ## provenance
 
 Every application of the label, from the issue's label events, oldest
-first; then each account's `bot` flag from the users API:
+first; then each account's `bot` flag, username and state from the
+users API:
 
 ``` bash
 glab api --hostname <host> "projects/<issues id>/issues/<n>/resource_label_events" --paginate |
@@ -155,18 +156,29 @@ while IFS=$'\t' read -r uid login at; do
   else
     u=$(glab api --hostname <host> "users/$uid") || { echo "users/$uid: lookup failed" >&2; exit 1; }
     verdict=$(printf '%s' "$u" |
-      jq -r 'if .bot == false then "human" elif .bot == true then "not human: bot: true"
-             else "not human: no bot field" end' | tr -d '\r')
+      jq -r 'if .bot == true then "not human: bot: true"
+             elif .bot != false then "not human: no bot field"
+             elif .username == "ghost" then "not human: the Ghost User"
+             elif .state != "active" then "not human: state: \(.state // "none")"
+             else "human" end' | tr -d '\r')
   fi
   printf '%s\t%s\t%s\n' "$login" "$verdict" "$at"
 done
 ```
 
 An application is a **human**'s when its event names an account and
-`GET /users/:id` gives that account `bot: false`. Otherwise it is not,
-and the verdict names why. Project and group access tokens act as bot
-users, and service accounts are bot users: all of them read
-`bot: true` and fail (R10.1). A users call that fails stops the step,
+`GET /users/:id` gives that account all three:
+
+- `bot: false`;
+- a username other than `ghost`;
+- `state: active`.
+
+Otherwise it is not, and the verdict names the first that fails.
+Project and group access tokens act as bot users, and service accounts
+are bot users: all of them read `bot: true` and fail. A deleted
+account's events pass to the Ghost User (`ghost`), which is no bot but
+no person either. A blocked, deactivated or banned account is not
+`active` (R10.1). A users call that fails stops the step,
 so no application is judged without its account. A `remove` event is
 no application: the latest `add` is the one that counts.
 
