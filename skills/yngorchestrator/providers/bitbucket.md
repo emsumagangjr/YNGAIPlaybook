@@ -19,7 +19,7 @@ to confirm them.
 | CLI               | `curl` and `jq`, with `BITBUCKET_EMAIL` (the Atlassian account's email) and `BITBUCKET_API_TOKEN` set: `bb GET user` answers |
 | Cloud host        | `bitbucket.org` (the API is always `api.bitbucket.org/2.0`)         |
 | Path form         | `<workspace>/<repo>`: `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`           |
-| Issue URL         | `https://bitbucket.org/<workspace>/<repo>/issues/<n>` (a pull request: `/pull-requests/<n>`) |
+| Issue URL         | `https://bitbucket.org/<workspace>/<repo>/issues/<n>`, in the browser often followed by `/<title-slug>` (a pull request: `/pull-requests/<n>`) |
 | Issue reference   | `<workspace>/<repo>#<n>`                                            |
 | Closing reference | `Closes #<n>`, and only when the issues repo is the code repo; the explicit *close* after the merge covers every other case (R12) |
 

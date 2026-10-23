@@ -210,7 +210,10 @@ Amends INSTALL.md, *Before you start* and step 1.
     `providers/README.md` gives each operation its inputs and outputs,
     which are the same on every provider, and the *Facts* every file
     states: its CLI, cloud host, path form (R11.2), issue URL, issue
-    reference and closing reference (R12.1).
+    reference and closing reference (R12.1). Step 2 of `locate.md`
+    reads an issue URL on every provider, a Bitbucket one with or
+    without the title slug its browser address ends in, and refuses a
+    pull request or merge request URL.
 
 2.  The orchestrator loads `SKILL.md`, the step files it needs,
     `providers/README.md`, and the one provider file for the configured
