@@ -301,14 +301,16 @@ existing folder.
     that list to create by hand, then run the installer again; it is
     done when that warning is gone.
 
-    When the person named an issues repo, add `-IssuesRepo
-    <owner>/<repo>` / `--issues-repo <owner>/<repo>`, in that form, not
-    a URL, on the same provider as the code. The installer writes the
-    config's `issues:` key only when it has no value yet (a `wrote`
-    line for `issues:`); a `kept` line for `issues:` naming a different
-    repository means the config already holds one, which the installer
-    never overwrites: report both to the person, and change the config
-    only as they answer. The workflow states go to the flag's
+    When the person named an issues repo, add `-IssuesRepo <path>` /
+    `--issues-repo <path>`, with the provider's path, not a URL:
+    `<owner>/<repo>` on GitHub, `<workspace>/<repo>` on Bitbucket,
+    `<group>[/<subgroup>...]/<project>` on GitLab, on the same provider
+    as the code; any other form stops the install before anything is
+    written. The installer writes the config's `issues:` key only when
+    it has no value yet (a `wrote` line for `issues:`); a `kept` line
+    for `issues:` naming a different repository means the config
+    already holds one, which the installer never overwrites: report
+    both to the person, and change the config only as they answer. The workflow states go to the flag's
     repository either way.
 
 5.  **Report.** Tell the person:
@@ -356,9 +358,9 @@ existing folder.
     it adds that folder to your user PATH; on macOS/Linux it prints the
     `export PATH=...` line to add when the folder is not on PATH. Open a
     new terminal afterwards. Add `-SkipViewer` / `--skip-viewer` to
-    leave `yngv` out, and `-IssuesRepo <owner>/<repo>` /
-    `--issues-repo <owner>/<repo>` when your issues live in a separate
-    repository on the same provider
+    leave `yngv` out, and `-IssuesRepo <path>` / `--issues-repo <path>`
+    (the provider's path, as in `issues:` below) when your issues live
+    in a separate repository on the same provider
     ([After installing](#after-installing)).
 
     The installer works out your provider
