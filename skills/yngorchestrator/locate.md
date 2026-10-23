@@ -66,12 +66,15 @@ root holds `.yngaiplaybook/` or no older folder.
 
 A URL is an issue's web address on the provider (the provider file's
 *Issue URL*): `https://<url host>/<url repo>/issues/<n>`, where GitLab
-puts `/-` before `/issues`. Split it without knowing the provider yet:
+puts `/-` before `/issues`, and Bitbucket's browser address adds a
+title slug after the number (`/issues/39/fix-the-login-page`). Drop
+that slug, then split the URL without knowing the provider yet:
 
 ``` bash
-url_n=$(printf '%s\n' "$arg"    | sed -nE 's#^https://[^/]+/.+/issues/([0-9]+)/?$#\1#p')
-url_host=$(printf '%s\n' "$arg" | sed -nE 's#^https://([^/]+)/.+/issues/[0-9]+/?$#\1#p')
-url_repo=$(printf '%s\n' "$arg" | sed -nE 's#^https://[^/]+/(.+)/issues/[0-9]+/?$#\1#p' | sed 's#/-$##')
+url=$(printf '%s\n' "$arg"      | sed -E 's#^(https://bitbucket\.org/[^/]+/[^/]+/issues/[0-9]+)/[^/]+/?$#\1#')
+url_n=$(printf '%s\n' "$url"    | sed -nE 's#^https://[^/]+/.+/issues/([0-9]+)/?$#\1#p')
+url_host=$(printf '%s\n' "$url" | sed -nE 's#^https://([^/]+)/.+/issues/[0-9]+/?$#\1#p')
+url_repo=$(printf '%s\n' "$url" | sed -nE 's#^https://[^/]+/(.+)/issues/[0-9]+/?$#\1#p' | sed 's#/-$##')
 ```
 
 Anything else stops the run, a pull request URL (`/pull/39`,
