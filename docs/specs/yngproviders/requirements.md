@@ -282,9 +282,12 @@ Amends yngorchestrator R4.1.
     - Bitbucket: the latest change in `GET .../issues/<id>/changes`
       that sets `component` to `ready-for-agent`, whose author has
       `type: user`. Workspace, project and repository access tokens
-      act as `app_user` and fail. An issue created with the
-      component already at `ready-for-agent` has no such change, and
-      fails.
+      act as `app_user` and fail. A change with no author (a closed
+      or deleted account) fails, and so does one whose author's
+      account, read with `GET /users/<uuid>`, is not
+      `account_status: active` or cannot be read. An issue created
+      with the component already at `ready-for-agent` has no such
+      change, and fails.
 2.  A change made with the person's own token passes on every
     provider, so the orchestrator never sets `ready-for-agent` itself.
     Each provider file says so beside its check.

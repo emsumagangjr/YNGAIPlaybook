@@ -184,15 +184,32 @@ issue's `/changes`, oldest first:
 ``` bash
 bb_all "repositories/<issues repo>/issues/<n>/changes?pagelen=50" |
   jq -sr 'map(select(.changes.component.new == "ready-for-agent")) | sort_by(.created_on)[]
-    | [(.user.nickname // .user.display_name // "-"), (.user.type // "none"),
-       (if .user.type == "user" then "human" else "not human: author type is " + (.user.type // "none") end),
-       .created_on] | @tsv'
+    | [(.user.nickname // .user.display_name // "-"), (.user.type // "none"), (.user.uuid // "-"), .created_on]
+    | @tsv' | tr -d '\r' |
+  while IFS=$'\t' read -r who type uuid at; do
+    if [ "$type" = none ]; then why="not human: no author (a closed or deleted account)"
+    elif [ "$type" != user ]; then why="not human: author type is $type"
+    else
+      status=$(bb GET "users/$(printf '%s' "$uuid" | sed 's/{/%7B/; s/}/%7D/')" |
+        jq -r '.account_status // "none"' | tr -d '\r') || status=unreadable
+      if [ "$status" = active ]; then why=human; else why="not human: account status is $status"; fi
+    fi
+    printf '%s\t%s\t%s\t%s\n' "$who" "$type" "$why" "$at"
+  done
 ```
 
-An application is a **human**'s when the change's author has
-`type: user`. Any other type is not, and that type is the reason:
-workspace, project and repository access tokens act as `app_user`, and
-fail (R10.1). The latest line is the one that counts.
+An application is a **human**'s when all three hold:
+
+- the change has an author: one with no `user` is a closed or deleted
+  account's, and fails;
+- the author has `type: user`: workspace, project and repository access
+  tokens act as `app_user`, and fail;
+- the author's account, read with `GET /users/<uuid>`, has
+  `account_status: active`. Any other status fails, and so does an
+  account that cannot be read, or that has no status.
+
+Otherwise it is not, and the failing condition is the reason (R10.1).
+The latest line is the one that counts.
 
 An issue created with its component already at `ready-for-agent` has no
 change setting it, so *provenance* lists nothing and Gate 1 refuses it:
@@ -373,7 +390,18 @@ R15) checks each, and this file changes where one fails:
       `type: user`, the second `app_user`, so *provenance* passes the
       first and refuses the second.
 
-Also to confirm on the same run:
+Also to confirm on the same run, for *provenance*:
+
+- [ ] **How a closed account's change appears in `/changes`.** Close
+      or deactivate a throwaway account that set the component; check
+      whether its change then has no `user`, a `user` of another type,
+      or a `user` whose `GET /users/<uuid>` fails or has an
+      `account_status` other than `active`. Each of these is refused;
+      confirm that the actual form is one of them.
+- [ ] `GET /users/<uuid>` for an active account gives
+      `account_status: active`.
+
+And for the other operations:
 
 - [ ] A change's `changes.component.new` holds the component's name,
       and `{"new": null}` clears it.
