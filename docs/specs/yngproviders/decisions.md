@@ -48,6 +48,18 @@ Dated log of options refused, one line of why each.
 - **2026-10-23** Refused: `gh`'s own default host. Every GitHub call
   sets `GH_HOST=<host>`, so a GitHub Enterprise run never reaches
   github.com.
+- **2026-10-23** Refused: `glab issue` and `glab mr` subcommands for
+  GitLab's operations. Their JSON output and `--jq` vary by `glab`
+  version; `glab api --hostname <host>` on REST v4 names the host on
+  every call and stays stable.
+- **2026-10-23** Refused: GitLab's issue `search` to find an Epic's
+  slices. It matches words, not the whole `Parent: #<n>` line, and a
+  miss drops a slice silently; *list children* reads every issue.
+- **2026-10-23** Refused: a skipped GitLab pipeline as `passed`. A
+  pipeline that ran nothing proved nothing, so `auto` holds.
+- **2026-10-23** Refused: issue and comment text passed as `glab api`
+  fields. `-F` reads a value starting with `[` or `{` as JSON; every
+  text payload is built by `jq` and sent with `--input`.
 - **2026-10-23** Refused: parsing Bitbucket's JSON without `jq`. `sed` on
   JSON breaks on the first nested field; `jq` is one small binary.
 - **2026-10-23** Refused: setting a Bitbucket component with `PUT` on the

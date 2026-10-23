@@ -53,7 +53,7 @@ INSTALL.md, README.md, guides/epic-workflow.md Supported providers, per-provider
     | Provider  | Hosting                                  | CLI and auth                                     |
     |-----------|------------------------------------------|--------------------------------------------------|
     | GitHub    | github.com, GitHub Enterprise Server     | `gh`, logged in (`gh auth status --hostname`)    |
-    | GitLab    | gitlab.com, GitLab self-managed          | `glab`, logged in (`glab auth status --hostname`) |
+    | GitLab    | gitlab.com, GitLab self-managed          | `glab`, logged in (`glab auth status --hostname`), and `jq` |
     | Bitbucket | bitbucket.org (Cloud only)               | REST with `curl` and `jq`, `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` (R6) |
 
 2.  Planned, named as such wherever the supported list appears (R16):
@@ -143,7 +143,7 @@ Amends INSTALL.md, *For the agent doing the install*, step 2.
     | Provider  | Create |
     |-----------|--------|
     | GitHub    | `gh repo create <owner>/<repo> --private --add-readme` |
-    | GitLab    | `glab repo create <group>/<project> --private --readme` |
+    | GitLab    | `GITLAB_HOST=<host> glab repo create <group>/<project> --private --readme --defaultBranch main --skipGitInit` |
     | Bitbucket | `POST /2.0/repositories/<workspace>/<repo>` with `is_private: true` and `has_issues: true`, then a README committed to `main` through `POST .../src`, so no git credential is needed |
 
 2.  The bare clone and worktree commands are the same for every
@@ -260,9 +260,10 @@ Amends INSTALL.md, *Before you start* and step 1.
 
 1.  GitHub: native sub-issues, as today.
 2.  GitLab and Bitbucket: a slice is an ordinary issue whose body holds
-    one line `Parent: #<n>` naming its Epic in the issues repo. On
-    GitLab, *link child* also adds a `relates_to` issue link, so the
-    Epic's page lists its slices.
+    one line `Parent: #<n>` naming its Epic in the issues repo.
+    *Link child* writes the line when the body has none; a body naming
+    another Epic stops it. On GitLab, *link child* also adds a
+    `relates_to` issue link, once, so the Epic's page lists its slices.
 3.  *List children* on GitLab and Bitbucket finds the issues whose body
     holds that line for the Epic. *Read parent* reads it from the
     slice's body.
@@ -277,8 +278,13 @@ Amends yngorchestrator R4.1.
       type `User`, no `[bot]` login, and no `performed_via_github_app`.
     - GitLab: the latest `add` event for `workflow:ready-for-agent` in
       `GET /projects/:id/issues/:iid/resource_label_events`, whose
-      user has `bot: false` in `GET /users/:id`. Project and group
-      access tokens and service accounts are bot users and fail.
+      user has `bot: false`, a username not matching `^ghost[0-9]*$`
+      and `state: active` in `GET /users/:id`. Project and group access
+      tokens and service accounts are bot users and fail; so does an
+      event naming no account, a user without `bot: false`, the Ghost
+      User (a deleted account's events: `ghost`, or `ghost1` and so on
+      when that name was taken), or a user whose state is not `active`
+      (blocked, deactivated, banned and the like).
     - Bitbucket: the latest change in `GET .../issues/<id>/changes`
       that sets `component` to `ready-for-agent`, whose author has
       `type: user`. Workspace, project and repository access tokens
@@ -314,8 +320,9 @@ Amends yngorchestrator R30.
     <owner>/<repo>#<n>` (GitHub), `Closes <group>/<project>#<n>`
     (GitLab), `Closes #<n>` (Bitbucket, same repository only).
 2.  When the provider does not close the issue on merge (Bitbucket
-    with a separate issues repo, or any case its keywords do not
-    cover), the orchestrator closes it with *close* after the merge
+    with a separate issues repo, a GitLab project with *Auto-close
+    referenced issues on default branch* turned off, or any case its
+    keywords do not cover), the orchestrator closes it with *close* after the merge
     and logs it.
 
 ## R13 Merge
@@ -325,10 +332,15 @@ Amends yngorchestrator R7.
 1.  `auto` merges check *pr status* first, on every provider: open,
     the expected head and base, mergeable, and every check or pipeline
     passed. Any other result holds the merge with a comment, as today.
+    On GitLab, the checks are the merge request's head pipeline, and
+    mergeable is its `detailed_merge_status` reading `mergeable`.
     On Bitbucket, the checks are the pull request's commit statuses,
     and mergeable is `no` when its diffstat names a conflict.
 2.  *Merge pr* uses a merge commit and deletes the head branch on
-    every provider.
+    every provider. On GitLab the merge commit comes from the project's
+    merge method: `merge` or `rebase_merge` pass; a fast-forward
+    project, or one that always squashes, stops *merge pr*, naming the
+    setting for the person to change.
 
 ## R14 Existing installs
 
