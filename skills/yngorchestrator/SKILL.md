@@ -1,11 +1,11 @@
 ---
 name: yngorchestrator
-description: Run an Epic, a slice or a standalone issue as its dispatcher, from anywhere in the project. Plan an Epic's slices, dispatch promoted issues to worker subagents in their own worktrees, and act on each completion report.
+description: Run an Epic, a slice or a standalone issue as its dispatcher, each in its own agent instance and worktree, started from anywhere in the project; continue resumes a run without its number. Plan an Epic's slices, dispatch promoted issues to worker subagents in their own worktrees, and act on each completion report.
 disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.11.0
+  version: 1.12.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -56,13 +56,6 @@ outside Git. Step 1 finds it, through [locate.md](locate.md), from a
 session started at the root, in any worktree, or in any folder below
 one.
 
-The session stays where it started. Every command on the target names
-it by absolute path: `git -C <worktree>` or `git --git-dir=<root>/.bare`,
-files read from `<worktree>/docs/specs/...`, and every operation on
-`<issues repo>` or `<code repo>` (*Two repositories* below).
-Every `<... worktree>` in these steps is an absolute path below
-`<root>`, so a run behaves the same from wherever it started.
-
 `<root>/.yngaiplaybook/` holds the playbook's files for the project.
 Yours are the person's config (`yngorchestratorconfig.yml`) and your
 run logs and locks (`yngorchestratorruns/`). Nothing in it belongs to
@@ -74,6 +67,23 @@ An older root keeps them in `<root>/.yngorchestrator/` or
 them: `yngorch` migrates them. Step 1 of [locate.md](locate.md) stops
 a run on a root that has not been migrated, before anything is
 touched.
+
+## Its own instance
+
+Every Epic, slice and standalone run has its own agent instance, in
+the issue's own worktree (R46). A session started anywhere else hands
+the run on: it finds or creates the worktree, opens a new instance
+there, in a herdr workspace or a new terminal window, with
+`/yngorchestrator <n>` already sent, logs `launched`, and ends
+([launch.md](launch.md)). A session already in the issue's own
+worktree is the dispatcher, right there. Slice workers stay
+`slice-worker` subagents inside the dispatcher's instance.
+
+Every command on the target still names it by absolute path:
+`git -C <worktree>` or `git --git-dir=<root>/.bare`, files read from
+`<worktree>/docs/specs/...`, and every operation on `<issues repo>` or
+`<code repo>` (*Two repositories* below). Every `<... worktree>` in
+these steps is an absolute path below `<root>`.
 
 ## Two repositories
 
@@ -110,7 +120,8 @@ run writes, `<log>`, follows the issue's kind:
 A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
-planned, dispatched, reported, relabelled, merged, closed.
+planned, dispatched, reported, relabelled, merged, closed, and a run
+launched into its own instance ([launch.md](launch.md)).
 
 ### The lock
 
@@ -120,7 +131,10 @@ One writer of issue state at a time: a run holds
 it never runs beside its Epic's run.
 
 Take the lock as soon as [locate.md](locate.md) has told the issue's
-kind (its step 4), before its step 5 can reopen the issue. Create the
+kind (its step 4) and found the session in the issue's own worktree
+(its step 5), before its step 6 can reopen the issue. A run that
+launches never takes it: [launch.md](launch.md) only checks it, and
+the instance it opens takes it (R48). Create the
 file only if it is absent, holding the start time and the session's
 folder:
 
@@ -154,12 +168,15 @@ rm -f "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 ### 1. Locate
 
 The command is `/yngorchestrator <issue>`, where `<issue>` is `39`,
-`#39` or the issue's URL. Follow [locate.md](locate.md): it finds
+`#39` or the issue's URL, or `/yngorchestrator continue`, which
+resumes a run without its number; a bare `/yngorchestrator` is
+`continue` (R50). Follow [locate.md](locate.md): it finds
 `<root>`, reads the provider and host, resolves the code repo and the
 issues repo, checks the issue
-is in the issues repo, tells its kind and handles a closed issue. Once
-it has told the kind, take the lock (*The lock* above) before going
-on.
+is in the issues repo, tells its kind, decides whether the run goes on
+here or in its own instance, and handles a closed issue. A run here
+takes the lock (*The lock* above) once the kind is known; a run that
+launches hands on through [launch.md](launch.md) and ends there.
 
 For a slice or a standalone issue, locate.md hands on to
 [scoped.md](scoped.md), which runs that one issue to its hand-back;

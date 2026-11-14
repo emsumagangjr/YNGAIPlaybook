@@ -58,6 +58,11 @@
          naming each component and the epic milestone to create by hand.
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
+      8. Say whether herdr is installed: one line, and nothing written.
+         herdr is optional. With herdr and its server running, each run
+         opens its own instance in a herdr workspace; without it, in a new
+         terminal window. The config's launcher: and agent: keys are
+         yours: yngorch never writes them.
 
     Upgrading from 1.1.0-1.4.0: step 3 moves .yngorchestrator\ (1.2.0-1.4.0)
     or .orchestrator\ (1.1.0) into .yngaiplaybook\, one line per item:
@@ -763,8 +768,15 @@ else {
     }
 }
 
+# 8. herdr, optional (spec R51.1): one line, nothing written. The config's
+# launcher: and agent: keys stay the person's.
+$herdr = Get-Command herdr -ErrorAction SilentlyContinue
+if ($herdr) { Step 'found' "herdr at $($herdr.Source): runs open in a herdr workspace while its server runs (launcher: in the config overrides)" }
+else { Step 'note' 'herdr not found: runs open in a new terminal window (herdr is optional: https://herdr.dev)' }
+
 Write-Host ''
 Write-Host 'Done. Next:'
 Write-Host "  - Set auto-promote (Gate 1) and your merge rules (Gate 2) in $config"
-Write-Host '  - From an Epic worktree, start Claude Code and run: /yngorchestrator <epic issue>'
+Write-Host '  - Anywhere in the project, start Claude Code and run: /yngorchestrator <issue>; each run opens in its own instance'
+Write-Host '  - To pick up a run again: /yngorchestrator continue'
 Write-Host '  - After creating a new worktree, run this script again to link it.'

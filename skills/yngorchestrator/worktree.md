@@ -17,9 +17,12 @@ repositories*). The
 session's own folder does not matter. Branch names carry the issues
 repo's number; the branches themselves are the code repo's.
 
-The run already holds its lock (*The lock* in [SKILL.md](SKILL.md)).
-When a step stops the run, tell the person the reason in one sentence,
-delete the lock, and end the run. A stop before step 4 has changed
+The run already holds its lock (*The lock* in [SKILL.md](SKILL.md)),
+unless it launches ([launch.md](launch.md)): that run holds none, found
+none when it checked, and sets the branch and worktree up for the
+instance it opens. When a step stops the run, tell the person the
+reason in one sentence, delete the lock if the run holds it, and end
+the run. A stop before step 4 has changed
 nothing; a stop after it names what was created.
 
 | Kind       | Prefix   | Worktree                       | Created from    | `epicid` |
@@ -226,6 +229,11 @@ Done when `git --git-dir="<root>/.bare" worktree list` shows
 prints its `epicid`, any branch you created is named by a `Branch:`
 line on its issue, and any worktree you created holds the linked
 `.claude/skills/yngorchestrator/SKILL.md`.
+
+An Epic run that launches stops here and goes to step 3 of
+[launch.md](launch.md), holding `<branch>` and `<worktree>`: the
+instance it opens runs step 5. A slice or standalone run returns to
+[scoped.md](scoped.md) either way.
 
 ## 5. Check the spec (an Epic only)
 

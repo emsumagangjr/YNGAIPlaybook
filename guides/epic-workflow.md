@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.11.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.12.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1493,7 +1493,8 @@ it as the **YNG Orchestrator** skill (`/yngorchestrator`), with the
 
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log and lock, steps
-skills/yngorchestrator/locate.md    find the root; check the issue and tell its kind
+skills/yngorchestrator/locate.md    find the root; check the issue and tell its kind; continue; run here or launch
+skills/yngorchestrator/launch.md    open the run's own instance: herdr workspace or terminal window
 skills/yngorchestrator/worktree.md  find or create the issue's branch and worktree
 skills/yngorchestrator/scoped.md    run one slice or standalone issue to its hand-back
 skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
@@ -1508,10 +1509,15 @@ templates/yngorchestratorconfig.yml the project's config: provider and host, iss
 templates/yngaiplaybookreadme.md    the README of the project's .yngaiplaybook/ folder
 ```
 
-The orchestrator runs in the main agent session, started anywhere in
-the project: its root, any worktree, or any folder below one. It finds
-the root and names every target by absolute path, so it behaves the
-same from each. Workers run as subagents, one per slice, each in the
+You start the orchestrator anywhere in the project: its root, any
+worktree, or any folder below one. It finds the root and names every
+target by absolute path. Each run then works in its own agent
+instance, in the issue's own worktree: started anywhere else, it finds
+or creates that worktree, opens a new instance there (a herdr
+workspace, or a new terminal window; see *Launcher* below) with
+`/yngorchestrator <n>` already sent, and the session you started in
+ends. Started in the issue's own worktree, it runs right there. The
+orchestrator is the main session of that instance. Workers run as subagents, one per slice, each in the
 slice worktree the orchestrator created for it (section 10). A worker's last
 message is its **completion report**, so it reaches the orchestrator
 with no extra channel:
@@ -1859,12 +1865,45 @@ subagents takes the same files in its own folders. The step files name
 operations; the provider file for the config's `provider:` holds the
 commands.
 
+### Launcher
+
+Every Epic, slice and standalone run has its own agent instance in its
+issue's own worktree, and keeps it open when the run ends, with the
+hand-back list on screen. Two top-level keys in
+`.yngaiplaybook/yngorchestratorconfig.yml` shape it; `yngorch` writes
+neither, and prints one line saying whether it found herdr:
+
+| Key         | Values                | Absent                                                    |
+|-------------|-----------------------|-----------------------------------------------------------|
+| `launcher:` | `herdr` or `terminal` | herdr when it is installed and its server is running, else a new terminal window |
+| `agent:`    | `claude`              | `claude`; any other value stops the run until [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61) adds other agents |
+
+-   **herdr** (optional, [herdr.dev](https://herdr.dev)): a workspace
+    named after the issue (`#98 yngproviders`), on its worktree, with
+    the agent started and the command as its first prompt. If the agent
+    first asks whether to trust a new worktree's folder, answer it there.
+-   **terminal**: Windows Terminal on Windows, Terminal.app on macOS,
+    `$TERMINAL` elsewhere.
+
+The launcher never takes the lock; it checks it first. With no lock it
+launches. With a lock and a herdr workspace on the locked run's
+worktree, it brings that workspace to the front and starts nothing.
+With a lock and no such workspace, it stops with the lock message, as
+before; only you delete a lock. A launch that fails says why in one
+sentence, logs `launch-failed`, and the run goes on in the session you
+started.
+
 ### Run
 
 Start the agent anywhere in the project, at its root or in any
 worktree, and run `/yngorchestrator <issue>`, where `<issue>` is a
-number, `#<n>` or the issue's URL. With no argument inside a worktree,
-it takes the Epic recorded on the current branch. It checks that the
+number, `#<n>` or the issue's URL. `/yngorchestrator continue`, or a
+bare `/yngorchestrator`, picks a run up without its number: in an
+issue's worktree (`epic/<n>-`, `fix/<n>-` or `slice/<n>-`) it resumes
+that issue's run there, from the run log's last line; from the root or
+`main/` it lists the active runs (open issues with a run log), one line
+each with number, running or idle, kind, title and last log line,
+running first, and goes straight to the only one. It checks that the
 issue belongs to the issues repo (`origin`'s repository unless the
 config names another) and tells its kind: an Epic
 (marked as one, by *mark epic*, or with children), a slice (it has a
@@ -1876,7 +1915,9 @@ It then finds the issue's branch (a `Branch:` line in the issue body
 wins, else `*/<n>-*`, locally then on `origin`) and its worktree,
 creates whichever is missing, and links a new worktree through
 `yngshared`. A new Epic branch it only proposes, and creates once you
-confirm the name.
+confirm the name. Unless the session is already in that worktree, it
+then opens the run's own instance there (*Launcher* above), which goes
+on from here.
 
 A worktree it creates is named as in section 3: `epic<n>-<name>` for
 an Epic, `epic<e>-slice<n>-<name>` for a slice, with `<e>` its parent

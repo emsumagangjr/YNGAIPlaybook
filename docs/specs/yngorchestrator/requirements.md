@@ -10,7 +10,8 @@ the work progresses. This feature delivers that role as an
 agent-runnable **orchestrator** skill, plus the **slice worker** agent
 it dispatches to.
 
-The orchestrator runs in the main agent session. Workers run as
+The orchestrator runs in the main session of its own agent instance,
+in the issue's own worktree (R46). Workers run as
 subagents, one per slice, each in its own slice worktree. A worker's
 final message is its report and returns to the orchestrator
 automatically.
@@ -34,7 +35,8 @@ approving the plan (R34), and a person decides every merge
 
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, two repositories, run log, the step sequence
-skills/yngorchestrator/locate.md    step: locate the root and the issue (R14, R15, R25, R29)
+skills/yngorchestrator/locate.md    step: locate the root and the issue; continue; run here or launch (R14, R15, R25, R29, R46, R50)
+skills/yngorchestrator/launch.md    step: open the run's own instance, herdr or a terminal window (R46-R49)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
@@ -445,14 +447,17 @@ reach it from `scoped.md`, only after their Gate 1 check.
 
 Slice: #41
 
-1.  The session stays where it was started. Every command on the
-    target runs by absolute path: `git -C <worktree>` or
+1.  Every command on the target runs by absolute path (where the run
+    itself runs is R46's: in the issue's own worktree): `git -C <worktree>` or
     `git --git-dir=<root>/.bare`, the spec read from
     `<worktree>/docs/specs/...`, `WORKTREE:` given to workers as an
     absolute path. Every `gh` command names the repository with
     `-R`: the issues repo or the code repo (R29).
-2.  Nothing depends on the session's own folder, so a run started at
-    the root, in `main/`, or in the target worktree behaves the same.
+2.  No command depends on the session's own folder, so a run started
+    at the root, in `main/`, or in the target worktree reaches the
+    same result. The session's folder decides only whether the run
+    goes on there or in its own instance (R46.2), and what
+    `continue` resumes (R50).
 
 ## R19 Slice run
 
@@ -1113,3 +1118,132 @@ Epic: #90
 3.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.10.0. Earlier CHANGELOG entries are history
     and keep their names.
+
+## R46 Each run in its own instance
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+The procedure is `skills/yngorchestrator/launch.md`, reached from
+step 5 of `locate.md` to check the lock, and, once the worktree
+exists, from `locate.md` (an Epic, after `worktree.md` step 4) and
+`scoped.md` (a slice or a standalone issue, after its Gate 1 check and
+its step 4). It replaces R18.1's "the session stays where it was
+started".
+
+1.  **Hand-off.** An Epic, slice or standalone run started outside the
+    issue's own worktree finds or creates that worktree (R17), opens a
+    new agent instance there with `/yngorchestrator <n>` already sent,
+    logs `launched` with the workspace or terminal, and the launching
+    session's run ends. A slice or standalone run checks Gate 1 and
+    its dependencies (R19.1) before any branch is created, as before.
+2.  **In place.** A session already in the issue's own worktree (its
+    current branch is `epic/<n>-`, `slice/<n>-` or `fix/<n>-` for the
+    issue's kind) runs as the dispatcher right there. No flag chooses
+    between the two.
+3.  **Workers.** Slice workers stay `slice-worker` subagents inside the
+    dispatcher's instance.
+4.  **Slice runs.** A run started directly on a slice works the same
+    way, into the slice's worktree; its lock is its Epic's (R21.2).
+5.  A run on an issue at `workflow:in-review` (R19.4) launches into
+    the worktree on its pull request's head branch; with no worktree
+    there, it runs in place.
+
+## R47 The launcher
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  The launcher is herdr when herdr is installed and its server is
+    running (`herdr status server --json` reports `running: true`),
+    and a new terminal window otherwise. The config's top-level
+    `launcher: herdr | terminal` overrides the detection; absent,
+    empty or any other value leaves it to detection, and never stops
+    a run.
+2.  **herdr.** `herdr workspace create --cwd <worktree> --label
+    "#<n> <name>" --focus`, then `herdr agent start <name> --kind
+    claude --pane <root pane> -- "/yngorchestrator <n>"`: the command
+    is the agent's first prompt, so it runs once the agent is up. An
+    agent that asks a question at startup (`agent_not_ready`, such as
+    trusting a new worktree's folder) counts as launched, and the
+    person is told to answer it in the workspace.
+3.  **Terminal.** Windows Terminal (`wt.exe -w new new-tab -d
+    <worktree> --title "#<n> <name>" cmd /k claude "..."`) on Windows,
+    Terminal.app through `osascript` on macOS, and `$TERMINAL -e` on
+    any other system. A command whose argument starts with `/` runs
+    with `MSYS_NO_PATHCONV=1`, so Git Bash passes it on unchanged.
+4.  The herdr workspace, and the Windows Terminal tab, are named after
+    the issue: `#<n> <name>`, `<name>` being the branch's name after
+    its prefix and number (`#98 yngproviders`).
+5.  When the run ends, the workspace or window stays open with the
+    hand-back list on screen.
+6.  **Launch failure.** A missing program, a herdr error or a command
+    that fails: the run gives the reason in one sentence, logs
+    `launch-failed <reason>`, closes a herdr workspace it created, and
+    runs as the dispatcher in the current session, taking the lock
+    first.
+
+## R48 The lock at launch
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  The launcher never takes the lock; it checks the lock for the
+    run's log (R21) before anything else:
+    -   no lock: it launches;
+    -   a lock, and a herdr workspace on the lock's worktree (the
+        worktree holding the lock's `session:` folder; a pane whose
+        `cwd` is that worktree or below it): it focuses that
+        workspace, and nothing new starts;
+    -   a lock and no such workspace: it stops with today's lock
+        message (R21.3).
+2.  Only a person deletes a lock, as before. The instance a launch
+    opens takes the lock itself, through its own `locate.md`.
+3.  Until then the launching run writes only what setting up the
+    worktree writes (R17, R44.1) and its run log lines (`refused`,
+    `launched`, `launch-failed`).
+
+## R49 The agent setting
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  The config's top-level `agent:` names the agent the instance runs.
+    Absent or empty, it is `claude`.
+2.  Any other value stops the run before the lock and before touching
+    anything, naming the value and the config file, and saying other
+    agents come with emsumagangjr/YNGAIPlaybook#61.
+
+## R50 Continue
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  `/yngorchestrator continue` in an issue's worktree takes the issue
+    from the current branch (`epic/<n>-`, `fix/<n>-`, `slice/<n>-`)
+    and resumes in place from the run log's last line (R21). A slice
+    uses its Epic's lock and log.
+2.  From the root, or a worktree whose branch names no issue (`main`),
+    it lists the active runs: every open issue with a run log
+    (`yngorchestratorruns/<m>.md`). Each gets one line: number,
+    running or idle (its lock present or not), kind, title and the
+    log's last line, running runs first. With one active run it goes
+    straight to it; with several the person picks one; with none it
+    asks for the issue. The chosen run goes through R48.
+3.  A bare `/yngorchestrator` does the same as `continue`. It replaces
+    the earlier rule that took the Epic recorded on the branch
+    (`branch.<branch>.epicid`).
+
+## R51 The installer and the documentation
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  `yngorch` (`.ps1` and `.sh`, at parity) writes neither `launcher:`
+    nor `agent:`, and prints one line saying whether it found herdr.
+    The config template carries both as settings with their keys
+    commented out, so a reinstall adds their documentation, never a
+    key, and a key a person set is not reported as ignored.
+2.  INSTALL.md, the folder's README template and guide section 25
+    document both keys, and list herdr as optional.
+
+## R52 Version
+
+Issue: emsumagangjr/YNGAIPlaybook#122
+
+1.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.12.0.
