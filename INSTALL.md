@@ -519,8 +519,8 @@ clone until you have checked the new one:
 
     **Where runs open.** Each run works in its own agent instance, in
     its issue's own worktree. Started anywhere else, it opens that
-    instance for you: in a herdr workspace named after the issue
-    (`#98 yngproviders`) when [herdr](https://herdr.dev) is installed
+    instance for you: in a herdr workspace named after the project and worktree
+    (`YNGAIPlaybook · epic98-yngproviders`) when [herdr](https://herdr.dev) is installed
     and its server is running, otherwise in a new terminal window
     (Windows Terminal, Terminal.app, or `$TERMINAL`). herdr is
     optional. Two keys, both yours, which `yngorch` never writes:

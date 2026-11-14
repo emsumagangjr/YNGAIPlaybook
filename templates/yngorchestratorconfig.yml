@@ -175,7 +175,8 @@ merge:
 #   else, /yngorchestrator opens a new instance there with the command
 #   already sent, and the session you started it from ends. Not a gate.
 # Values:
-#   herdr     a herdr workspace named after the issue ("#98 yngproviders").
+#   herdr     a herdr workspace named after the project and worktree
+#             ("YNGAIPlaybook · epic98-yngproviders").
 #             herdr is optional: https://herdr.dev
 #   terminal  a new terminal window: Windows Terminal, Terminal.app, or
 #             $TERMINAL on other systems.
