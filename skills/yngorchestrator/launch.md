@@ -120,30 +120,39 @@ Done when you hold one launcher.
 
 ## 4. Open the instance
 
-`<name>` is the branch's name after `<prefix><n>-` (`yngproviders` for
-`epic/98-yngproviders`), and the window's title is `#<n> <name>`
-(R47.4). The command the instance starts with is
+`<name>`, the instance's name, is the project root's folder name and
+the worktree's folder name (R53), so herdr's sidebar, the terminal tab
+and `/resume` each say which project the run works on:
+
+``` bash
+name="$(basename "<root>") · $(basename "<worktree>")"   # YNGAIPlaybook · epic98-yngproviders
+```
+
+It is the herdr workspace's label, the terminal window's title and
+the Claude session's name (`claude --name`), one line each. Only an
+instance launched here is named: a session that runs in place keeps
+the name it has. The command the instance starts with is
 `/yngorchestrator <n>`, `<n>` as the issues repo writes it. `<agent>`
 is `claude` (R49), the only agent until
 [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61).
 
 ### herdr
 
-Create a workspace on the worktree, named after the issue, in front:
+Create a workspace on the worktree, labelled `<name>`, in front:
 
 ``` bash
-herdr workspace create --cwd "<worktree>" --label "#<n> <name>" --focus
+herdr workspace create --cwd "<worktree>" --label "$name" --focus
 ```
 
 Read `.result.workspace.workspace_id` and `.result.root_pane.pane_id`
-from its JSON. Start the agent in that pane, with the command as its
-first prompt. The agent's name is `yng<n>-<time>`, in lower case, so
-it is unique among herdr's live agents and fits herdr's
-`[a-z][a-z0-9_-]{0,31}`:
+from its JSON. Start the agent in that pane, its Claude session named
+`<name>`, with the command as its first prompt. herdr's own name for
+the agent is `yng<n>-<time>`, in lower case, so it is unique among
+herdr's live agents and fits herdr's `[a-z][a-z0-9_-]{0,31}`:
 
 ``` bash
 MSYS_NO_PATHCONV=1 herdr agent start "yng$(printf '%s' '<n>' | tr '[:upper:]' '[:lower:]')-$(date +%H%M%S)" \
-  --kind claude --pane "<pane id>" -- "/yngorchestrator <n>"
+  --kind claude --pane "<pane id>" -- --name "$name" "/yngorchestrator <n>"
 ```
 
 | Result                     | Means                                                    |
@@ -164,19 +173,20 @@ MSYS_NO_PATHCONV=1 herdr agent start "yng$(printf '%s' '<n>' | tr '[:upper:]' '[
 # Windows: a new window, titled, in the worktree. cmd /k finds claude.exe
 # or a claude.cmd shim, and keeps the window open.
 MSYS_NO_PATHCONV=1 wt.exe -w new new-tab -d "$(cygpath -w "<worktree>")" \
-  --title "#<n> <name>" cmd /k claude "/yngorchestrator <n>"
+  --title "$name" cmd /k claude --name "$name" "/yngorchestrator <n>"
 
 # macOS
-osascript -e "tell application \"Terminal\" to do script \"cd '<worktree>' && claude '/yngorchestrator <n>'\"" \
+osascript -e "tell application \"Terminal\" to do script \"cd '<worktree>' && claude --name '$name' '/yngorchestrator <n>'\"" \
           -e 'tell application "Terminal" to activate'
 
 # Any other system: the shell stays after the agent exits.
-nohup "$TERMINAL" -e sh -c 'cd "$1" && claude "$2"; exec "${SHELL:-sh}"' \
-  sh "<worktree>" "/yngorchestrator <n>" >/dev/null 2>&1 &
+nohup "$TERMINAL" -e sh -c 'cd "$1" && claude --name "$2" "$3"; exec "${SHELL:-sh}"' \
+  sh "<worktree>" "$name" "/yngorchestrator <n>" >/dev/null 2>&1 &
 ```
 
-A missing program (`wt.exe`, `osascript`, `$TERMINAL`) or a command
-that fails is a launch failure (step 5).
+Terminal.app and `$TERMINAL` take the window's title from the name
+Claude sets. A missing program (`wt.exe`, `osascript`, `$TERMINAL`)
+or a command that fails is a launch failure (step 5).
 
 Either way, the workspace or window stays open when the run ends,
 with its hand-back list on screen (R47.5).
@@ -189,8 +199,8 @@ On a launch, append to `yngorchestratorruns/<log>.md` (*Run log* in
 [SKILL.md](SKILL.md)):
 
 ``` text
-<date> #<n> launched herdr <workspace_id> "#<n> <name>"
-<date> #<n> launched terminal <program>
+<date> #<n> launched herdr <workspace_id> "<name>"
+<date> #<n> launched terminal <program> "<name>"
 ```
 
 Tell the person, in one sentence, where the run now is: the herdr

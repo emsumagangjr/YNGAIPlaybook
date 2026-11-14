@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.12.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.12.1 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1879,11 +1879,18 @@ neither, and prints one line saying whether it found herdr:
 | `agent:`    | `claude`              | `claude`; any other value stops the run until [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61) adds other agents |
 
 -   **herdr** (optional, [herdr.dev](https://herdr.dev)): a workspace
-    named after the issue (`#98 yngproviders`), on its worktree, with
-    the agent started and the command as its first prompt. If the agent
-    first asks whether to trust a new worktree's folder, answer it there.
+    on its worktree, with the agent started and the command as its
+    first prompt. If the agent first asks whether to trust a new
+    worktree's folder, answer it there.
 -   **terminal**: Windows Terminal on Windows, Terminal.app on macOS,
     `$TERMINAL` elsewhere.
+
+The instance is named after its project and its worktree,
+`YNGAIPlaybook · epic98-yngproviders`: the herdr workspace's label,
+the terminal window's title and the Claude session's name, so herdr's
+sidebar, the terminal tab and `/resume` say which project each run
+works on. A session you open yourself, and that runs in place, keeps
+its own name.
 
 The launcher never takes the lock; it checks it first. With no lock it
 launches. With a lock and a herdr workspace on the locked run's

@@ -36,7 +36,7 @@ approving the plan (R34), and a person decides every merge
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, two repositories, run log, the step sequence
 skills/yngorchestrator/locate.md    step: locate the root and the issue; continue; run here or launch (R14, R15, R25, R29, R46, R50)
-skills/yngorchestrator/launch.md    step: open the run's own instance, herdr or a terminal window (R46-R49)
+skills/yngorchestrator/launch.md    step: open the run's own instance, herdr or a terminal window, named after its project and worktree (R46-R49, R53)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
@@ -1159,20 +1159,21 @@ Issue: emsumagangjr/YNGAIPlaybook#122
     empty or any other value leaves it to detection, and never stops
     a run.
 2.  **herdr.** `herdr workspace create --cwd <worktree> --label
-    "#<n> <name>" --focus`, then `herdr agent start <name> --kind
-    claude --pane <root pane> -- "/yngorchestrator <n>"`: the command
+    "<name>" --focus`, then `herdr agent start <agent name> --kind
+    claude --pane <root pane> -- --name "<name>" "/yngorchestrator
+    <n>"`, `<name>` being the instance's name (R53): the command
     is the agent's first prompt, so it runs once the agent is up. An
     agent that asks a question at startup (`agent_not_ready`, such as
     trusting a new worktree's folder) counts as launched, and the
     person is told to answer it in the workspace.
 3.  **Terminal.** Windows Terminal (`wt.exe -w new new-tab -d
-    <worktree> --title "#<n> <name>" cmd /k claude "..."`) on Windows,
-    Terminal.app through `osascript` on macOS, and `$TERMINAL -e` on
-    any other system. A command whose argument starts with `/` runs
+    <worktree> --title "<name>" cmd /k claude --name "<name>" "..."`)
+    on Windows, Terminal.app through `osascript` on macOS, and
+    `$TERMINAL -e` on any other system, each starting `claude --name
+    "<name>"`. A command whose argument starts with `/` runs
     with `MSYS_NO_PATHCONV=1`, so Git Bash passes it on unchanged.
-4.  The herdr workspace, and the Windows Terminal tab, are named after
-    the issue: `#<n> <name>`, `<name>` being the branch's name after
-    its prefix and number (`#98 yngproviders`).
+4.  The herdr workspace, the terminal window and the Claude session
+    carry the instance's name (R53).
 5.  When the run ends, the workspace or window stays open with the
     hand-back list on screen.
 6.  **Launch failure.** A missing program, a herdr error or a command
@@ -1247,3 +1248,32 @@ Issue: emsumagangjr/YNGAIPlaybook#122
 
 1.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.12.0.
+
+## R53 The instance's name
+
+Issue: emsumagangjr/YNGAIPlaybook#125
+
+1.  An instance the launcher opens (R46.1) is named after its project
+    and its worktree, in one line: `<project> · <folder>`, `<project>`
+    being the project root's folder name and `<folder>` the worktree's
+    folder name (`YNGAIPlaybook · epic98-yngproviders`,
+    `YNGAIPlaybook · epic98-slice110-issues-repo-path`). The folder
+    carries the kind, the number, the topic and, for a slice, its Epic.
+2.  The name is the herdr workspace's label (R47.2), the terminal
+    window's title (R47.3; Terminal.app and `$TERMINAL` take it from
+    the session) and the Claude session's name (`claude --name`, shown
+    in the prompt box, the `/resume` picker and the terminal title).
+3.  herdr gets the same one-line form: herdr 0.9.0 keeps a line break
+    in a label, but its sidebar joins the two lines.
+4.  A session a person opens that runs in place (R46.2) is left as it
+    is. The name replaces 1.12.0's `#<n> <name>`.
+5.  The `launched` log line records the name:
+    `launched herdr <workspace_id> "<name>"`,
+    `launched terminal <program> "<name>"`.
+
+## R54 Version
+
+Issue: emsumagangjr/YNGAIPlaybook#125
+
+1.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.12.1.

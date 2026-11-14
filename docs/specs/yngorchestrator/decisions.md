@@ -151,3 +151,13 @@ Dated log of options refused, one line of why each.
   sets up the worktree, then releasing it to launch. The launcher never
   takes the lock (R48.1); it checked the lock was absent, and the
   instance it opens takes it.
+- **2026-11-15** Refused: a two-line herdr label, `<project>`, a line
+  break, then `<folder>` (emsumagangjr/YNGAIPlaybook#125). herdr 0.9.0
+  keeps the line break in the label, but its sidebar draws the two
+  lines joined (`YNGAIPlaybookepic98-…`); the one-line
+  `<project> · <folder>` reads as two parts there, as in the terminal
+  title and `/resume`.
+- **2026-11-15** Refused: keeping the issue's number and topic as the
+  name (`#98 yngproviders`, 1.12.0) (emsumagangjr/YNGAIPlaybook#125).
+  It does not say which project a run belongs to; the worktree's folder
+  already carries the kind, the number, the topic and the Epic.

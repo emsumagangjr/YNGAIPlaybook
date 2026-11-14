@@ -4,6 +4,20 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.12.1] — 2026-11-15
+
+A launched instance is named after its project and its worktree, so herdr's sidebar, the terminal tab and `/resume` say which project each run works on (emsumagangjr/YNGAIPlaybook#125).
+
+### Changed
+- `skills/yngorchestrator/launch.md`: the instance's name is `<project> · <folder>`, the project root's folder name and the worktree's folder name (`YNGAIPlaybook · epic98-yngproviders`). It is the herdr workspace's label, the Windows Terminal tab's title, and the Claude session's name, through `claude --name` in every launcher (herdr, Windows Terminal, Terminal.app, `$TERMINAL`). It replaces 1.12.0's `#<n> <name>`. A session that runs in place keeps its own name.
+- The `launched` log line records the name: `launched herdr <workspace_id> "<name>"`, `launched terminal <program> "<name>"`.
+- The spec gains R53 (the name) and R54; R47.2 to R47.4 point to R53. The guide's section 25, INSTALL, the folder's README template and the config template's `launcher:` setting show the new name.
+
+### Decisions
+- Refused, in `docs/specs/yngorchestrator/decisions.md`: a two-line herdr label (`<project>`, a line break, `<folder>`): herdr 0.9.0 keeps the line break, but its sidebar draws the two lines joined, so herdr uses the one-line form too.
+
+---
+
 ## [1.12.0] — 2026-11-14
 
 Each orchestrator run opens its own agent instance in its issue's worktree, and `/yngorchestrator continue` resumes a run without its number (emsumagangjr/YNGAIPlaybook#122).
