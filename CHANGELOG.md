@@ -4,6 +4,30 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.12.0] — 2026-11-14
+
+Each orchestrator run opens its own agent instance in its issue's worktree, and `/yngorchestrator continue` resumes a run without its number (emsumagangjr/YNGAIPlaybook#122).
+
+### Added
+- `skills/yngorchestrator/launch.md`: an Epic, slice or standalone run started outside the issue's own worktree finds or creates that worktree, opens a new instance there with `/yngorchestrator <n>` already sent, logs `launched`, and the launching session ends. In a herdr workspace named after the issue (`#98 yngproviders`) when herdr is installed and its server is running; otherwise in a new terminal window (Windows Terminal, Terminal.app, `$TERMINAL`). The workspace or window stays open after the hand-back. Slice workers stay `slice-worker` subagents in the dispatcher's instance.
+- The launcher never takes the lock; it checks it first: no lock, it launches; a lock and a herdr workspace on the locked run's worktree, it focuses that workspace; a lock and no workspace, it stops with the lock message. A slice run checks its Epic's lock.
+- A launch that fails gives the reason in one sentence, logs `launch-failed <reason>`, and the run goes on as the dispatcher in the current session.
+- `/yngorchestrator continue`, and a bare `/yngorchestrator`: in an issue's worktree it takes the issue from the branch (`epic/<n>-`, `fix/<n>-`, `slice/<n>-`) and resumes in place from the run log's last line; from the root or `main/` it lists the active runs (open issues with a run log: number, running or idle, kind, title, last log line, running first) and goes straight to the only one. It replaces the bare command's old meaning, the Epic recorded on the branch.
+- Config keys `launcher: herdr | terminal` (absent: detected) and `agent:` (absent: `claude`; any other value stops the run until emsumagangjr/YNGAIPlaybook#61). The template carries both as settings with their keys commented out; `yngorch` writes neither key.
+- `yngorch` (`.ps1` and `.sh`) prints one line saying whether it found herdr, and its closing lines name `continue`. INSTALL lists herdr as optional.
+- The spec gains R46-R52.
+
+### Changed
+- A session already in the issue's own worktree runs as the dispatcher there; anywhere else, the run launches. This replaces the rule that the session stays where it started (R18.1). `locate.md` gains step 5, *Run here or launch*; its old steps 5 and 6 are now 6 and 7.
+
+### Decisions
+- Refused, in `docs/specs/yngorchestrator/decisions.md`: sending the command with `herdr agent prompt` after start (a trust question at startup would reject it); finding the workspace by its label; leaving the two keys out of the template; holding the lock while the launching session sets up the worktree.
+
+### Not yet done
+- The end-to-end verify of emsumagangjr/YNGAIPlaybook#122 (a throwaway project run from the root with herdr and with `launcher: terminal`, the focus path, `continue` from a worktree and from the root, a forced launch failure, on Windows and a POSIX shell) is for a person to run; this release checked the herdr and Windows Terminal calls and both installers on Windows.
+
+---
+
 ## [1.11.0] — 2026-10-23
 
 The git provider is a setting: the orchestrator and its installer work with GitHub, GitLab and Bitbucket Cloud, and more providers will follow.

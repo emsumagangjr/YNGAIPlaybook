@@ -2,13 +2,16 @@
 
 You find the project root, read its provider and host, resolve its
 code repo and issues repo,
-check that the issue belongs to this project, and tell what kind of
-issue it is. Nothing here changes a branch, a worktree or an issue,
-except a reopen the person said yes to.
+check that the issue belongs to this project, tell what kind of
+issue it is, and decide where the run goes: here, when the session is
+in the issue's own worktree, or into an instance of its own there
+([launch.md](launch.md), R46). Nothing here changes a branch, a
+worktree or an issue, except a reopen the person said yes to.
 
 The session may have started at the project root, in any worktree, or
-in any folder below one. It stays there: every command below names its
-target by absolute path, so the result is the same from each.
+in any folder below one. Every command below names its target by
+absolute path, so the result is the same from each; only steps 2 and
+5 look at the session's own folder.
 
 When a step stops the run, tell the person the reason in one sentence
 and end the run.
@@ -56,6 +59,10 @@ root holds `.yngaiplaybook/` or no older folder.
 
 ## 2. Read the argument
 
+The argument is `<issue>`, `continue`, or nothing: a bare
+`/yngorchestrator` is `continue` (R50.3). `continue` is read below,
+after the forms of `<issue>`.
+
 `<issue>` takes three forms:
 
 | Form           | Example                                       | Issue number |
@@ -82,17 +89,27 @@ Anything else stops the run, a pull request URL (`/pull/39`,
 orchestrator runs on issues. A number is the issues repo's; step 3
 checks the host and repository a URL names.
 
-With no argument, and the session inside a worktree, the issue is the
-Epic recorded on the current branch:
+### `continue`
+
+`continue` resumes a run without its number (R50). In a worktree, the
+current branch names the issue:
 
 ``` bash
-git config --get "branch.$(git branch --show-current).epicid"
+branch=$(git branch --show-current 2>/dev/null)
+n=$(printf '%s\n' "$branch" | sed -nE 's#^(epic|fix|slice)/([0-9]+)-.*#\2#p')
 ```
 
-With no argument at the root, or no `epicid` recorded, ask the person
-for the issue.
+That is `<n>`, the issue of `epic/<n>-`, `fix/<n>-` or `slice/<n>-`.
+The session is then in that issue's own worktree, so step 5 runs it
+here, and the lock's procedure resumes it from the run log's last line
+(*The lock* in [SKILL.md](SKILL.md)); a slice's lock and log are its
+Epic's.
 
-Done when you hold an issue number `<n>`.
+From the root, or a worktree whose branch names no issue (`main`),
+there is no `<n>` yet: step 3 picks the run, once the provider is
+known (*Pick a run* there).
+
+Done when you hold an issue number `<n>`, or know step 3 picks it.
 
 ## 3. Resolve the provider and the repositories
 
@@ -212,6 +229,55 @@ It decides two things only: how [plan.md](plan.md) labels the slices
 it creates, and whether step 1 of [dispatch.md](dispatch.md) accepts a
 plan promotion.
 
+**The launcher**, `<launcher>`, is `launcher:`, in lower case (R47.1):
+`herdr` or `terminal` choose one; no file, no key, an empty value or
+any other value leaves it to detection in step 3 of
+[launch.md](launch.md). It never stops the run.
+
+**The agent**, `<agent>`, is `agent:`, in lower case; no file, no key
+or an empty value is `claude` (R49):
+
+``` bash
+agent=$(value agent | tr '[:upper:]' '[:lower:]'); agent=${agent:-claude}
+```
+
+Any other value stops the run before the lock and before touching
+anything: name the value and the config file, say `claude` is the only
+agent the orchestrator runs on today, and that other agents come with
+[#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61). Remove
+the key or set it to `claude`.
+
+**Pick a run** (`continue` with no `<n>`, step 2). The active runs are
+the open issues with a run log (R50.2). Each log is
+`yngorchestratorruns/<m>.md`, `<m>` an Epic's or a standalone issue's
+number (*Run log* in [SKILL.md](SKILL.md)):
+
+``` bash
+ls "<root>/.yngaiplaybook/yngorchestratorruns" 2>/dev/null | sed -n 's/\.md$//p'
+```
+
+For each `<m>`, *read issue* `<m>`, and keep it when it is `open`. Its
+kind is Epic when *mark epic* says so or *list children* `<m>` gives
+any, else standalone. It is **running** while `<m>.lock` exists, else
+**idle**. Show one line per run, running runs first, then by number:
+
+``` text
+#98   running  Epic        Provider abstraction    2026-11-14 #104 dispatched
+#122  idle     standalone  Own instance per run    2026-11-13 #122 in-review <PR>
+```
+
+Each line is the number, running or idle, the kind, the title and the
+log's last line. Then:
+
+- **none**: say there is no active run, and ask the person for the
+  issue;
+- **one**: take it, without asking;
+- **more**: ask the person which one.
+
+The chosen run's number is `<n>`. It goes on like any other: step 5
+sends it to its own instance, through the lock check of
+[launch.md](launch.md) (R48), unless the session is in its worktree.
+
 **A URL argument** must name `<host>` and the issues repo (compare both
 without case). A URL naming any other host or repository, the code
 repo included when it differs, stops the run, naming both the URL's
@@ -222,7 +288,8 @@ exist in `<issues repo>`. *A pull request* stops it too: `<n>` is a
 pull request, not an issue.
 
 Done when you hold `<provider>`, its provider file, `<host>`,
-`<code repo>`, `<issues repo>` and `<auto-promote>`, the issue exists
+`<code repo>`, `<issues repo>`, `<auto-promote>`, `<launcher>`,
+`<agent>` and `<n>`, the issue exists
 in the issues repo, and you hold its state, state reason, title, body
 and labels.
 
@@ -243,9 +310,32 @@ issue is. Continue only on their answer.
 
 Done when the issue has one kind, from the signals or from the person.
 
-## 5. Check the state
+## 5. Run here or launch
 
-An open issue goes on to step 6.
+`<log>` follows the kind (*Run log* in [SKILL.md](SKILL.md)): an
+Epic's own number, a slice's parent, a standalone issue's own number.
+
+The session is in the issue's **own worktree** when the branch of the
+worktree holding the session's folder fits the kind (`epic/`,
+`slice/`, `fix/`) and names `<n>`:
+
+``` bash
+git branch --show-current 2>/dev/null | grep -Eq "^(epic|slice|fix)/<n>-"
+```
+
+| Session                     | The run                                                   |
+|-----------------------------|-----------------------------------------------------------|
+| in the issue's own worktree | runs here, as the dispatcher (R46.2): take the lock (*The lock* in [SKILL.md](SKILL.md)) and go on to step 6 |
+| anywhere else               | **launches** (R46.1): follow steps 1 and 2 of [launch.md](launch.md), which check the lock without taking it and bring the run back to step 6 |
+
+No flag chooses between them: where the session is decides. A launch
+that fails runs here after all (step 5 of [launch.md](launch.md)).
+
+Done when the run holds the lock here, or goes on to launch.
+
+## 6. Check the state
+
+An open issue goes on to step 7.
 
 A closed issue is not refused. Show the person its state:
 
@@ -271,7 +361,7 @@ Any other answer ends the run with the issue left closed.
 
 Done when the issue is open, or the run has ended with it closed.
 
-## 6. Hand on
+## 7. Hand on
 
 The run stays within the issue's boundary:
 
@@ -280,16 +370,20 @@ The run stays within the issue's boundary:
   provider file, `<host>`, `<code repo>`, `<issues repo>`,
   `<auto-promote>`, the Epic `<n>` and its title: it finds or creates
   the Epic branch and worktree, checks the spec, and hands on to step
-  1 of [SKILL.md](SKILL.md);
+  1 of [SKILL.md](SKILL.md). A run that launches stops after
+  worktree.md's step 4 and goes to step 3 of [launch.md](launch.md)
+  with `<branch>` and `<worktree>`: the instance it opens checks the
+  spec;
 - **slice**: the run handles that slice only (R19);
 - **standalone**: the run handles that issue only (R20).
 
 For a slice or a standalone issue, follow [scoped.md](scoped.md),
 holding `<root>`, `<provider>` and its provider file, `<host>`,
 `<code repo>`, `<issues repo>`, `<auto-promote>`, `<n>`, its title, its
-kind and, for a slice, its parent. It checks Gate 1 before it
-reaches [worktree.md](worktree.md), so no branch is created for an
-issue a person has not promoted.
+kind, for a slice its parent, and whether the run launches. It checks
+Gate 1 before it reaches [worktree.md](worktree.md), so no branch is
+created for an issue a person has not promoted, and a run that
+launches goes to [launch.md](launch.md) from there.
 
 Done when the run continues as an Epic run, a slice run or a
-standalone run.
+standalone run, here or in its own instance.

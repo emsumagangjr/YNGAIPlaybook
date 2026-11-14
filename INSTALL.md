@@ -57,6 +57,7 @@ You need these once per machine:
 | GitLab and Bitbucket only: `jq` (GitHub's `gh` has `--jq` built in) | `jq --version`; install with `winget install jqlang.jq` (Windows), `brew install jq` (macOS) or `sudo apt install jq` (Linux) |
 | Claude Code | `claude --version` |
 | Windows only: Developer Mode, for the links | Settings → System → For developers |
+| Optional: [herdr](https://herdr.dev), so each run opens in a herdr workspace instead of a new terminal window | `herdr --version`; the installer prints whether it found it |
 
 `<host>` is your provider's host: `github.com`, `gitlab.com`, or your
 own server's name. To log in: `gh auth login --hostname <host>` or
@@ -318,6 +319,9 @@ existing folder.
       what the installer created or kept, the issues repo included.
     - Where `yngv` went, and whether they must open a new terminal or
       add the PATH line first.
+    - Whether the installer found herdr (its `found` or `note` line):
+      with herdr, each run opens in a herdr workspace; without it, in a
+      new terminal window.
     - On a first install: `auto-promote:` is `no` and their merge
       rules are all `required`. Ask whether they want plan approval to
       promote the agent slices (`auto-promote: yes`) and any merge path
@@ -513,6 +517,19 @@ clone until you have checked the new one:
     on Bitbucket, `<group>[/<subgroup>...]/<project>` on GitLab. Any
     other form stops the next run, naming it (guide, section 25).
 
+    **Where runs open.** Each run works in its own agent instance, in
+    its issue's own worktree. Started anywhere else, it opens that
+    instance for you: in a herdr workspace named after the issue
+    (`#98 yngproviders`) when [herdr](https://herdr.dev) is installed
+    and its server is running, otherwise in a new terminal window
+    (Windows Terminal, Terminal.app, or `$TERMINAL`). herdr is
+    optional. Two keys, both yours, which `yngorch` never writes:
+
+    ``` yaml
+    launcher: terminal   # herdr | terminal; absent: herdr when it runs, else a terminal window
+    agent: claude        # the only agent today; any other value stops the run
+    ```
+
 2.  **Start an Epic:** create its issue, in the issues repo when you
     have one, marked as an Epic: the `epic` label on GitHub and
     GitLab, the `epic` milestone on Bitbucket. Start
@@ -521,7 +538,9 @@ clone until you have checked the new one:
     branch, `epic/<n>-<name>` from `origin/main`, and creates it with
     its worktree, `epic<n>-<name>`, once you confirm the name, linked,
     with the Epic recorded on the branch and a ``Branch: `<branch>` ``
-    line added to the issue. With no spec on the branch yet, it stops
+    line added to the issue. Then it opens the Epic's own instance in
+    that worktree, with `/yngorchestrator <n>` already sent, and the
+    session you started in ends. With no spec on the branch yet, it stops
     and names where the spec belongs: write
     `docs/specs/<feature>/requirements.md` and `decisions.md` in the
     Epic worktree, commit and push (guide, section 9).
@@ -537,8 +556,12 @@ clone until you have checked the new one:
     once.
 
     The command takes any issue: `<n>`, `#<n>` or the issue's URL.
-    Inside a worktree, with no argument, it takes the Epic recorded on
-    the current branch. On an Epic it drives the whole Epic; on a slice
+    Run it again while the run is going and it brings that run's herdr
+    workspace to the front instead of starting another. To pick a run
+    up without its number, run `/yngorchestrator continue`, or just
+    `/yngorchestrator`: in an issue's worktree it resumes that issue's
+    run there; from the root or `main/` it lists the active runs and
+    goes straight to the only one. On an Epic it drives the whole Epic; on a slice
     it runs that one slice to its merge into the Epic; on a standalone
     issue it works on a `fix/` branch from `main` and opens a pull
     request into `main` (guide, section 25).

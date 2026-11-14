@@ -169,6 +169,40 @@ merge:
   fix-to-main: required     # required | auto
 
 
+# --- Setting: launcher -------------------------------------------------------
+# Decides: where a run opens its own agent instance. Every Epic, slice and
+#   standalone run works in its issue's own worktree; started anywhere
+#   else, /yngorchestrator opens a new instance there with the command
+#   already sent, and the session you started it from ends. Not a gate.
+# Values:
+#   herdr     a herdr workspace named after the issue ("#98 yngproviders").
+#             herdr is optional: https://herdr.dev
+#   terminal  a new terminal window: Windows Terminal, Terminal.app, or
+#             $TERMINAL on other systems.
+#   (no value) herdr when it is installed and its server is running, else
+#             a terminal window. (default)
+# Default: no value. An absent key, an empty value or any other value
+#   means the default, and never stops a run.
+# Read: at the start of every run.
+# Changed by: you. yngorch never writes the key; it adds this setting,
+#   commented out as below, when it is missing, and prints whether it
+#   found herdr.
+# launcher: herdr | terminal
+
+
+# --- Setting: agent ----------------------------------------------------------
+# Decides: which agent the run's own instance starts. Not a gate.
+# Values:
+#   claude  Claude Code. (default, and the only agent today)
+# Default: claude. An absent key or an empty value means claude. Any other
+#   value stops the run before it touches anything, until other agents
+#   are added (https://github.com/emsumagangjr/YNGAIPlaybook/issues/61).
+# Read: at the start of every run.
+# Changed by: you. yngorch never writes the key; it adds this setting,
+#   commented out as below, when it is missing.
+# agent: claude
+
+
 # =============================================================================
 # Worked examples. Commented out: the orchestrator reads only the settings
 # above. To use one, change the settings above to match; uncommenting these

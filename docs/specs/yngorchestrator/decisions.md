@@ -133,3 +133,21 @@ Dated log of options refused, one line of why each.
 - **2026-10-13** Refused: `promote: label | plan`. The values name the
   mechanism, not the outcome; a yes/no `auto-promote:` with its
   description says what turning it on does, and where it still stops.
+- **2026-11-14** Refused: sending `/yngorchestrator <n>` with
+  `herdr agent prompt` after `agent start` (emsumagangjr/YNGAIPlaybook#122).
+  A new worktree's folder can open with Claude Code's trust question,
+  which leaves the agent blocked and the prompt rejected; passed as the
+  agent's first prompt (`-- "/yngorchestrator <n>"`), it runs once the
+  person answers.
+- **2026-11-14** Refused: finding a run's herdr workspace by its label
+  (`#<n> <name>`). A slice run holds its Epic's lock from the slice's
+  workspace, and a person can rename a workspace; the lock's `session:`
+  folder and the panes' `cwd` name the worktree either way.
+- **2026-11-14** Refused: leaving `launcher:` and `agent:` out of the
+  config template. A reinstall would then note a key a person set as
+  one the orchestrator ignores; the template carries both settings with
+  their keys commented out, so `yngorch` still writes neither key.
+- **2026-11-14** Refused: taking the lock while a launching session
+  sets up the worktree, then releasing it to launch. The launcher never
+  takes the lock (R48.1); it checked the lock was absent, and the
+  instance it opens takes it.

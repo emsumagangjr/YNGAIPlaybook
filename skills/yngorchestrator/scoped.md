@@ -4,17 +4,25 @@ A run on a slice handles that slice only (R19); a run on a standalone
 issue handles that issue only (R20). You arrive from
 [locate.md](locate.md) holding `<root>`, `<code repo>`,
 `<issues repo>`, `<auto-promote>`, the issue `<n>`, its title, its kind and, for a
-slice, its parent `<parent>`.
+slice, its parent `<parent>`, and whether the run launches.
 The run holds its lock (*The lock* in [SKILL.md](SKILL.md)) and writes
 its log; this file carries it to its end, and SKILL.md's steps 2 to 5
 do not run.
+
+A run that **launches** (step 5 of [locate.md](locate.md)) holds no
+lock: it runs steps 1 to 4 here, so Gate 1 still comes before any
+branch, then opens the issue's own instance through step 3 of
+[launch.md](launch.md), and ends. That instance runs this file again,
+in place, from step 1. A launching run logs a refusal, but not a Gate 1
+pass (`gate 1 by plan approval`): the instance checks again and logs
+it.
 
 Every command names its target by absolute path, and every operation
 (*The provider* in [SKILL.md](SKILL.md)) targets `<issues repo>` for
 an issue or `<code repo>` for a pull request (*Two repositories*).
 
 When a step stops the run, tell the person the reason in one sentence,
-log it, delete the lock, and end the run. You never apply
+log it, delete the lock if the run holds it, and end the run. You never apply
 `workflow:ready-for-agent`: that label comes only from a person.
 
 | Kind       | Branch             | `PR BASE`        | `SPEC`                       | Merge path      |
@@ -38,6 +46,11 @@ Take `<branch>` from the pull request's head and the `PR BASE` from
 its base; `<worktree>` is the path `git --git-dir="<root>/.bare" worktree list`
 shows on `<branch>`, if any. The report's `STATUS` is the last
 `reported` line for `#<n>` in the run log.
+
+A run that launches goes to step 3 of [launch.md](launch.md) with
+`<worktree>`, instead of the step the table names. With no worktree on
+`<branch>` there is nowhere to open it: take the lock and go on here,
+in place, at that step.
 
 Any other label goes on to step 2.
 
@@ -84,8 +97,13 @@ Follow steps 1 to 4 of [worktree.md](worktree.md), holding the kind:
 a slice gets `slice/<n>-<name>` from its Epic branch, a standalone
 issue `fix/<n>-<name>` from `origin/main`, with no `epicid`.
 
+A run that launches goes now to step 3 of [launch.md](launch.md),
+holding `<branch>` and `<worktree>`; when that launch fails, it takes
+the lock and comes back to step 5.
+
 Done when you hold `<branch>`, `<worktree>` and, for a slice,
-`<epic branch>` and `<epic worktree>` (when the Epic has one).
+`<epic branch>` and `<epic worktree>` (when the Epic has one), or the
+run has launched.
 
 ## 5. Dispatch one worker
 
@@ -119,6 +137,12 @@ or any value but `auto`, is `required`.
 Done when the pull request is merged, or waits on a person.
 
 ## 7. After the merge
+
+A run in its own instance sits in the worktree it removes here. Where
+the system refuses to remove a folder in use (Windows does), the
+removal is reported as any refusal is (step 4 of *On a merge* in
+[track.md](track.md)): the person removes it once the instance has
+closed.
 
 ### A slice
 
