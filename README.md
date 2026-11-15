@@ -88,6 +88,64 @@ The guide works with any of these hosts. The YNG Orchestrator and its slice work
 
 Before the first step that needs Git or the host's tool, check both with the commands above, for the host of the project's `origin` (`git remote get-url origin`), and only that host's tool. When one is missing, tell the person which, offer to install it with the command for their platform, and install only after they say yes. Logging in is interactive: ask the person to run the log-in command themselves (in Claude Code, `! gh auth login` or `! glab auth login`), then check again. For Bitbucket, the person creates the API token and sets the two variables themselves; check only that both are set, and never print them.
 
+## Install
+
+Check the [Prerequisites](#prerequisites) first. Then pick one of two ways; both end in the same place, and nothing is committed to your project.
+
+### Ask your agent
+
+Start Claude Code in your project folder, or in the folder where a new project should go, and tell it:
+
+```text
+Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.
+```
+
+For a new project, add its repository URL: `...into a new project for https://github.com/you/myproject`. The agent checks your setup, tells you what it will change, and installs only after you say yes.
+
+### By hand
+
+1. **Get the playbook**, once per machine:
+
+   ```powershell
+   git clone https://github.com/emsumagangjr/YNGAIPlaybook.git $HOME\.yngaiplaybook   # Windows
+   ```
+
+   ```bash
+   git clone https://github.com/emsumagangjr/YNGAIPlaybook.git ~/.yngaiplaybook      # macOS/Linux
+   ```
+
+2. **Put your project in the bare-repository layout**, once per project: see step 3 of [Quick start](#quick-start), or INSTALL.md's [new project](INSTALL.md#set-up-a-new-project) and [existing clone](INSTALL.md#convert-an-existing-clone). Skip this when your project already has `.bare/`.
+
+3. **Run the installer**, from anywhere inside the project:
+
+   ```powershell
+   & $HOME\.yngaiplaybook\scripts\yngorch.ps1      # Windows
+   ```
+
+   ```bash
+   ~/.yngaiplaybook/scripts/yngorch.sh             # macOS/Linux
+   ```
+
+   It works out your provider from `origin`, installs the orchestrator beside `.bare/`, writes `.yngaiplaybook/` with its config, and puts `yngv` on your PATH. Open a new terminal afterwards.
+
+4. **Check it:** run `/yngorchestrator continue` in Claude Code from the project root. It lists the runs in progress, or tells you there are none.
+
+### Upgrade
+
+Pull the playbook, then run the installer again. Your config and run logs are kept, and the old config is backed up to `yngorchestratorconfig.yml.bak`:
+
+```powershell
+git -C $HOME\.yngaiplaybook pull; & $HOME\.yngaiplaybook\scripts\yngorch.ps1      # Windows
+```
+
+```bash
+git -C ~/.yngaiplaybook pull && ~/.yngaiplaybook/scripts/yngorch.sh               # macOS/Linux
+```
+
+Or tell your agent: *Reinstall the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md.*
+
+[INSTALL.md](INSTALL.md) has every option: providers, a separate issues repository, the Bitbucket API token, and what the installer changes.
+
 ## Quick start
 
 1. **Read the guide:** [guides/epic-workflow.md](guides/epic-workflow.md).
@@ -104,7 +162,7 @@ Before the first step that needs Git or the host's tool, check both with the com
 
 4. **Start an Epic and its slices** (sections 9 and 10), then give each agent one slice worktree.
 5. **Share private files** across worktrees with `scripts/yngshared.ps1` (Windows) or `scripts/yngshared.sh` (macOS/Linux).
-6. **Let an agent orchestrate** (optional): follow [INSTALL.md](INSTALL.md), by hand or by telling your agent "Install the YNG Orchestrator from https://github.com/emsumagangjr/YNGAIPlaybook into this project, following its INSTALL.md". It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Its config (`auto-promote:` and the `merge:` rules, [template](templates/yngorchestratorconfig.yml)) and run logs live in `.yngaiplaybook/` in your project root (`yngorchestratorconfig.yml`, `yngorchestratorruns/`), with a `README.md` that explains each file ([template](templates/yngaiplaybookreadme.md)). Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. Each run opens its own agent instance in the issue's worktree, in a herdr workspace when [herdr](https://herdr.dev) (optional) is running, else in a new terminal window; `/yngorchestrator continue` picks a run up again without its number. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree, naming a new worktree for its issue (`epic100-authentication` for `epic/100-authentication`, `epic100-slice101-oauth` for its slice `slice/101-oauth`, `fix140-login-redirect` for `fix/140-login-redirect`), and records the branch and worktree on the issue. On an Epic it plans the slices and dispatches the ones you promote to parallel workers (with `auto-promote: yes`, approving the plan promotes the agent slices, and dispatch starts at once); on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
+6. **Let an agent orchestrate** (optional): install the YNG Orchestrator as in [Install](#install). It installs the orchestrator beside `.bare/`, with nothing committed to your project; run it again to upgrade. Its config (`auto-promote:` and the `merge:` rules, [template](templates/yngorchestratorconfig.yml)) and run logs live in `.yngaiplaybook/` in your project root (`yngorchestratorconfig.yml`, `yngorchestratorruns/`), with a `README.md` that explains each file ([template](templates/yngaiplaybookreadme.md)). Then run `/yngorchestrator <issue>` from anywhere in the project: its root or any worktree. Each run opens its own agent instance in the issue's worktree, in a herdr workspace when [herdr](https://herdr.dev) (optional) is running, else in a new terminal window; `/yngorchestrator continue` picks a run up again without its number. The issue can be an Epic, a slice or a standalone issue; it finds or creates the issue's branch and worktree, naming a new worktree for its issue (`epic100-authentication` for `epic/100-authentication`, `epic100-slice101-oauth` for its slice `slice/101-oauth`, `fix140-login-redirect` for `fix/140-login-redirect`), and records the branch and worktree on the issue. On an Epic it plans the slices and dispatches the ones you promote to parallel workers (with `auto-promote: yes`, approving the plan promotes the agent slices, and dispatch starts at once); on a slice or a standalone issue it runs that one issue only. It hands back the pull requests for you to merge, or merges them itself on the paths your config sets to `auto`.
 7. **Keep issues in their own repository** (optional): when your issues belong apart from the code (a public tracker for a private codebase, say), name that repository, on the same provider as the code, in the config's `issues:` key as its path (`<owner>/<repo>` on GitHub, `<group>[/<subgroup>...]/<project>` on GitLab, `<workspace>/<repo>` on Bitbucket), or install with `-IssuesRepo <path>` (`--issues-repo` in `yngorch.sh`), which writes the key only when it has no value yet. The orchestrator then works the issues in that repository and the code, branches and pull requests in `origin`'s, and names every issue by its full reference, `<owner>/<repo>#<n>`, so links from the code repository reach the right issue ([guide, section 25](guides/epic-workflow.md#25-running-the-dispatcher-as-the-yng-orchestrator)).
 
 ## Roadmap
