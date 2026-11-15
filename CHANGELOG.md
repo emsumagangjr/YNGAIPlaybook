@@ -4,6 +4,15 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.12.2] — 2026-11-15
+
+The README says how to install the playbook and the YNG Orchestrator, and how to upgrade, without opening INSTALL.md first.
+
+### Changed
+- `README.md`: a new *Install* section, between *Prerequisites* and *Quick start*. It covers asking your agent, the three steps by hand (clone the playbook to `~/.yngaiplaybook`, put the project in the bare-repository layout, run `yngorch`), a check with `/yngorchestrator continue`, and upgrading. It links to INSTALL.md for every option. *Quick start* step 6 points to it.
+
+---
+
 ## [1.12.1] — 2026-11-15
 
 A launched instance is named after its project and its worktree, so herdr's sidebar, the terminal tab and `/resume` say which project each run works on (emsumagangjr/YNGAIPlaybook#125).
