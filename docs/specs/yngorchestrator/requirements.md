@@ -36,7 +36,7 @@ approving the plan (R34), and a person decides every merge
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, two repositories, run log, the step sequence
 skills/yngorchestrator/locate.md    step: locate the root and the issue; continue; run here or launch (R14, R15, R25, R29, R46, R50)
-skills/yngorchestrator/launch.md    step: open the run's own instance, herdr or a terminal window, named after its project and worktree (R46-R49, R53)
+skills/yngorchestrator/launch.md    step: open the run's own instance, the Herdr app, herdr or a terminal window, named after its project and worktree (R46-R49, R53, R55)
 skills/yngorchestrator/worktree.md  step: find or create the branch and worktree (R16, R17)
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
@@ -1157,7 +1157,8 @@ Issue: emsumagangjr/YNGAIPlaybook#122
     and a new terminal window otherwise. The config's top-level
     `launcher: herdr | terminal` overrides the detection; absent,
     empty or any other value leaves it to detection, and never stops
-    a run.
+    a run. R55 adds the Herdr app, `launcher: herdr-app`, first in
+    detection.
 2.  **herdr.** `herdr workspace create --cwd <worktree> --label
     "<name>" --focus`, then `herdr agent start <agent name> --kind
     claude --pane <root pane> -- --name "<name>" "/yngorchestrator
@@ -1236,6 +1237,8 @@ Issue: emsumagangjr/YNGAIPlaybook#122
 
 1.  `yngorch` (`.ps1` and `.sh`, at parity) writes neither `launcher:`
     nor `agent:`, and prints one line saying whether it found herdr.
+    R56 replaces this for `launcher:`, which `yngorch` now writes from
+    a flag or a question, and for the line, now one per product.
     The config template carries both as settings with their keys
     commented out, so a reinstall adds their documentation, never a
     key, and a key a person set is not reported as ignored.
@@ -1277,3 +1280,76 @@ Issue: emsumagangjr/YNGAIPlaybook#125
 
 1.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.12.1.
+
+## R55 The Herdr app launcher
+
+Issue: emsumagangjr/YNGAIPlaybook#129
+
+1.  herdr ships as two products: the **herdr CLI** (`herdr`, a
+    terminal UI, the launcher of R47.2) and the **Herdr app**
+    (`herdr-app`, a desktop window whose terminals `hc` runs).
+    `launcher:` takes `herdr-app | herdr | terminal`; `herdr` keeps
+    meaning the herdr CLI, so every config written before behaves as
+    it did.
+2.  **Detection.** Absent, empty or any other value: the Herdr app
+    when `herdr-app status` succeeds (its window is open), else the
+    herdr CLI when its server is running (R47.1), else a terminal
+    window. A named launcher is used whether or not it is running.
+3.  **Herdr app.** `herdr-app do space.new --name "<name>" --folder
+    <worktree> --argv '["claude","--name","<name>"]' --task
+    "/yngorchestrator <n>"`, `<name>` being the instance's name (R53).
+    The app passes the task to `claude` as its first prompt, so it
+    runs once the agent is up, after any question it asks at startup;
+    the person is told to answer it in the space. The space is in
+    front.
+4.  **The lock at launch** (R48.1) also finds a Herdr app space: a
+    terminal in `hc ls` whose `cwd` is the lock's worktree or below
+    it, its space read from its `herdr.space` label (`hc get`), and
+    focused with `herdr-app do space.select --id <space>`.
+5.  **Launch failure** (R47.6): an error reply (exit 1,
+    `{"error": …}`) or no `herdr-app` fails the launch; a space it
+    created is closed with `space.close --confirmed true`.
+6.  The `launched` log line is `launched herdr-app <space id>
+    "<name>"`.
+
+## R56 yngorch asks which launcher
+
+Issue: emsumagangjr/YNGAIPlaybook#129
+
+It replaces R51.1's "writes neither `launcher:` nor `agent:`" for
+`launcher:`; `agent:` stays unwritten.
+
+1.  `yngorch` (`.ps1` and `.sh`, at parity) takes `-Launcher` /
+    `--launcher herdr-app|herdr|terminal`, in any case. Any other
+    value stops the install before anything is written.
+2.  In step 3, beside `issues:`, while the config has no `launcher:`
+    value:
+    -   with the flag, it writes the flag's value, without asking;
+    -   without it, when the herdr CLI or the Herdr app is on PATH and
+        the install can ask (PowerShell: an interactive console whose
+        input is not redirected; sh: stdin and stdout a terminal), it
+        asks, listing the products found in detection order (R55.2),
+        then `terminal`. Enter takes the first; a number or a value
+        picks one; anything else asks again. It writes the answer;
+    -   when it cannot ask, it writes nothing and prints a `note`
+        naming the flag; with no herdr product it says nothing here.
+3.  A `launcher:` value already set is kept and reported, never
+    changed, the flag's differing value named as not written. A value
+    that is not one of the three is kept with a warning that runs
+    detect one instead.
+4.  The key is written as `issues:` is (R31.2), just after the
+    template's `# launcher:` placeholder. When R24.2 holds, nothing is
+    asked, and a flag's value is reported as skipped.
+5.  Step 8 prints one `found` line per product, the Herdr app first,
+    each naming its `launcher:` value; with neither, one `note`.
+
+## R57 Documentation and version
+
+Issue: emsumagangjr/YNGAIPlaybook#129
+
+1.  The config template's `launcher` setting, the folder's README
+    template, INSTALL (including what an agent doing the install asks
+    the person), README and guide section 25 describe the three values,
+    detection, and the question.
+2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.13.0.

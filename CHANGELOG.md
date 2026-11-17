@@ -4,6 +4,28 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.13.0] — 2026-11-18
+
+Each run can open in the Herdr desktop app, and `yngorch` asks which launcher to use on an install that has none yet (emsumagangjr/YNGAIPlaybook#129).
+
+### Added
+- `launcher: herdr-app`: each run opens in a new Herdr app space on its worktree, named `<project> · <folder>`, with `claude --name "<name>"` started and `/yngorchestrator <n>` as its first message (`herdr-app do space.new`). `launcher: herdr` keeps meaning the herdr CLI, so existing configs behave as before.
+- `yngorch` (`.ps1` and `.sh`): `-Launcher` / `--launcher herdr-app|herdr|terminal`. While the config has no `launcher:` value, it writes the flag's value, or else asks which launcher to use when it finds herdr or the Herdr app and runs in a terminal it can ask in. Run by an agent or a script, it asks nothing, writes nothing, and prints a note naming the flag. A value already set is never changed; one that is not a launcher is kept with a warning.
+
+### Changed
+- `skills/yngorchestrator/launch.md`: with no `launcher:`, detection is the Herdr app when its window is open, else the herdr CLI when its server runs, else a terminal window. The lock check also brings a Herdr app space on the locked run's worktree to the front (`hc ls`, its `herdr.space` label, `space.select`). A failed app launch closes any space it created. The log line is `launched herdr-app <space id> "<name>"`.
+- `yngorch` prints one `found` line per herdr product (Herdr app, herdr CLI), each naming its `launcher:` value.
+- The config template's `launcher` setting and its placeholder (`# launcher: herdr-app | herdr | terminal`), the folder's README template, INSTALL (including what an agent doing the install asks the person), README and guide section 25 describe the three values, detection and the question. The spec gains R55 to R57; R47.1 and R51.1 point to them.
+
+### Decisions
+- Refused, in `docs/specs/yngorchestrator/decisions.md`: a separate `herdr:` key; renaming `herdr` to `herdr-cli`; the CLI first in detection; asking on every install; asking when the install cannot take an answer; finding an app space by its name.
+
+### Notes
+- A config written before 1.13.0 keeps its `launcher` setting's old comment text: a reinstall adds missing settings and never rewrites lines. The new values work in it all the same.
+- Checked on Windows: both installers fresh, interactive (an invalid answer, a number, Enter), with the flag, with a kept and an unknown value, and with a bad flag; and the Herdr app calls (`space.new` with the trust question, `space.select`, `space.close`, an error reply). An end-to-end run through `/yngorchestrator` in the app, and the installers on macOS/Linux, are for a person to run.
+
+---
+
 ## [1.12.2] — 2026-11-15
 
 The README says how to install the playbook and the YNG Orchestrator, and how to upgrade, without opening INSTALL.md first.

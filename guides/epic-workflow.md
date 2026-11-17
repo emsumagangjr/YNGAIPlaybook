@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.12.2 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.13.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1494,7 +1494,7 @@ it as the **YNG Orchestrator** skill (`/yngorchestrator`), with the
 ``` text
 skills/yngorchestrator/SKILL.md     the orchestrator: role, run log and lock, steps
 skills/yngorchestrator/locate.md    find the root; check the issue and tell its kind; continue; run here or launch
-skills/yngorchestrator/launch.md    open the run's own instance: herdr workspace or terminal window
+skills/yngorchestrator/launch.md    open the run's own instance: Herdr app space, herdr workspace or terminal window
 skills/yngorchestrator/worktree.md  find or create the issue's branch and worktree
 skills/yngorchestrator/scoped.md    run one slice or standalone issue to its hand-back
 skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
@@ -1513,7 +1513,7 @@ You start the orchestrator anywhere in the project: its root, any
 worktree, or any folder below one. It finds the root and names every
 target by absolute path. Each run then works in its own agent
 instance, in the issue's own worktree: started anywhere else, it finds
-or creates that worktree, opens a new instance there (a herdr
+or creates that worktree, opens a new instance there (a Herdr app space, a herdr
 workspace, or a new terminal window; see *Launcher* below) with
 `/yngorchestrator <n>` already sent, and the session you started in
 ends. Started in the issue's own worktree, it runs right there. The
@@ -1870,32 +1870,43 @@ commands.
 Every Epic, slice and standalone run has its own agent instance in its
 issue's own worktree, and keeps it open when the run ends, with the
 hand-back list on screen. Two top-level keys in
-`.yngaiplaybook/yngorchestratorconfig.yml` shape it; `yngorch` writes
-neither, and prints one line saying whether it found herdr:
+`.yngaiplaybook/yngorchestratorconfig.yml` shape it:
 
 | Key         | Values                | Absent                                                    |
 |-------------|-----------------------|-----------------------------------------------------------|
-| `launcher:` | `herdr` or `terminal` | herdr when it is installed and its server is running, else a new terminal window |
+| `launcher:` | `herdr-app`, `herdr` or `terminal` | the Herdr app when its window is open, else the herdr CLI when its server is running, else a new terminal window |
 | `agent:`    | `claude`              | `claude`; any other value stops the run until [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61) adds other agents |
 
--   **herdr** (optional, [herdr.dev](https://herdr.dev)): a workspace
-    on its worktree, with the agent started and the command as its
-    first prompt. If the agent first asks whether to trust a new
-    worktree's folder, answer it there.
+-   **herdr-app**: a new space in the Herdr desktop app on its
+    worktree, with Claude Code started and the command as its first
+    message.
+-   **herdr**: a new workspace in the herdr CLI, its terminal UI, the
+    same way. herdr and the Herdr app are separate products, both
+    optional ([herdr.dev](https://herdr.dev)). In either, if the agent
+    first asks whether to trust a new worktree's folder, answer it
+    there; the command runs after.
 -   **terminal**: Windows Terminal on Windows, Terminal.app on macOS,
     `$TERMINAL` elsewhere.
 
+`yngorch` never writes `agent:`. It writes `launcher:` only while the
+key has no value: from `-Launcher` / `--launcher`, or else by asking
+which launcher to use, when it finds herdr or the Herdr app and runs
+in a terminal it can ask in. Run by an agent or a script, it asks
+nothing and writes nothing, and each run detects one. It never changes
+a value you set, and prints one line for each herdr product it finds.
+
 The instance is named after its project and its worktree,
-`YNGAIPlaybook · epic98-yngproviders`: the herdr workspace's label,
-the terminal window's title and the Claude session's name, so herdr's
-sidebar, the terminal tab and `/resume` say which project each run
-works on. A session you open yourself, and that runs in place, keeps
-its own name.
+`YNGAIPlaybook · epic98-yngproviders`: the Herdr app space's name, the
+herdr workspace's label, the terminal window's title and the Claude
+session's name, so the sidebar, the terminal tab and `/resume` say
+which project each run works on. A session you open yourself, and that
+runs in place, keeps its own name.
 
 The launcher never takes the lock; it checks it first. With no lock it
-launches. With a lock and a herdr workspace on the locked run's
-worktree, it brings that workspace to the front and starts nothing.
-With a lock and no such workspace, it stops with the lock message, as
+launches. With a lock and a Herdr app space or herdr workspace on the
+locked run's worktree, it brings that space or workspace to the front
+and starts nothing.
+With a lock and no such space or workspace, it stops with the lock message, as
 before; only you delete a lock. A launch that fails says why in one
 sentence, logs `launch-failed`, and the run goes on in the session you
 started.

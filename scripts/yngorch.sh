@@ -42,6 +42,11 @@
 #      no value yet; an existing value is kept and reported.
 #      With --issues-repo, write the config's issues: key, only if it has
 #      no value yet; an existing value is kept and reported.
+#      Write the config's launcher: key, only if it has no value yet:
+#      from --launcher, or else by asking you which launcher opens each
+#      run, when herdr or the Herdr app is found and the install runs in
+#      a terminal it can ask in. Otherwise nothing is asked or written,
+#      and each run detects one.
 #   4. Add the two exclude lines to .bare/info/exclude, only if missing.
 #   5. Copy yngshared.sh into the project root and link every worktree,
 #      and .shared/.claude/ into the root's own .claude/.
@@ -55,11 +60,11 @@
 #   7. Copy yngv, the file viewer, to <bin-dir>/yngv (default ~/.local/bin).
 #      Per user, not per project. When that folder is not on PATH it prints
 #      the line to add to your shell's startup file; it edits none itself.
-#   8. Say whether herdr is installed: one line, and nothing written.
-#      herdr is optional. With herdr and its server running, each run
-#      opens its own instance in a herdr workspace; without it, in a new
-#      terminal window. The config's launcher: and agent: keys are
-#      yours: yngorch never writes them.
+#   8. Say which herdr products are installed: the herdr CLI and the
+#      Herdr desktop app, one line each, and nothing written. Both are
+#      optional. Each run opens its own instance where launcher: says:
+#      a Herdr app space, a herdr workspace, or a new terminal window.
+#      The config's agent: key is yours: yngorch never writes it.
 #
 # Upgrading from 1.1.0-1.4.0: step 3 moves .yngorchestrator/ (1.2.0-1.4.0)
 # or .orchestrator/ (1.1.0) into .yngaiplaybook/, one line per item:
@@ -76,7 +81,7 @@
 # a newer template brings.
 #
 # Usage: yngorch.sh [--project <path>] [--provider github|gitlab|bitbucket]
-#                   [--issues-repo <path>]
+#                   [--issues-repo <path>] [--launcher herdr-app|herdr|terminal]
 #                   [--skip-labels] [--skip-viewer] [--bin-dir <path>]
 #
 #   --provider     github, gitlab or bitbucket: the git provider, when it
@@ -91,6 +96,12 @@
 #                  Written into the config's issues: key only when it has no
 #                  value yet, and used for the workflow states. Any other
 #                  form stops the install before anything is written.
+#   --launcher     herdr-app, herdr or terminal: where each run opens its
+#                  own agent instance (the Herdr desktop app, the herdr CLI,
+#                  or a new terminal window). Written into the config's
+#                  launcher: key only when it has no value yet, without
+#                  asking; a value already there is kept. Any other value
+#                  stops the install before anything is written.
 #   --skip-labels  do not touch the repository's workflow states (labels, or
 #                  Bitbucket components and milestone).
 # Requires: bash, git. For the check and the workflow states, the provider's
@@ -107,6 +118,7 @@ usage() { awk 'NR > 1 && !/^#/ { exit } NR > 1 { sub(/^# ?/, ""); print }' "$0";
 project=$PWD
 provider=""
 issues_repo=""
+launcher=""
 skip_labels=0
 skip_viewer=0
 bin_dir="$HOME/.local/bin"
@@ -115,6 +127,7 @@ while [ $# -gt 0 ]; do
         --project) project=${2:?--project needs a path}; shift 2 ;;
         --provider) provider=${2:?--provider needs github, gitlab or bitbucket}; shift 2 ;;
         --issues-repo) issues_repo=${2:?--issues-repo needs a repository path}; shift 2 ;;
+        --launcher) launcher=${2:?--launcher needs herdr-app, herdr or terminal}; shift 2 ;;
         --skip-labels) skip_labels=1; shift ;;
         --skip-viewer) skip_viewer=1; shift ;;
         --bin-dir) bin_dir=${2:?--bin-dir needs a path}; shift 2 ;;
@@ -215,6 +228,34 @@ set_config_value() {
         END { if (!done) print k ": " v cr }
     ' "$1" > "$1.tmp"
     mv "$1.tmp" "$1"
+}
+
+# The launcher: values (spec R55.1), in detection order.
+launcher_names="herdr-app herdr terminal"
+is_launcher() { case " $launcher_names " in *" $1 "*) return 0 ;; esac; return 1; }
+
+# Asks which launcher opens each run (spec R56.2) and sets launcher_choice:
+# the herdr products found, in detection order, then terminal. Enter takes
+# the first; a number or a value picks one; anything else asks again.
+# $1 the Herdr app's path or empty, $2 the herdr CLI's.
+read_launcher() {
+    local names=() abouts=() i a
+    [ -n "$1" ] && { names+=(herdr-app); abouts+=("the Herdr desktop app: a new space per run"); }
+    [ -n "$2" ] && { names+=(herdr); abouts+=("the herdr CLI: a new workspace in its terminal UI per run"); }
+    names+=(terminal); abouts+=("a new terminal window per run")
+    echo "  Which launcher opens each run in its own agent instance?"
+    for i in "${!names[@]}"; do printf '    %d) %-9s  %s\n' $((i + 1)) "${names[$i]}" "${abouts[$i]}"; done
+    while :; do
+        printf '  Choose 1-%d [1]: ' "${#names[@]}"
+        IFS= read -r a || a=""
+        a=$(lower "$(printf '%s' "$a" | tr -d '[:space:]')")
+        if [ -z "$a" ]; then launcher_choice=${names[0]}; return; fi
+        if [[ $a =~ ^[0-9]+$ ]] && [ "$a" -ge 1 ] && [ "$a" -le "${#names[@]}" ]; then
+            launcher_choice=${names[$((a - 1))]}; return
+        fi
+        for i in "${names[@]}"; do [ "$i" = "$a" ] && { launcher_choice=$a; return; }; done
+        echo "  Type a number from 1 to ${#names[@]}, or press Enter for 1."
+    done
 }
 
 # origin's host and repository path from its URL, HTTPS or SSH form
@@ -625,6 +666,20 @@ if [ -n "$issues_repo" ] && ! is_repo "$issues_repo"; then
     echo "--issues-repo '$issues_repo' is not a $git_provider path ($(path_form "$git_provider")); nothing was written." >&2
     exit 2
 fi
+# The launcher (spec R55, R56): --launcher checked before anything is
+# written; the herdr products found, for the question in step 3 and the
+# lines in step 8. Asked only when stdin and stdout are a terminal, so an
+# agent or a script running the install is never left waiting.
+if [ -n "$launcher" ]; then
+    launcher=$(lower "$launcher")
+    if ! is_launcher "$launcher"; then
+        echo "--launcher '$launcher' is not one of ${launcher_names// /, }; nothing was written." >&2
+        exit 2
+    fi
+fi
+herdr_cli=$(command -v herdr 2>/dev/null || true)
+herdr_app=$(command -v herdr-app 2>/dev/null || true)
+can_ask=0; [ -t 0 ] && [ -t 1 ] && can_ask=1
 # GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
 # needs none (gh reads JSON itself).
 if [ "$git_provider" != github ] && ! command -v jq >/dev/null 2>&1; then
@@ -665,6 +720,9 @@ EOF
     fi
     if [ -n "$issues_repo" ]; then
         step skipped "issues: $issues_repo not written (move .yngaiplaybook/ by hand first, then run again)"
+    fi
+    if [ -n "$launcher" ]; then
+        step skipped "launcher: $launcher not written (move .yngaiplaybook/ by hand first, then run again)"
     fi
 else
     if [ $# -eq 1 ]; then
@@ -714,6 +772,29 @@ EOF
         step kept "issues: $current in .yngaiplaybook/yngorchestratorconfig.yml (yours; --issues-repo $issues_repo not written)"
     elif [ -n "$current" ]; then
         step kept "issues: $current in .yngaiplaybook/yngorchestratorconfig.yml"
+    fi
+    # launcher:, only while it has no value (spec R56): from --launcher,
+    # else asked when a herdr product is found and there is a terminal to
+    # ask in; otherwise each run detects one.
+    launcher_kept=$(config_value "$config" launcher)
+    if [ -n "$launcher_kept" ]; then
+        not=""
+        [ -n "$launcher" ] && [ "$launcher" != "$(lower "$launcher_kept")" ] && not="; --launcher $launcher not written"
+        step kept "launcher: $launcher_kept (yours$not)"
+        if ! is_launcher "$(lower "$launcher_kept")"; then
+            step warning "launcher: '$launcher_kept' is not one of ${launcher_names// /, }; each run detects one instead"
+        fi
+    elif [ -n "$launcher" ]; then
+        set_config_value "$config" launcher "$launcher"
+        step wrote "launcher: $launcher (from --launcher)"
+    elif [ -z "$herdr_cli$herdr_app" ]; then
+        :
+    elif [ "$can_ask" -eq 0 ]; then
+        step note "launcher: not set, and not asked (no terminal to ask in): each run detects one; run again with --launcher herdr-app|herdr|terminal to choose"
+    else
+        read_launcher "$herdr_app" "$herdr_cli"
+        set_config_value "$config" launcher "$launcher_choice"
+        step wrote "launcher: $launcher_choice (your choice)"
     fi
     version=$(tr -d '\r\n' < "$playbook/VERSION")
     sed "s/{{VERSION}}/$version/g" "$playbook/templates/yngaiplaybookreadme.md" > "$ynga/README.md"
@@ -784,12 +865,12 @@ else
     esac
 fi
 
-# 8. herdr, optional (spec R51.1): one line, nothing written. The config's
-# launcher: and agent: keys stay the person's.
-if herdr_path=$(command -v herdr 2>/dev/null); then
-    step found "herdr at $herdr_path: runs open in a herdr workspace while its server runs (launcher: in the config overrides)"
-else
-    step note "herdr not found: runs open in a new terminal window (herdr is optional: https://herdr.dev)"
+# 8. herdr and the Herdr app, both optional (spec R56.5): one line each
+# found, nothing written. The config's agent: key stays the person's.
+[ -n "$herdr_app" ] && step found "Herdr app at $herdr_app (launcher: herdr-app)"
+[ -n "$herdr_cli" ] && step found "herdr CLI at $herdr_cli (launcher: herdr)"
+if [ -z "$herdr_cli$herdr_app" ]; then
+    step note "herdr not found: runs open in a new terminal window (herdr and the Herdr app are optional: https://herdr.dev)"
 fi
 
 echo

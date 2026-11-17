@@ -161,3 +161,28 @@ Dated log of options refused, one line of why each.
   name (`#98 yngproviders`, 1.12.0) (emsumagangjr/YNGAIPlaybook#125).
   It does not say which project a run belongs to; the worktree's folder
   already carries the kind, the number, the topic and the Epic.
+- **2026-11-18** Refused: a separate `herdr: cli | app` key beside
+  `launcher:` (emsumagangjr/YNGAIPlaybook#129). Two keys would hold one
+  choice; `launcher: herdr-app` names it in the key that already
+  decides it.
+- **2026-11-18** Refused: renaming `launcher: herdr` to `herdr-cli`
+  (emsumagangjr/YNGAIPlaybook#129). Every config already written would
+  need an alias read forever; `herdr` keeps meaning the CLI it always
+  meant.
+- **2026-11-18** Refused: the herdr CLI first in detection
+  (emsumagangjr/YNGAIPlaybook#129). The owner chose the Herdr app first
+  when its window is open; a person running only the CLI sees no
+  change.
+- **2026-11-18** Refused: asking which launcher on every install
+  (emsumagangjr/YNGAIPlaybook#129). It re-asks a settled choice; the
+  question comes only while `launcher:` has no value, and the person
+  edits the key to change it.
+- **2026-11-18** Refused: asking when the install cannot take an
+  answer, as when an agent runs it (emsumagangjr/YNGAIPlaybook#129). The
+  install would wait forever; it prints a note naming `-Launcher` /
+  `--launcher`, and INSTALL tells the agent to ask the person and pass
+  the flag.
+- **2026-11-18** Refused: finding a run's Herdr app space by its name
+  (emsumagangjr/YNGAIPlaybook#129). As with herdr workspaces, a person
+  can rename it; a terminal's `cwd` and its `herdr.space` label name the
+  worktree and the space either way.

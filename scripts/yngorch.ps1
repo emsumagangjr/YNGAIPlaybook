@@ -46,6 +46,11 @@
          no value yet; an existing value is kept and reported.
          With -IssuesRepo, write the config's issues: key, only if it has
          no value yet; an existing value is kept and reported.
+         Write the config's launcher: key, only if it has no value yet:
+         from -Launcher, or else by asking you which launcher opens each
+         run, when herdr or the Herdr app is found and the install runs
+         in a terminal it can ask in. Otherwise nothing is asked or
+         written, and each run detects one.
       4. Add the two exclude lines to .bare\info\exclude, only if missing.
       5. Copy yngshared.ps1 into the project root and link every worktree,
          and .shared\.claude\ into the root's own .claude\.
@@ -58,11 +63,11 @@
          naming each component and the epic milestone to create by hand.
       7. Copy yngv, the file viewer, into -BinDir and put it on your user
          PATH, only if missing. Per user, not per project.
-      8. Say whether herdr is installed: one line, and nothing written.
-         herdr is optional. With herdr and its server running, each run
-         opens its own instance in a herdr workspace; without it, in a new
-         terminal window. The config's launcher: and agent: keys are
-         yours: yngorch never writes them.
+      8. Say which herdr products are installed: the herdr CLI and the
+         Herdr desktop app, one line each, and nothing written. Both are
+         optional. Each run opens its own instance where launcher: says:
+         a Herdr app space, a herdr workspace, or a new terminal window.
+         The config's agent: key is yours: yngorch never writes it.
 
     Upgrading from 1.1.0-1.4.0: step 3 moves .yngorchestrator\ (1.2.0-1.4.0)
     or .orchestrator\ (1.1.0) into .yngaiplaybook\, one line per item:
@@ -106,6 +111,13 @@
     issues: key only when it has no value yet, and used for the workflow
     states. Any other form stops the install before anything is written.
 
+.PARAMETER Launcher
+    herdr-app, herdr or terminal: where each run opens its own agent
+    instance (the Herdr desktop app, the herdr CLI, or a new terminal
+    window). Written into the config's launcher: key only when it has no
+    value yet, without asking; a value already there is kept. Any other
+    value stops the install before anything is written.
+
 .PARAMETER SkipLabels
     Do not touch the repository's workflow states (labels, or Bitbucket
     components and milestone).
@@ -130,6 +142,10 @@
 .EXAMPLE
     F:\YNGAIPlaybook\scripts\yngorch.ps1 -Provider gitlab
     origin is on a self-managed host that detection cannot name.
+
+.EXAMPLE
+    F:\YNGAIPlaybook\scripts\yngorch.ps1 -Launcher herdr-app
+    Each run opens in a Herdr app space; nothing is asked.
 #>
 [CmdletBinding()]
 param(
@@ -137,6 +153,7 @@ param(
     [ValidateSet('github', 'gitlab', 'bitbucket')]
     [string]$Provider,
     [string]$IssuesRepo,
+    [string]$Launcher,
     [switch]$SkipLabels,
     [switch]$SkipViewer,
     [string]$BinDir = (Join-Path $HOME '.local\bin')
@@ -178,6 +195,30 @@ function Set-ConfigValue([string]$Path, [string]$Key, [string]$Value) {
         }
     }
     [IO.File]::WriteAllBytes($Path, $latin.GetBytes($text))
+}
+
+# The launcher: values (spec R55.1), in detection order.
+$launcherNames = @('herdr-app', 'herdr', 'terminal')
+
+# Asks which launcher opens each run (spec R56.2) and returns its value:
+# the herdr products found, in detection order, then terminal. Enter takes
+# the first; a number or a value picks one; anything else asks again.
+function Read-Launcher([bool]$App, [bool]$Cli) {
+    $choices = @()
+    if ($App) { $choices += , @('herdr-app', 'the Herdr desktop app: a new space per run') }
+    if ($Cli) { $choices += , @('herdr', 'the herdr CLI: a new workspace in its terminal UI per run') }
+    $choices += , @('terminal', 'a new terminal window per run')
+    Write-Host '  Which launcher opens each run in its own agent instance?'
+    for ($i = 0; $i -lt $choices.Count; $i++) {
+        Write-Host ("    {0}) {1,-9}  {2}" -f ($i + 1), $choices[$i][0], $choices[$i][1])
+    }
+    while ($true) {
+        $a = "$(Read-Host "  Choose 1-$($choices.Count) [1]")".Trim().ToLower()
+        if (-not $a) { return $choices[0][0] }
+        if ($a -match '^\d+$' -and [int]$a -ge 1 -and [int]$a -le $choices.Count) { return $choices[[int]$a - 1][0] }
+        foreach ($c in $choices) { if ($c[0] -eq $a) { return $a } }
+        Write-Host "  Type a number from 1 to $($choices.Count), or press Enter for 1."
+    }
 }
 
 # The supported providers (spec R1.1): each one's cloud host, what the
@@ -595,6 +636,19 @@ $repoForm = "a $gitProvider path ($($providers[$gitProvider].PathForm))"
 if ($PSBoundParameters.ContainsKey('IssuesRepo') -and $IssuesRepo -notmatch $repoPattern) {
     throw "-IssuesRepo '$IssuesRepo' is not $repoForm; nothing was written."
 }
+# The launcher (spec R55, R56): -Launcher checked before anything is
+# written; the herdr products found, for the question in step 3 and the
+# lines in step 8. Asked only in a console whose input is not redirected,
+# so an agent or a script running the install is never left waiting.
+if ($PSBoundParameters.ContainsKey('Launcher')) {
+    $Launcher = $Launcher.ToLower()
+    if ($launcherNames -notcontains $Launcher) {
+        throw "-Launcher '$Launcher' is not one of $($launcherNames -join ', '); nothing was written."
+    }
+}
+$herdrCli = Get-Command herdr -ErrorAction SilentlyContinue
+$herdrApp = Get-Command herdr-app -ErrorAction SilentlyContinue
+$canAsk = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected
 # GitLab and Bitbucket are worked with jq, besides glab or curl; GitHub
 # needs none (gh reads JSON itself).
 if ($gitProvider -ne 'github' -and -not (Get-Command jq -ErrorAction SilentlyContinue)) {
@@ -624,6 +678,7 @@ if ($olds -and ($hasYnga -or @($olds).Count -gt 1)) {
     if (-not $providerKept) { Step 'skipped' "provider: $gitProvider not written (move .yngaiplaybook\ by hand first, then run again)" }
     if (-not $hostKept) { Step 'skipped' "host: $gitHost not written (move .yngaiplaybook\ by hand first, then run again)" }
     if ($IssuesRepo) { Step 'skipped' "issues: $IssuesRepo not written (move .yngaiplaybook\ by hand first, then run again)" }
+    if ($Launcher) { Step 'skipped' "launcher: $Launcher not written (move .yngaiplaybook\ by hand first, then run again)" }
 }
 else {
     if ($olds) {
@@ -672,6 +727,30 @@ else {
         Step 'kept' "issues: $current in .yngaiplaybook\yngorchestratorconfig.yml (yours; -IssuesRepo $IssuesRepo not written)"
     }
     elseif ($current) { Step 'kept' "issues: $current in .yngaiplaybook\yngorchestratorconfig.yml" }
+    # launcher:, only while it has no value (spec R56): from -Launcher,
+    # else asked when a herdr product is found and there is a console to
+    # ask in; otherwise each run detects one.
+    $launcherKept = Get-ConfigValue $config 'launcher'
+    if ($launcherKept) {
+        $not = if ($Launcher -and $Launcher -ne $launcherKept.ToLower()) { "; -Launcher $Launcher not written" } else { '' }
+        Step 'kept' "launcher: $launcherKept (yours$not)"
+        if ($launcherNames -notcontains $launcherKept.ToLower()) {
+            Step 'warning' "launcher: '$launcherKept' is not one of $($launcherNames -join ', '); each run detects one instead"
+        }
+    }
+    elseif ($Launcher) {
+        Set-ConfigValue $config 'launcher' $Launcher
+        Step 'wrote' "launcher: $Launcher (from -Launcher)"
+    }
+    elseif (-not ($herdrCli -or $herdrApp)) { }
+    elseif (-not $canAsk) {
+        Step 'note' 'launcher: not set, and not asked (no console to ask in): each run detects one; run again with -Launcher herdr-app|herdr|terminal to choose'
+    }
+    else {
+        $choice = Read-Launcher ([bool]$herdrApp) ([bool]$herdrCli)
+        Set-ConfigValue $config 'launcher' $choice
+        Step 'wrote' "launcher: $choice (your choice)"
+    }
     $version = ([IO.File]::ReadAllText((Join-Path $playbook 'VERSION'))).Trim()
     $readme = [IO.File]::ReadAllText((Join-Path $playbook 'templates\yngaiplaybookreadme.md')).Replace('{{VERSION}}', $version)
     [IO.File]::WriteAllText((Join-Path $ynga 'README.md'), $readme, (New-Object Text.UTF8Encoding $false))
@@ -768,11 +847,11 @@ else {
     }
 }
 
-# 8. herdr, optional (spec R51.1): one line, nothing written. The config's
-# launcher: and agent: keys stay the person's.
-$herdr = Get-Command herdr -ErrorAction SilentlyContinue
-if ($herdr) { Step 'found' "herdr at $($herdr.Source): runs open in a herdr workspace while its server runs (launcher: in the config overrides)" }
-else { Step 'note' 'herdr not found: runs open in a new terminal window (herdr is optional: https://herdr.dev)' }
+# 8. herdr and the Herdr app, both optional (spec R56.5): one line each
+# found, nothing written. The config's agent: key stays the person's.
+if ($herdrApp) { Step 'found' "Herdr app at $($herdrApp.Source) (launcher: herdr-app)" }
+if ($herdrCli) { Step 'found' "herdr CLI at $($herdrCli.Source) (launcher: herdr)" }
+if (-not ($herdrApp -or $herdrCli)) { Step 'note' 'herdr not found: runs open in a new terminal window (herdr and the Herdr app are optional: https://herdr.dev)' }
 
 Write-Host ''
 Write-Host 'Done. Next:'
