@@ -44,8 +44,8 @@ lock="<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 | Lock        | Then                                                         |
 |-------------|--------------------------------------------------------------|
 | absent      | go on to step 2                                              |
-| present, and a herdr workspace on the lock's worktree | focus that workspace and end the run: nothing new starts |
-| present, no such workspace | stop with the lock message (*The lock* in [SKILL.md](SKILL.md)): show its path and contents, and leave it |
+| present, and a herdr workspace or Herdr app space on the lock's worktree | focus that workspace or space and end the run: nothing new starts |
+| present, no such workspace or space | stop with the lock message (*The lock* in [SKILL.md](SKILL.md)): show its path and contents, and leave it |
 
 The lock's worktree is the one holding its `session:` folder:
 
@@ -55,13 +55,21 @@ held=$(git -C "$session" rev-parse --show-toplevel 2>/dev/null)
 ```
 
 No `held` (the folder is gone, or is the root, outside Git) means no
-such workspace, and so does herdr not running (the test in step 3,
-whatever `launcher:` says). Otherwise list every pane with
-`herdr pane list` and read its JSON. A pane whose `cwd` is `held` or a folder below it names the
-workspace, its `workspace_id`. herdr reports Windows paths
-(`F:\proj\epic98-x\`), Git Bash may give `/f/proj/epic98-x`: compare
-both after `norm`, which also drops a trailing slash and, on Windows,
-case:
+such workspace or space. Otherwise look in each herdr product that is
+running (the tests in step 3, whatever `launcher:` says), the Herdr app
+first; neither running means no such workspace or space:
+
+- **Herdr app**: list its terminals with `hc ls --json`. A terminal
+  whose `cwd` is `held` or a folder below it is the run's; read its
+  `labels."herdr.space"` from `hc get <address> --json`: that is the
+  space, `<space id>`.
+- **herdr CLI**: list every pane with `herdr pane list` and read its
+  JSON. A pane whose `cwd` is `held` or a folder below it names the
+  workspace, its `workspace_id`.
+
+Both report Windows paths (`F:\proj\epic98-x\`), Git Bash may give
+`/f/proj/epic98-x`: compare both after `norm`, which also drops a
+trailing slash and, on Windows, case:
 
 ``` bash
 norm() {
@@ -77,11 +85,12 @@ norm() {
 With a match:
 
 ``` bash
-herdr workspace focus <workspace_id>
+herdr-app do space.select --id "<space id>"   # Herdr app
+herdr workspace focus <workspace_id>          # herdr CLI
 ```
 
 Tell the person, in one sentence, that a run on `#<log>` already holds
-the lock and its workspace is now in front. Only a person deletes a
+the lock and its space or workspace is now in front. Only a person deletes a
 lock, as before.
 
 Done when the lock is absent, or the run has focused the workspace or
@@ -104,17 +113,26 @@ Done when you hold `<worktree>` on `<branch>`, or the run has stopped.
 
 | `launcher:`                 | Launcher                                              |
 |-----------------------------|-------------------------------------------------------|
-| `herdr`                     | herdr                                                 |
+| `herdr-app`                 | the Herdr desktop app                                 |
+| `herdr`                     | the herdr CLI                                         |
 | `terminal`                  | a new terminal window                                 |
-| absent, empty or any other  | herdr when it is installed and its server is running, else a terminal window |
+| absent, empty or any other  | the Herdr app when its window is open, else the herdr CLI when its server is running, else a terminal window |
 
-herdr counts as running when `herdr status server --json` succeeds and
-its JSON says `"running":true`:
+herdr and the Herdr app are two products (R55): the herdr CLI is a
+terminal UI (`herdr`), the Herdr app a desktop window (`herdr-app`,
+its terminals run by `hc`). The Herdr app counts as running when
+`herdr-app status` succeeds, which it does only with its window open;
+the herdr CLI when `herdr status server --json` succeeds and its JSON
+says `"running":true`:
 
 ``` bash
+command -v herdr-app >/dev/null 2>&1 && herdr-app status >/dev/null 2>&1      # Herdr app
 command -v herdr >/dev/null 2>&1 &&
-  herdr status server --json 2>/dev/null | grep -q '"running":[[:space:]]*true'
+  herdr status server --json 2>/dev/null | grep -q '"running":[[:space:]]*true'  # herdr CLI
 ```
+
+A named launcher is used whether or not it is running: one that is
+not fails at step 4, and the run goes on here (step 5).
 
 Done when you hold one launcher.
 
@@ -128,15 +146,42 @@ and `/resume` each say which project the run works on:
 name="$(basename "<root>") · $(basename "<worktree>")"   # YNGAIPlaybook · epic98-yngproviders
 ```
 
-It is the herdr workspace's label, the terminal window's title and
-the Claude session's name (`claude --name`), one line each. Only an
+It is the Herdr app space's name, the herdr workspace's label, the
+terminal window's title and the Claude session's name
+(`claude --name`), one line each. Only an
 instance launched here is named: a session that runs in place keeps
 the name it has. The command the instance starts with is
 `/yngorchestrator <n>`, `<n>` as the issues repo writes it. `<agent>`
 is `claude` (R49), the only agent until
 [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61).
 
-### herdr
+### The Herdr app
+
+Create a space on the worktree, named `<name>`, in front, with Claude
+Code in it, its session named `<name>` and the command as its first
+message. The app passes the message to `claude` as its first prompt,
+so it runs once the agent is up, after any question it asks at
+startup. JSON strings take the name as it is; escape a `"` or `\` in
+it:
+
+``` bash
+MSYS_NO_PATHCONV=1 herdr-app do space.new --name "$name" --folder "<worktree>" \
+  --argv "[\"claude\",\"--name\",\"$name\"]" --task "/yngorchestrator <n>"
+```
+
+`<worktree>` is the path as Windows writes it on Windows
+(`cygpath -w`). The reply is JSON:
+
+| Result                                  | Means                                         |
+|-----------------------------------------|-----------------------------------------------|
+| exit 0, `{"space": …, "terminal": …}`   | launched. Tell the person that Claude may ask a question first, such as whether to trust a new worktree's folder, and to answer it in the space; the command runs after |
+| exit 1, `{"error": …}`, or no `herdr-app` | a launch failure (step 5), with the app's message. If a space was created, close it (`herdr-app do space.close --id <space> --confirmed true`) |
+
+The reply names the space only when the terminal was created; it does
+not say the agent started. A program that exits at once shows as an
+error in the app.
+
+### The herdr CLI
 
 Create a workspace on the worktree, labelled `<name>`, in front:
 
@@ -188,7 +233,7 @@ Terminal.app and `$TERMINAL` take the window's title from the name
 Claude sets. A missing program (`wt.exe`, `osascript`, `$TERMINAL`)
 or a command that fails is a launch failure (step 5).
 
-Either way, the workspace or window stays open when the run ends,
+In every case, the space, workspace or window stays open when the run ends,
 with its hand-back list on screen (R47.5).
 
 Done when the instance is open, or the launch has failed.
@@ -199,12 +244,13 @@ On a launch, append to `yngorchestratorruns/<log>.md` (*Run log* in
 [SKILL.md](SKILL.md)):
 
 ``` text
+<date> #<n> launched herdr-app <space id> "<name>"
 <date> #<n> launched herdr <workspace_id> "<name>"
 <date> #<n> launched terminal <program> "<name>"
 ```
 
-Tell the person, in one sentence, where the run now is: the herdr
-workspace or the new window, and its worktree. Then this session's
+Tell the person, in one sentence, where the run now is: the Herdr app
+space, the herdr workspace or the new window, and its worktree. Then this session's
 run ends; it holds no lock to delete.
 
 On a **launch failure**, give the reason in one sentence, log

@@ -175,20 +175,23 @@ merge:
 #   else, /yngorchestrator opens a new instance there with the command
 #   already sent, and the session you started it from ends. Not a gate.
 # Values:
-#   herdr     a herdr workspace named after the project and worktree
-#             ("YNGAIPlaybook · epic98-yngproviders").
-#             herdr is optional: https://herdr.dev
-#   terminal  a new terminal window: Windows Terminal, Terminal.app, or
-#             $TERMINAL on other systems.
-#   (no value) herdr when it is installed and its server is running, else
-#             a terminal window. (default)
+#   herdr-app  a new space in the Herdr desktop app, named after the
+#              project and worktree ("YNGAIPlaybook · epic98-yngproviders").
+#   herdr      a new workspace in the herdr CLI (its terminal UI), named
+#              the same way.
+#              Both are optional, and separate products: https://herdr.dev
+#   terminal   a new terminal window: Windows Terminal, Terminal.app, or
+#              $TERMINAL on other systems.
+#   (no value) the Herdr app when its window is open, else the herdr CLI
+#              when its server is running, else a terminal window. (default)
 # Default: no value. An absent key, an empty value or any other value
 #   means the default, and never stops a run.
 # Read: at the start of every run.
-# Changed by: you. yngorch never writes the key; it adds this setting,
-#   commented out as below, when it is missing, and prints whether it
-#   found herdr.
-# launcher: herdr | terminal
+# Changed by: you. yngorch writes the key only while it has no value:
+#   from -Launcher / --launcher, or else by asking you, when it finds
+#   herdr or the Herdr app and runs in a terminal it can ask in. It never
+#   changes a value you set, and adds this setting when it is missing.
+# launcher: herdr-app | herdr | terminal
 
 
 # --- Setting: agent ----------------------------------------------------------

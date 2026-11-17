@@ -229,10 +229,11 @@ It decides two things only: how [plan.md](plan.md) labels the slices
 it creates, and whether step 1 of [dispatch.md](dispatch.md) accepts a
 plan promotion.
 
-**The launcher**, `<launcher>`, is `launcher:`, in lower case (R47.1):
-`herdr` or `terminal` choose one; no file, no key, an empty value or
-any other value leaves it to detection in step 3 of
-[launch.md](launch.md). It never stops the run.
+**The launcher**, `<launcher>`, is `launcher:`, in lower case (R47.1,
+R55): `herdr-app` (the Herdr desktop app), `herdr` (the herdr CLI) or
+`terminal` choose one; no file, no key, an empty value or any other
+value leaves it to detection in step 3 of [launch.md](launch.md). It
+never stops the run.
 
 **The agent**, `<agent>`, is `agent:`, in lower case; no file, no key
 or an empty value is `claude` (R49):

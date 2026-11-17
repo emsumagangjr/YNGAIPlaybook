@@ -57,7 +57,7 @@ You need these once per machine:
 | GitLab and Bitbucket only: `jq` (GitHub's `gh` has `--jq` built in) | `jq --version`; install with `winget install jqlang.jq` (Windows), `brew install jq` (macOS) or `sudo apt install jq` (Linux) |
 | Claude Code | `claude --version` |
 | Windows only: Developer Mode, for the links | Settings → System → For developers |
-| Optional: [herdr](https://herdr.dev), so each run opens in a herdr workspace instead of a new terminal window | `herdr --version`; the installer prints whether it found it |
+| Optional: the Herdr desktop app or the herdr CLI ([herdr.dev](https://herdr.dev)), so each run opens in a Herdr app space or a herdr workspace instead of a new terminal window | `herdr-app --version` or `herdr --version`; the installer prints which it found, and asks which to use |
 
 `<host>` is your provider's host: `github.com`, `gitlab.com`, or your
 own server's name. To log in: `gh auth login --hostname <host>` or
@@ -319,9 +319,13 @@ existing folder.
       what the installer created or kept, the issues repo included.
     - Where `yngv` went, and whether they must open a new terminal or
       add the PATH line first.
-    - Whether the installer found herdr (its `found` or `note` line):
-      with herdr, each run opens in a herdr workspace; without it, in a
-      new terminal window.
+    - Which herdr products the installer found (its `found` or `note`
+      lines), and the `launcher:` it kept or wrote. Run by you, the
+      installer cannot ask, so it prints a `note` instead: ask the
+      person which launcher they want (`herdr-app`, the Herdr desktop
+      app; `herdr`, the herdr CLI; or `terminal`), recommending the
+      first one found, and run it again with `-Launcher` /
+      `--launcher <value>`. Without a `launcher:`, each run detects one.
     - On a first install: `auto-promote:` is `no` and their merge
       rules are all `required`. Ask whether they want plan approval to
       promote the agent slices (`auto-promote: yes`) and any merge path
@@ -365,7 +369,7 @@ existing folder.
     leave `yngv` out, and `-IssuesRepo <path>` / `--issues-repo <path>`
     (the provider's path, as in `issues:` below) when your issues live
     in a separate repository on the same provider
-    ([After installing](#after-installing)).
+    ([After installing](#after-installing)). In a terminal, when it finds the Herdr app or herdr, it asks which launcher to use; add `-Launcher` / `--launcher <value>` to choose without being asked.
 
     The installer works out your provider
     ([Supported providers](#supported-providers)). When it stops
@@ -519,16 +523,23 @@ clone until you have checked the new one:
 
     **Where runs open.** Each run works in its own agent instance, in
     its issue's own worktree. Started anywhere else, it opens that
-    instance for you: in a herdr workspace named after the project and worktree
-    (`YNGAIPlaybook · epic98-yngproviders`) when [herdr](https://herdr.dev) is installed
-    and its server is running, otherwise in a new terminal window
-    (Windows Terminal, Terminal.app, or `$TERMINAL`). herdr is
-    optional. Two keys, both yours, which `yngorch` never writes:
+    instance for you, named after the project and worktree
+    (`YNGAIPlaybook · epic98-yngproviders`): in a Herdr desktop app
+    space, a herdr CLI workspace, or a new terminal window (Windows
+    Terminal, Terminal.app, or `$TERMINAL`). The Herdr app and the
+    herdr CLI are separate products, both optional
+    ([herdr.dev](https://herdr.dev)). Two keys, both yours:
 
     ``` yaml
-    launcher: terminal   # herdr | terminal; absent: herdr when it runs, else a terminal window
+    launcher: herdr-app  # herdr-app | herdr | terminal; absent: the Herdr app when its window is open,
+                         #   else the herdr CLI when its server runs, else a terminal window
     agent: claude        # the only agent today; any other value stops the run
     ```
+
+    On an install with no `launcher:` yet, `yngorch` asks which to use
+    when it finds herdr or the Herdr app, and writes your answer;
+    `-Launcher` / `--launcher <value>` sets it without asking. It never
+    changes a value you set, and never writes `agent:`.
 
 2.  **Start an Epic:** create its issue, in the issues repo when you
     have one, marked as an Epic: the `epic` label on GitHub and
@@ -556,8 +567,8 @@ clone until you have checked the new one:
     once.
 
     The command takes any issue: `<n>`, `#<n>` or the issue's URL.
-    Run it again while the run is going and it brings that run's herdr
-    workspace to the front instead of starting another. To pick a run
+    Run it again while the run is going and it brings that run's Herdr
+    app space or herdr workspace to the front instead of starting another. To pick a run
     up without its number, run `/yngorchestrator continue`, or just
     `/yngorchestrator`: in an issue's worktree it resumes that issue's
     run there; from the root or `main/` it lists the active runs and

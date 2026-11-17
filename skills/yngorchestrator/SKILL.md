@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.12.1
+  version: 1.13.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -73,7 +73,7 @@ touched.
 Every Epic, slice and standalone run has its own agent instance, in
 the issue's own worktree (R46). A session started anywhere else hands
 the run on: it finds or creates the worktree, opens a new instance
-there, in a herdr workspace or a new terminal window, with
+there, in a Herdr app space, a herdr workspace or a new terminal window, with
 `/yngorchestrator <n>` already sent, logs `launched`, and ends
 ([launch.md](launch.md)). A session already in the issue's own
 worktree is the dispatcher, right there. Slice workers stay
