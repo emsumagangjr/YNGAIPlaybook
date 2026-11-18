@@ -4,6 +4,29 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.14.0] — 2026-11-18
+
+Launched runs start with Claude Code's Remote Control on, and a run grills the person, one question at a time, when it needs information only they have (emsumagangjr/YNGAIPlaybook#132).
+
+### Added
+- Config setting `remote-control: yes | no`, `yes` by default: every instance a run launches (Herdr app, herdr CLI, terminal window) starts `claude --name "<name>" --remote-control "<name>"`, so the run can be followed and answered from claude.ai or the Claude app. `no` or `false` starts it as before. A session you start yourself is not changed.
+- `skills/yngorchestrator/SKILL.md`: *Asking the person*. When a run needs information only the person has (a spec gap, a criterion it cannot check, conflicting signals), it grills them: one question per message, each with its recommended answer, the next built on the last, until nothing is open or the person says to go on; then it sums up and carries on. Built into the skill: no plugin needed.
+
+### Changed
+- `skills/yngorchestrator/plan.md`: a new step 3, *Ask*, settles the plan's open questions one by one before the table is shown, recutting on each answer; they are no longer listed under the table. Present, Create and Hand to Gate 1 are now steps 4 to 6.
+- `skills/yngorchestrator/locate.md`: reads `remote-control:`; conflicting kind signals are one question, with the recommended kind.
+- `skills/yngorchestrator/launch.md`: every launcher command passes `--remote-control "$name"` when `remote-control` is `yes`.
+- The config template, the folder's README template, INSTALL and guide section 25 describe `remote-control:` and how a run asks. The spec gains R58 to R60.
+
+### Decisions
+- Refused, in `docs/specs/yngorchestrator/decisions.md`: loading Matt Pocock's `grilling` skill; listing the plan's questions under its table; Remote Control always on with no setting; turning it on in the session the person started.
+
+### Notes
+- A reinstall (`yngorch`) adds the `remote-control` setting to an existing config, at `yes`.
+- Checked on Windows: a Herdr app space started with `--remote-control` runs its first prompt and shows Remote Control active with its claude.ai session link.
+
+---
+
 ## [1.13.0] — 2026-11-18
 
 Each run can open in the Herdr desktop app, and `yngorch` asks which launcher to use on an install that has none yet (emsumagangjr/YNGAIPlaybook#129).

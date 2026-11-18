@@ -186,3 +186,18 @@ Dated log of options refused, one line of why each.
   (emsumagangjr/YNGAIPlaybook#129). As with herdr workspaces, a person
   can rename it; a terminal's `cwd` and its `herdr.space` label name the
   worktree and the space either way.
+- **2026-11-18** Refused: loading Matt Pocock's `grilling` skill
+  (emsumagangjr/YNGAIPlaybook#132). The playbook would depend on a
+  plugin not every project has; the rule is written into the skill
+  (R58.3), and works the same everywhere.
+- **2026-11-18** Refused: listing the plan's questions under its table
+  (emsumagangjr/YNGAIPlaybook#132), as before 1.14.0. The owner asks
+  for one question at a time; answers asked together come back thin,
+  and each answer can change the next question and the cut.
+- **2026-11-18** Refused: Remote Control always on, with no setting
+  (emsumagangjr/YNGAIPlaybook#132). Not every person wants each run
+  reachable from claude.ai; the owner chose a setting, on by default.
+- **2026-11-18** Refused: turning Remote Control on in the session the
+  person started (emsumagangjr/YNGAIPlaybook#132). That session is
+  theirs, started as they chose; the setting shapes only the instances
+  a run opens.

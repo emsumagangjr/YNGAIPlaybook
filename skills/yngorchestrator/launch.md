@@ -16,8 +16,8 @@ hand-off. [locate.md](locate.md) sends you here, in two parts:
 
 You hold `<root>`, the provider file, `<code repo>`, `<issues repo>`,
 `<n>`, its title, its kind, `<log>` (*Run log* in
-[SKILL.md](SKILL.md)), `<launcher>` and `<agent>` (step 3 of
-locate.md).
+[SKILL.md](SKILL.md)), `<launcher>`, `<remote control>` and `<agent>`
+(step 3 of locate.md).
 
 **The launcher never takes the lock** (R48). It only reads it, here
 in step 1: the instance it opens takes the lock itself, through its
@@ -155,6 +155,12 @@ the name it has. The command the instance starts with is
 is `claude` (R49), the only agent until
 [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61).
 
+With `<remote control>` `yes` (R59), Claude Code starts with Remote
+Control on, its remote session named `<name>` too, so the person can
+follow the run and answer it from claude.ai or the Claude app: every
+command below passes `--remote-control "$name"` right after `--name
+"$name"`. With `no`, leave those two words out; nothing else changes.
+
 ### The Herdr app
 
 Create a space on the worktree, named `<name>`, in front, with Claude
@@ -166,7 +172,7 @@ it:
 
 ``` bash
 MSYS_NO_PATHCONV=1 herdr-app do space.new --name "$name" --folder "<worktree>" \
-  --argv "[\"claude\",\"--name\",\"$name\"]" --task "/yngorchestrator <n>"
+  --argv "[\"claude\",\"--name\",\"$name\",\"--remote-control\",\"$name\"]" --task "/yngorchestrator <n>"
 ```
 
 `<worktree>` is the path as Windows writes it on Windows
@@ -197,7 +203,7 @@ herdr's live agents and fits herdr's `[a-z][a-z0-9_-]{0,31}`:
 
 ``` bash
 MSYS_NO_PATHCONV=1 herdr agent start "yng$(printf '%s' '<n>' | tr '[:upper:]' '[:lower:]')-$(date +%H%M%S)" \
-  --kind claude --pane "<pane id>" -- --name "$name" "/yngorchestrator <n>"
+  --kind claude --pane "<pane id>" -- --name "$name" --remote-control "$name" "/yngorchestrator <n>"
 ```
 
 | Result                     | Means                                                    |
@@ -218,14 +224,14 @@ MSYS_NO_PATHCONV=1 herdr agent start "yng$(printf '%s' '<n>' | tr '[:upper:]' '[
 # Windows: a new window, titled, in the worktree. cmd /k finds claude.exe
 # or a claude.cmd shim, and keeps the window open.
 MSYS_NO_PATHCONV=1 wt.exe -w new new-tab -d "$(cygpath -w "<worktree>")" \
-  --title "$name" cmd /k claude --name "$name" "/yngorchestrator <n>"
+  --title "$name" cmd /k claude --name "$name" --remote-control "$name" "/yngorchestrator <n>"
 
 # macOS
-osascript -e "tell application \"Terminal\" to do script \"cd '<worktree>' && claude --name '$name' '/yngorchestrator <n>'\"" \
+osascript -e "tell application \"Terminal\" to do script \"cd '<worktree>' && claude --name '$name' --remote-control '$name' '/yngorchestrator <n>'\"" \
           -e 'tell application "Terminal" to activate'
 
 # Any other system: the shell stays after the agent exits.
-nohup "$TERMINAL" -e sh -c 'cd "$1" && claude --name "$2" "$3"; exec "${SHELL:-sh}"' \
+nohup "$TERMINAL" -e sh -c 'cd "$1" && claude --name "$2" --remote-control "$2" "$3"; exec "${SHELL:-sh}"' \
   sh "<worktree>" "$name" "/yngorchestrator <n>" >/dev/null 2>&1 &
 ```
 

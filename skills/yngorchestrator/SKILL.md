@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.13.0
+  version: 1.14.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -105,6 +105,31 @@ request), it is named by full reference, the provider file's *Issue
 reference* (`<issues repo>#<n>` on GitHub), so a link never lands on
 the code repo's own `#<n>`. Without an `issues:` value the two are one
 repository, and every operation targets it as before.
+
+## Asking the person
+
+When the run needs information only the person has, grill them
+(R58): a gap in the spec, an acceptance criterion you cannot check,
+signals that conflict, anything you would otherwise guess. Grilling
+is built into this skill; it needs no other skill or plugin.
+
+1. Ask **one question per message**, never two, and never a list of
+   questions to answer together.
+2. Give your **recommended answer** with it, and why, in a sentence.
+   Where the answers are a few clear options, offer them, yours first.
+3. Wait for the answer. Build the next question on it: follow up
+   where the answer opens something new, and drop a question it
+   already settled.
+4. Look it up instead of asking when the code, the spec, the issue or
+   the run log can tell you.
+5. Stop when nothing open is left, or the person says to go on. Sum up
+   what was decided in a few lines, and carry on with the step that
+   asked.
+
+A plain pick between things you found (which of these branches, which
+of these runs) is one question, not a grilling. Approving the plan,
+and the gates, are the person's decisions, not questions: grilling
+never stands in for them.
 
 ## Run log
 

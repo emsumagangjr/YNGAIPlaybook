@@ -32,8 +32,7 @@ a person can review on its own, and each one has:
 - **Acceptance criteria**: checkable statements for this slice only.
   The spec stays in `docs/specs/`; the issue links to it.
 - **Spec section**: the one `Rn` it implements. A slice with no section
-  is a gap in the spec: list it in the plan as a question for the
-  person.
+  is a gap in the spec: a question for the person (step 3).
 - **Depends on**: the slices whose code it needs merged into the Epic
   branch first. A slice with none can run in parallel with the others.
 - **Files**: the files it creates or edits. Two slices running in
@@ -53,9 +52,23 @@ Done when every slice has every field, every dependency points at a
 slice in the plan or an existing issue, and every file overlap between
 slices that can run in parallel is noted.
 
-## 3. Present
+## 3. Ask
 
-Show the person the whole plan as one table, then the open questions.
+Before you show the plan, settle what only the person can answer: a
+slice with no spec section, an acceptance criterion the spec leaves
+open, a dependency or a file you cannot tell from the code. Grill them
+(*Asking the person* in [SKILL.md](SKILL.md)): one question per
+message, each with your recommended answer, the next built on the
+last. Recut the slices on each answer. A route you are unsure of stays
+`ready-for-human`; it is not a question.
+
+Done when no question is left open, or the person says to go on.
+Whatever they leave open goes into the plan as an open question.
+
+## 4. Present
+
+Show the person the whole plan as one table, then what the questions
+settled, in a few lines, and anything left open.
 With `<auto-promote>` `yes`, put this line above the table, so the
 person knows what their approval does:
 
@@ -72,13 +85,13 @@ With `no`, the table has no such line.
 | S2 | Signed-in users see their profile   | R3   | S1         | profile/view.py    | none     | agent          |
 ```
 
-Below the table, list each slice's acceptance criteria, the file
-overlaps, and any spec gaps. Wait for the person's answer; apply their
+Below the table, list each slice's acceptance criteria and the file
+overlaps. Wait for the person's answer; apply their
 changes and show the table again until they approve it.
 
 Done when the person has approved the plan in so many words.
 
-## 4. Create
+## 5. Create
 
 Create the issues in dependency order, so each `Depends on` can name a
 real issue number. On a re-plan, create only the new slices; an
@@ -142,7 +155,7 @@ Done when every approved slice is an open child of the Epic
 labelled `<label>`, each has its `planned` line and, with `yes`, each
 agent slice has its comment and its `promoted by plan approval` line.
 
-## 5. Hand to Gate 1
+## 6. Hand to Gate 1
 
 With `<auto-promote>` `yes`, the person's approval was Gate 1 for the
 agent slices. Tell them, in one list, which slices were promoted by it

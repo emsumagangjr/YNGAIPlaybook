@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.13.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.14.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1869,13 +1869,14 @@ commands.
 
 Every Epic, slice and standalone run has its own agent instance in its
 issue's own worktree, and keeps it open when the run ends, with the
-hand-back list on screen. Two top-level keys in
+hand-back list on screen. Three top-level keys in
 `.yngaiplaybook/yngorchestratorconfig.yml` shape it:
 
 | Key         | Values                | Absent                                                    |
 |-------------|-----------------------|-----------------------------------------------------------|
 | `launcher:` | `herdr-app`, `herdr` or `terminal` | the Herdr app when its window is open, else the herdr CLI when its server is running, else a new terminal window |
 | `agent:`    | `claude`              | `claude`; any other value stops the run until [#61](https://github.com/emsumagangjr/YNGAIPlaybook/issues/61) adds other agents |
+| `remote-control:` | `yes` or `no` | `yes`: each launched instance starts with Claude Code's Remote Control on |
 
 -   **herdr-app**: a new space in the Herdr desktop app on its
     worktree, with Claude Code started and the command as its first
@@ -1888,7 +1889,14 @@ hand-back list on screen. Two top-level keys in
 -   **terminal**: Windows Terminal on Windows, Terminal.app on macOS,
     `$TERMINAL` elsewhere.
 
-`yngorch` never writes `agent:`. It writes `launcher:` only while the
+With `remote-control: yes`, the default, the launched instance starts
+with Claude Code's Remote Control on, its remote session named like
+the instance (`claude --remote-control "<name>"`), so you can follow
+the run and answer its questions from claude.ai or the Claude app on
+your phone. `no` starts it without. A session you open yourself keeps
+whatever you started it with.
+
+`yngorch` never writes `agent:` or `remote-control:`. It writes `launcher:` only while the
 key has no value: from `-Launcher` / `--launcher`, or else by asking
 which launcher to use, when it finds herdr or the Herdr app and runs
 in a terminal it can ask in. Run by an agent or a script, it asks
@@ -1952,9 +1960,9 @@ name; and each dispatch to a worker comments
 
 -   **An Epic.** The run drives the whole Epic. It needs the spec on
     the Epic branch; with none, it stops and names where the spec
-    belongs. With no slice issues yet, it plans first and waits for
-    you to approve the plan; afterwards, promote the slices you want an
-    agent to take, and run it again. With `auto-promote: yes`, your
+    belongs. With no slice issues yet, it plans first, asks what the
+    spec leaves open, then waits for you to approve the plan;
+    afterwards, promote the slices you want an agent to take, and run it again. With `auto-promote: yes`, your
     approval promoted the agent slices, and it dispatches them in the
     same run.
 -   **A slice.** The run handles that slice only: Gate 1, its
@@ -1965,6 +1973,13 @@ name; and each dispatch to a worker comments
     `fix/<n>-<name>` from `origin/main`, and dispatches one worker
     whose pull request targets `main` and merges by the `fix-to-main`
     rule. The issue's acceptance criteria are the whole contract.
+
+When a run needs something only you can answer (a gap in the spec, a
+criterion it cannot check, signals that conflict), it grills you: one
+question per message, each with its recommended answer, the next built
+on your last answer, until nothing is open or you tell it to go on.
+Then it sums up what you decided and carries on. This is built into
+the skill; no other skill or plugin is needed.
 
 A slice or standalone run checks Gate 1 before it creates any branch.
 Run it again on an issue at `workflow:in-review` and it resumes from
