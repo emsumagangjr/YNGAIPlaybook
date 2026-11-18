@@ -194,6 +194,24 @@ merge:
 # launcher: herdr-app | herdr | terminal
 
 
+# --- Setting: remote-control -------------------------------------------------
+# Decides: whether the agent instance a run opens (see launcher) starts
+#   with Claude Code's Remote Control on, so you can follow and answer it
+#   from claude.ai or the Claude app on your phone. Its remote session
+#   carries the instance's name. Not a gate.
+# Values:
+#   yes  every launched instance starts with Remote Control. true works
+#        too; capitals do not matter. (default)
+#   no   launched instances start without it. false works too.
+# Default: yes. An absent key, an empty value or any value other than no
+#   or false means yes, and never stops a run. A session you start
+#   yourself, and a run that goes on in it, is not changed.
+# Read: at the start of every run.
+# Changed by: you. yngorch never writes the key; it adds this setting
+#   when it is missing.
+remote-control: yes
+
+
 # --- Setting: agent ----------------------------------------------------------
 # Decides: which agent the run's own instance starts. Not a gate.
 # Values:

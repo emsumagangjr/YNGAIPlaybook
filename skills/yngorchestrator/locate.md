@@ -235,6 +235,19 @@ R55): `herdr-app` (the Herdr desktop app), `herdr` (the herdr CLI) or
 value leaves it to detection in step 3 of [launch.md](launch.md). It
 never stops the run.
 
+**Remote Control**, `<remote control>`, is `remote-control:` (R59):
+`no` or `false`, in any case, is `no`; no file, no key, an empty value
+or any other value is `yes`. It never stops the run, and it decides
+one thing: whether the instance [launch.md](launch.md) opens starts
+with Remote Control on.
+
+``` bash
+case "$(value remote-control | tr '[:upper:]' '[:lower:]')" in
+  no|false) remotecontrol=no ;;
+  *)        remotecontrol=yes ;;
+esac
+```
+
 **The agent**, `<agent>`, is `agent:`, in lower case; no file, no key
 or an empty value is `claude` (R49):
 
@@ -306,8 +319,9 @@ epic*, to test); and whether it has children (*list children* `<n>`).
 | none of them                               | **standalone** |
 
 Any other mix conflicts: `epic` or children together with a parent.
-Stop, show the person the signals you found, and ask which kind the
-issue is. Continue only on their answer.
+Show the person the signals you found and ask which kind the issue
+is, as *Asking the person* in [SKILL.md](SKILL.md) says: one question,
+with your recommended kind and why. Continue only on their answer.
 
 Done when the issue has one kind, from the signals or from the person.
 

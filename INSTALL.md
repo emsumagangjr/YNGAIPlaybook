@@ -528,18 +528,20 @@ clone until you have checked the new one:
     space, a herdr CLI workspace, or a new terminal window (Windows
     Terminal, Terminal.app, or `$TERMINAL`). The Herdr app and the
     herdr CLI are separate products, both optional
-    ([herdr.dev](https://herdr.dev)). Two keys, both yours:
+    ([herdr.dev](https://herdr.dev)). Three keys, all yours:
 
     ``` yaml
     launcher: herdr-app  # herdr-app | herdr | terminal; absent: the Herdr app when its window is open,
                          #   else the herdr CLI when its server runs, else a terminal window
     agent: claude        # the only agent today; any other value stops the run
+    remote-control: yes  # yes | no; absent: yes. Each launched instance starts with Remote Control
     ```
 
     On an install with no `launcher:` yet, `yngorch` asks which to use
     when it finds herdr or the Herdr app, and writes your answer;
     `-Launcher` / `--launcher <value>` sets it without asking. It never
-    changes a value you set, and never writes `agent:`.
+    changes a value you set, and never writes `agent:` or
+    `remote-control:`.
 
 2.  **Start an Epic:** create its issue, in the issues repo when you
     have one, marked as an Epic: the `epic` label on GitHub and

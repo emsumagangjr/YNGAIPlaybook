@@ -1353,3 +1353,55 @@ Issue: emsumagangjr/YNGAIPlaybook#129
     detection, and the question.
 2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.13.0.
+
+## R58 Asking the person
+
+Issue: emsumagangjr/YNGAIPlaybook#132
+
+1.  When a run needs information only the person has (a gap in the
+    spec, an acceptance criterion it cannot check, signals that
+    conflict, anything it would otherwise guess), it grills the
+    person: one question per message, never several at once and never
+    a list to answer together; each with its recommended answer and
+    why; the next built on the answer to the last. It looks up what
+    the code, the spec, the issue or the run log can tell it instead
+    of asking.
+2.  It stops when nothing open is left or the person says to go on,
+    sums up what was decided, and carries on with the step that asked.
+3.  The rule is the skill's own (*Asking the person* in `SKILL.md`):
+    it needs no other skill or plugin.
+4.  Planning (R3) asks its questions this way before it shows the plan
+    (a slice with no spec section, an open acceptance criterion, a
+    dependency or file the code cannot tell), recuts on each answer,
+    and shows the table with what the questions settled; whatever the
+    person leaves open is listed with the plan. Conflicting kind
+    signals (R15.2) are one question, with the recommended kind.
+5.  A plain pick between things the run found is one question. Plan
+    approval and the gates are the person's decisions; grilling never
+    stands in for them.
+
+## R59 Remote Control
+
+Issue: emsumagangjr/YNGAIPlaybook#132
+
+1.  The config's top-level `remote-control: yes | no`: `no` or
+    `false`, in any case, is `no`; absent, empty or any other value is
+    `yes`, and never stops a run.
+2.  With `yes`, every instance a run launches (R47.2, R47.3, R55.3)
+    starts `claude --name "<name>" --remote-control "<name>"`, so its
+    Remote Control session carries the instance's name (R53). With
+    `no`, it starts as before.
+3.  A session the person started, and a run that goes on in it (R46,
+    R47.6), is not changed.
+4.  `yngorch` never writes the key; it adds the setting from the
+    template when it is missing (R39.2).
+
+## R60 Documentation and version
+
+Issue: emsumagangjr/YNGAIPlaybook#132
+
+1.  The config template, the folder's README template, INSTALL and
+    guide section 25 describe `remote-control:`; the guide describes
+    how a run asks.
+2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.14.0.
