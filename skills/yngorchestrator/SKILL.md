@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.14.0
+  version: 1.14.1
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -145,7 +145,8 @@ run writes, `<log>`, follows the issue's kind:
 A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
-planned, dispatched, reported, relabelled, merged, closed, and a run
+planned, dispatched, reported, relabelled, merged, closed, a worktree
+removed or its removal deferred ([track.md](track.md)), and a run
 launched into its own instance ([launch.md](launch.md)).
 
 ### The lock
@@ -215,10 +216,11 @@ children*).
 
 Then run the *On a merge* path of [track.md](track.md): slices a
 person merged while you were away are closed before anything new is
-dispatched.
+dispatched. Then *Sweep deferred removals* there: worktrees a slice or
+standalone run could not remove from inside are removed now (R61.2).
 
 Done when you can name each one, or have told the person which is
-missing, and merged slices are closed.
+missing, merged slices are closed, and deferred removals are swept.
 
 ### 2. Plan
 

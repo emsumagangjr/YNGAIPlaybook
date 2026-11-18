@@ -117,7 +117,26 @@ Log `closed`.
 ### 4. Clean up
 
 Find the slice worktree's absolute path with
-`git --git-dir="<root>/.bare" worktree list`, then:
+`git --git-dir="<root>/.bare" worktree list`, as `<slice worktree>`.
+
+**A run sitting in it defers the removal** (R61.1). A run in its own
+instance sits in the worktree it would remove, and the instance stays
+open after the hand-back, holding the folder (Windows refuses to remove
+a folder in use). The session sits in it when the worktree holding the
+session's folder is `<slice worktree>`; Git prints both paths in the
+same form:
+
+``` bash
+[ "$(git rev-parse --show-toplevel 2>/dev/null)" = "<slice worktree>" ] && echo inside
+```
+
+On `inside`, do not run the commands below. Log
+`worktree removal deferred <slice worktree>`, and tell the person the
+worktree and its local branch are removed by a later run started
+outside it: `/yngorchestrator continue`, a bare `/yngorchestrator`, or
+an Epic run (*Sweep deferred removals* below).
+
+**Any other run removes it at once**:
 
 ``` bash
 git --git-dir="<root>/.bare" worktree remove "<slice worktree>"
@@ -130,4 +149,79 @@ and tell the person which command refused and why; they decide whether
 to force it.
 
 Done when every merged slice's issue is closed, its worktree and local
-branch are gone or reported, and each has its run log lines.
+branch are gone, reported or deferred, and each has its run log lines.
+
+## Sweep deferred removals
+
+Runs in a session that is not in a deferred worktree (R61.2): every
+`/yngorchestrator continue` and bare `/yngorchestrator`, from step 2
+of [locate.md](locate.md), and every Epic run, in step 1 of
+[SKILL.md](SKILL.md). It needs only `<root>`: no provider, no issue.
+
+### 1. Find the deferred removals
+
+A removal is deferred while a run log holds a
+`#<n> worktree removal deferred <path>` line with no later
+`#<n> worktree removed` line. Read every log:
+
+``` bash
+for log in "<root>/.yngaiplaybook/yngorchestratorruns"/*.md; do
+  [ -f "$log" ] || continue
+  awk -v name="$(basename "$log" .md)" '
+    / worktree removal deferred / { p = $0; sub(/.* worktree removal deferred /, "", p); d[$2] = p; next }
+    / worktree removed$/          { delete d[$2] }
+    END { for (n in d) print name "\t" n "\t" d[n] }' "$log"
+done
+```
+
+Each line is `<log>`, `#<n>` and the worktree's `<path>`. Skip one
+whose `<path>` holds the session (the check in step 4 of *On a merge*
+above): this session is the one sitting in it.
+
+Done when you hold the deferred removals, or know there are none.
+
+### 2. Remove each one
+
+For each `<log>`, only while `yngorchestratorruns/<log>.lock` is
+absent: a lock means a run is working on that log, so its removals
+wait for the next sweep. Take that lock as *The lock* in
+[SKILL.md](SKILL.md) says, so no run starts on the log while you write
+it, and delete it once that log's removals are done. A lock this run
+already holds (an Epic run sweeping its own log) counts as absent, and
+stays held.
+
+For each of the log's removals, take the branch from the worktree in
+`git --git-dir="<root>/.bare" worktree list --porcelain` (its
+`branch refs/heads/<branch>` line), and remove both as step 4 of *On a
+merge* does:
+
+``` bash
+git --git-dir="<root>/.bare" worktree remove "<path>"
+git --git-dir="<root>/.bare" branch -d <branch>
+```
+
+Append `<date> #<n> worktree removed` to `yngorchestratorruns/<log>.md`.
+
+A `<path>` the list no longer shows is no longer a worktree: removed
+by hand, or by an earlier removal Windows refused, which unregisters
+the worktree and deletes its files but leaves the folder it could not
+delete. Remove that leftover folder, empty only, and the local branch,
+`slice/<n>-` or `fix/<n>-` as `git --git-dir="<root>/.bare" branch
+--list` shows it, each only if it is still there:
+
+``` bash
+[ -d "<path>" ] && rmdir "<path>"
+git --git-dir="<root>/.bare" branch -d <branch>
+```
+
+Then log `worktree removed` the same way.
+
+When any command refuses (the instance still holds the folder,
+uncommitted changes, an unmerged branch, a leftover folder not empty),
+log nothing: the removal stays deferred, and the next sweep tries
+again (R61.3). Never force a removal. Tell the person which worktree,
+which command refused and why; for a folder in use, that closing the
+run's instance lets the next sweep remove it.
+
+Done when every deferred removal whose log was free is removed, or
+reported and still deferred, and every lock the sweep took is gone.

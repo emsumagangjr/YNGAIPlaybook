@@ -4,6 +4,30 @@ All notable changes to YNGAIPlaybook are documented here. The version in `VERSIO
 
 ---
 
+## [1.14.1] — 2026-11-18
+
+A merged run no longer tries to remove the worktree its own instance sits in: it defers the removal, and the next run started outside that worktree removes it (emsumagangjr/YNGAIPlaybook#124).
+
+### Fixed
+- After a slice or standalone merge, a run whose session sits in the worktree it would remove (its own instance, which stays open after the hand-back) no longer attempts the removal, which Windows refused while the instance held the folder. It logs `worktree removal deferred <path>` and tells the person a later run removes it. A run whose session is elsewhere removes the worktree at once, as before.
+
+### Added
+- `skills/yngorchestrator/track.md`: *Sweep deferred removals*. Every `/yngorchestrator continue`, bare `/yngorchestrator` and Epic run, from any folder outside the worktree, removes each deferred worktree and its local branch whose run log has no lock, taking that lock while it writes the log, and logs `worktree removed`. A removal the system still refuses is reported and stays deferred for the next sweep; the sweep never forces one.
+
+### Changed
+- `skills/yngorchestrator/track.md`: step 4 of *On a merge* checks whether the session sits in the worktree (`git rev-parse --show-toplevel`) before removing it.
+- `skills/yngorchestrator/scoped.md`: step 7 defers the removal from inside; the hand-back says the worktree is removed by a later run.
+- `skills/yngorchestrator/locate.md`: every `continue` sweeps first, in step 2. `skills/yngorchestrator/SKILL.md`: an Epic run sweeps in step 1, after *On a merge*. `skills/yngorchestrator/merge.md` points to the deferral.
+- Guide section 25 describes the deferral and the sweep. The spec gains R61 and R62; R5.2, R19.3 and R20.3 point to R61.
+
+### Decisions
+- Refused, in `docs/specs/yngorchestrator/decisions.md`: removing at once and leaving the refusal to the person; deferring only on Windows; closing the instance or forcing the removal.
+
+### Notes
+- Checked on Windows in a throwaway bare-repo project: the inside check from the worktree, a folder below it and the root; the sweep's log reading; `git worktree remove` refused while a process held the folder. That refusal unregisters the worktree and leaves its empty folder, so the sweep also removes a leftover empty folder Git no longer lists. An end-to-end run through `/yngorchestrator` is for a person to run.
+
+---
+
 ## [1.14.0] — 2026-11-18
 
 Launched runs start with Claude Code's Remote Control on, and a run grills the person, one question at a time, when it needs information only they have (emsumagangjr/YNGAIPlaybook#132).

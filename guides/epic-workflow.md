@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.14.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.14.1 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -1544,7 +1544,8 @@ It keeps to both gates:
     issues to `workflow:in-review` and applies the merge rule for the path (see
     *Merge rules* below). On `required` it tells the person; after a
     merge, by either, it closes the slice issue and removes the
-    worktree.
+    worktree, or leaves that to a later run when its own instance sits
+    in it (see *Run* below).
 
 It is **standalone**: nothing of it is committed to the project. Its
 files sit in the project root, beside `.bare/` and outside every
@@ -1986,6 +1987,19 @@ Run it again on an issue at `workflow:in-review` and it resumes from
 the pull request. Each run ends with one list of everything waiting on
 you: pull requests to merge, issues handed back, slices waiting for
 promotion.
+
+After a slice or standalone merge, the run's own instance still sits
+in the worktree it would remove, and stays open, so the run does not
+remove it: it logs `worktree removal deferred <path>` and tells you a
+later run removes it. The next `/yngorchestrator continue`, bare
+`/yngorchestrator` or Epic run, started anywhere outside that
+worktree, sweeps every deferred removal whose run log has no lock:
+it removes the worktree and its local branch and logs
+`worktree removed`. One the system still refuses, because the instance
+is still open or the worktree has changes, is reported and stays
+deferred for the next sweep; close the instance and run `continue`
+again. A run started outside the worktree removes it at once, as
+before.
 
 ------------------------------------------------------------------------
 

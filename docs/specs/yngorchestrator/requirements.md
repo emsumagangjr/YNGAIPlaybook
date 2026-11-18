@@ -41,7 +41,7 @@ skills/yngorchestrator/worktree.md  step: find or create the branch and worktree
 skills/yngorchestrator/scoped.md    step: run one slice or standalone issue (R19, R20)
 skills/yngorchestrator/plan.md      step: planning (R3)
 skills/yngorchestrator/dispatch.md  step: dispatch (R4)
-skills/yngorchestrator/track.md     step: tracking (R5)
+skills/yngorchestrator/track.md     step: tracking; deferred worktree removals (R5, R61)
 skills/yngorchestrator/merge.md     step: merge by rule (R7)
 skills/yngorchestrator/report.md    the completion report format (R1)
 agents/slice-worker.md              the worker (R2)
@@ -175,7 +175,9 @@ Slice: #6
 
 2.  After a person merges a slice PR into the Epic branch: pulls the
     Epic worktree, closes the slice issue with a note naming the Epic
-    branch, then removes the slice worktree and its local branch.
+    branch, then removes the slice worktree and its local branch, or
+    defers the removal while the run's session sits in that worktree
+    (R61).
 3.  Keeps one run log per Epic at
     `<root>/.yngaiplaybook/yngorchestratorruns/<epic>.md` (R8), so an interrupted run can resume where it stopped and the log
     outlives the Epic worktree. `SKILL.md` defines the log's location and line format;
@@ -479,8 +481,9 @@ run.
     at `workflow:in-progress` by an ended run fails Gate 1 until a
     person promotes it again.
 3.  After the merge it closes the slice and removes its worktree and
-    local branch (R5.2), for that slice only. It then names the
-    slices the merge unblocked (the Epic's open slices whose
+    local branch (R5.2; R61 defers the removal), for that slice only.
+    It then names the slices the merge unblocked (the Epic's open
+    slices whose
     `Depends on:` names it and whose dependencies are now all closed),
     and does not dispatch them: that is an Epic run.
 4.  A run on an issue at `workflow:in-review` resumes from its pull
@@ -504,7 +507,8 @@ Slice: #45
     every path (R7).
 3.  After the merge it closes the issue, if no closing keyword already
     did, naming `main`, and removes the `fix/` worktree and local
-    branch. R19.4's resume applies the same way.
+    branch, or defers the removal as R61 says. R19.4's resume applies
+    the same way.
 
 ## R21 Run log and lock
 
@@ -1405,3 +1409,53 @@ Issue: emsumagangjr/YNGAIPlaybook#132
     how a run asks.
 2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
     guide header move to 1.14.0.
+
+## R61 Deferred worktree removal
+
+Issue: emsumagangjr/YNGAIPlaybook#124
+
+A run in its own instance (R46) sits in the worktree its merge would
+remove (R5.2, R19.3, R20.3), and the instance stays open after the
+hand-back, holding the folder; Windows refuses to remove a folder in
+use. The removal moves to a run that does not sit in it, the same way
+on every system. The procedure is step 4 of *On a merge* and *Sweep
+deferred removals* in `track.md`.
+
+1.  **Defer.** After a slice or standalone merge, a run whose session
+    folder is inside the worktree it would remove (the worktree
+    holding the session, `git rev-parse --show-toplevel`, is that
+    worktree) does not attempt the removal. It logs
+    `worktree removal deferred <path>`, `<path>` as
+    `git worktree list` prints it, and tells the person the worktree
+    is removed by a later run. A run whose session is anywhere else
+    (an Epic run on a person's merge, a run in place after a failed
+    launch) removes the worktree and its local branch at once, as
+    before.
+2.  **Sweep.** Every `/yngorchestrator continue` and bare
+    `/yngorchestrator` (step 2 of `locate.md`, from any folder, before
+    a run is picked) and every Epic run (step 1 of `SKILL.md`, after
+    *On a merge*) sweeps deferred removals. A removal is deferred
+    while a run log holds its `#<n> worktree removal deferred <path>`
+    line and no later `#<n> worktree removed` line. For each one in a
+    log whose `<log>.lock` is absent, the sweep takes that lock (R21)
+    while it writes the log, removes the worktree and its local branch
+    as `track.md`'s step 4 does, logs `worktree removed`, and deletes
+    the lock. A lock the sweeping run already holds (an Epic run's own
+    log) counts as absent. A worktree the session sits in is skipped.
+    One Git no longer lists (removed by hand, or unregistered by an
+    earlier removal Windows refused, which leaves the folder behind)
+    has its leftover folder removed if empty and its local branch
+    deleted, then is logged `worktree removed`.
+3.  **Refused.** A removal the system still refuses during the sweep
+    (the instance still open, uncommitted changes, an unmerged branch,
+    a leftover folder not empty) is reported to the person, naming
+    the worktree, the command and why, and logs nothing: it stays
+    deferred for the next sweep. The sweep never forces a removal.
+
+## R62 Documentation and version
+
+Issue: emsumagangjr/YNGAIPlaybook#124
+
+1.  Guide section 25 describes the deferred removal and the sweep.
+2.  CHANGELOG entry; `VERSION`, the skill's `metadata.version` and the
+    guide header move to 1.14.1.

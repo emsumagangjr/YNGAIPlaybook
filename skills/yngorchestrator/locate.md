@@ -6,7 +6,8 @@ check that the issue belongs to this project, tell what kind of
 issue it is, and decide where the run goes: here, when the session is
 in the issue's own worktree, or into an instance of its own there
 ([launch.md](launch.md), R46). Nothing here changes a branch, a
-worktree or an issue, except a reopen the person said yes to.
+worktree or an issue, except a reopen the person said yes to and the
+sweep of deferred removals a `continue` runs (step 2).
 
 The session may have started at the project root, in any worktree, or
 in any folder below one. Every command below names its target by
@@ -109,7 +110,14 @@ From the root, or a worktree whose branch names no issue (`main`),
 there is no `<n>` yet: step 3 picks the run, once the provider is
 known (*Pick a run* there).
 
-Done when you hold an issue number `<n>`, or know step 3 picks it.
+Every `continue`, from anywhere, first runs *Sweep deferred removals*
+in [track.md](track.md) (R61.2): worktrees a merged run could not
+remove from inside, because its instance sat in them, are removed now
+where nothing holds them. The sweep skips a worktree this session sits
+in, and needs only `<root>`.
+
+Done when deferred removals are swept, and you hold an issue number
+`<n>` or know step 3 picks it.
 
 ## 3. Resolve the provider and the repositories
 
