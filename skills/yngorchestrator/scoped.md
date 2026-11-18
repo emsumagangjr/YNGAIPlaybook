@@ -138,11 +138,13 @@ Done when the pull request is merged, or waits on a person.
 
 ## 7. After the merge
 
-A run in its own instance sits in the worktree it removes here. Where
-the system refuses to remove a folder in use (Windows does), the
-removal is reported as any refusal is (step 4 of *On a merge* in
-[track.md](track.md)): the person removes it once the instance has
-closed.
+A run in its own instance sits in the worktree it would remove here,
+and the instance stays open after the hand-back. Step 4 of *On a
+merge* in [track.md](track.md) then defers the removal (R61.1): it
+logs `worktree removal deferred <worktree>`, and a later run started
+outside the worktree removes it (*Sweep deferred removals* there). A
+run whose session is elsewhere, as after a launch that failed, removes
+it at once.
 
 ### A slice
 
@@ -169,16 +171,20 @@ explicitly (R12.2): *set state* `none`, then *close* with the comment
 
 Log `closed`. Remove the worktree and local branch as in step 4 of
 *On a merge* in [track.md](track.md), with `fix/<n>-<name>` as the
-branch, and log `worktree removed`.
+branch: deferred when the session sits in the worktree, else removed
+and logged `worktree removed`.
 
-Done when the issue is closed, its worktree and local branch are gone
-or reported, and, for a slice, the unblocked slices are named.
+Done when the issue is closed, its worktree and local branch are gone,
+reported or deferred, and, for a slice, the unblocked slices are named.
 
 ## 8. Hand back
 
 Tell the person where the issue stands: merged and closed, with the
-slices it unblocked; or its pull request waiting for them (Gate 2),
-with the review record's open decisions or the held condition; or
+slices it unblocked and, when its removal was deferred, that its
+worktree is removed by a later `/yngorchestrator continue`, bare
+`/yngorchestrator` or Epic run once this instance has closed; or its
+pull request waiting for them (Gate 2), with the review record's open
+decisions or the held condition; or
 handed back at `workflow:ready-for-human`, with the reason. Once a
 person has merged a waiting pull request, `/yngorchestrator <n>`
 closes the issue (step 1).

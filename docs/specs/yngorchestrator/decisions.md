@@ -201,3 +201,17 @@ Dated log of options refused, one line of why each.
   person started (emsumagangjr/YNGAIPlaybook#132). That session is
   theirs, started as they chose; the setting shapes only the instances
   a run opens.
+- **2026-11-18** Refused: removing a merged run's worktree at once and
+  reporting the refusal for the person to remove by hand
+  (emsumagangjr/YNGAIPlaybook#124), as before 1.14.1. Every slice and
+  standalone merge on Windows left the person a manual step; the owner
+  chose defer and sweep in triage.
+- **2026-11-18** Refused: deferring only on Windows
+  (emsumagangjr/YNGAIPlaybook#124). An instance sitting in a folder it
+  removes is wrong on every system; one rule behaves the same
+  everywhere.
+- **2026-11-18** Refused: closing the run's instance, or forcing the
+  removal, to free the folder (emsumagangjr/YNGAIPlaybook#124). The
+  instance stays open with the hand-back on screen, and a forced
+  removal could discard work; a refused sweep reports and tries again
+  next time.

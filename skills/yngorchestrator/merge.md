@@ -75,7 +75,8 @@ branches), and the head branch deleted (R13.2).
 Log `merged <PR> auto`. In an Epic run, for a slice, run the *On a
 merge* path of [track.md](track.md) now: it closes the issue and
 removes the worktree. A slice or standalone run goes on with step 7 of
-[scoped.md](scoped.md), which does the same for its one issue.
+[scoped.md](scoped.md), which does the same for its one issue, and
+defers the removal while its session sits in that worktree.
 
 For `epic-to-main`, *read issue* for the Epic. The pull request's
 closing reference closes it where the provider can; while it is still
