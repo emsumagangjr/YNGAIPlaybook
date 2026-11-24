@@ -441,10 +441,12 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 7.  `YNGV_HTML_BROWSER` persists the default per person, as an
     environment variable rather than project config: `yngv` is a
     per-user tool on PATH, installed outside any project
-    (yngorchestrator R13.5). Unset, empty, or any value other than `0`,
-    `no`, `false` or `off` means the browser; those values mean the
-    console. An unknown value never stops the call, as with
-    `handback-page` (R12.2).
+    (yngorchestrator R13.5). Both scripts match the value the same way,
+    with surrounding whitespace stripped and case folded first, so
+    `no`, `NO`, `no ` and ` no ` all read alike. Unset, empty,
+    whitespace only, or any value other than `0`, `no`, `false` or
+    `off` means the browser; those values mean the console. An unknown
+    value never stops the call, as with `handback-page` (R12.2).
 8.  `-Raw` / `--raw` and `-Console` / `--console` win per call, over
     both the default and the variable, as they already do for markdown.
     HTML has no console renderer of its own, so each shows the file's
