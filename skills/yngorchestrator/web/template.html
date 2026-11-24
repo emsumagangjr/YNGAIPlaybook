@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Hand-back page</title>
+<!--
+  YNG Orchestrator hand-back page.
+  Part of YNGAIPlaybook - Emeterio M. Sumagang Jr., YNGSoftware.
+
+  This file is shipped with the skill and versioned with it. The run
+  writes nothing but the payload: it substitutes its whole JSON output
+  into the one empty element of type application/json with the id
+  handback-data, below, and writes the result to
+  <root>/.yngaiplaybook/ynghandback-<n>.html. That element is the only
+  placeholder, and this comment keeps no second copy of its tag for a
+  substitution to match by mistake.
+
+  Rules this file keeps, and a reviewer can check by reading it:
+    - It opens from file:// with no network. No remote script, style,
+      font or image, and no request of any kind.
+    - It renders. The run ranks the waiting list, works out the merge
+      path and finds a label/report disagreement; this page shows the
+      arrays in the order it was given them.
+    - It never writes. No control here changes issue state: every
+      waiting row links to the provider page where a person acts.
+
+  The payload shape is docs/specs/ynghandback/requirements.md, R4.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f9;
+    --panel: #ffffff;
+    --panel-2: #fafbfd;
+    --ink: #151a22;
+    --muted: #5b6575;
+    --line: #dde2ea;
+    --accent: #23457f;
+    --chip-ink: #ffffff;
+    --k-merge: #1f6f4a;
+    --k-held: #8a5a00;
+    --k-human: #1d4ed8;
+    --k-promote: #6b21a8;
+    --k-decision: #0e6f82;
+    --k-conflict: #a4232c;
+    --k-other: #4b5563;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1218;
+      --panel: #161b23;
+      --panel-2: #1b212b;
+      --ink: #e9edf4;
+      --muted: #9aa5b6;
+      --line: #28303c;
+      --accent: #9db8ef;
+      --chip-ink: #0f1218;
+      --k-merge: #5fd39b;
+      --k-held: #e2b457;
+      --k-human: #8db1ff;
+      --k-promote: #cba6f7;
+      --k-decision: #6fd0e2;
+      --k-conflict: #ff8c91;
+      --k-other: #aab4c2;
+    }
+  }
+
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    padding: 1.25rem 1rem 3rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  * { box-sizing: border-box; }
+  .wrap { max-width: 62rem; margin: 0 auto; }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+
+  header.page { margin-bottom: 1.5rem; }
+  h1 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+  h1 .n { white-space: nowrap; }
+  .meta { color: var(--muted); font-size: .85rem; margin: 0; }
+  .meta span { display: inline-block; margin-right: .9rem; overflow-wrap: anywhere; max-width: 100%; }
+  .notice {
+    margin: 1rem 0 0; padding: .65rem .8rem; border: 1px solid var(--line);
+    border-left: 4px solid var(--k-held); border-radius: 6px;
+    background: var(--panel); font-size: .92rem; overflow-wrap: anywhere;
+  }
+
+  section { margin: 0 0 2rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .7rem; letter-spacing: .01em; }
+  .waiting { margin-bottom: 2.75rem; }
+  .waiting h2 { font-size: 1.5rem; margin-bottom: .9rem; }
+
+  .rows { display: flex; flex-direction: column; gap: .75rem; }
+  .row {
+    background: var(--panel); border: 1px solid var(--line);
+    border-left: 5px solid var(--k-other); border-radius: 8px;
+    padding: .85rem .95rem;
+  }
+  .row[data-kind="merge"]    { border-left-color: var(--k-merge); }
+  .row[data-kind="held"]     { border-left-color: var(--k-held); }
+  .row[data-kind="human"]    { border-left-color: var(--k-human); }
+  .row[data-kind="promote"]  { border-left-color: var(--k-promote); }
+  .row[data-kind="decision"] { border-left-color: var(--k-decision); }
+  .row[data-kind="conflict"] { border-left-color: var(--k-conflict); }
+  .row .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .7rem; }
+  .row .why { margin: .45rem 0 0; font-size: 1.02rem; overflow-wrap: anywhere; }
+  .row .blocks { margin: .45rem 0 0; font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+  .row .go { margin-left: auto; font-size: .85rem; white-space: nowrap; }
+
+  .chip {
+    display: inline-block; padding: .1rem .5rem; border-radius: 999px;
+    font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+    text-transform: uppercase; background: var(--k-other); color: var(--chip-ink);
+  }
+  .chip[data-kind="merge"]    { background: var(--k-merge); }
+  .chip[data-kind="held"]     { background: var(--k-held); }
+  .chip[data-kind="human"]    { background: var(--k-human); }
+  .chip[data-kind="promote"]  { background: var(--k-promote); }
+  .chip[data-kind="decision"] { background: var(--k-decision); }
+  .chip[data-kind="conflict"] { background: var(--k-conflict); }
+
+  .none { margin: 0; padding: .9rem 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+
+  .scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel-2); font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td .sub { display: block; color: var(--muted); font-size: .82rem; margin-top: .2rem; overflow-wrap: anywhere; }
+
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain > li {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: .6rem .8rem; margin-bottom: .5rem; overflow-wrap: anywhere;
+  }
+  .edge .arrow { color: var(--muted); padding: 0 .35rem; }
+
+  details.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .8rem; }
+  details.detail > summary { cursor: pointer; padding: .55rem 0; font-weight: 600; }
+  details.detail h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: .8rem 0 .4rem; }
+  details.detail pre { margin: 0 0 .5rem; padding: .6rem .7rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  details.detail ul { margin: 0 0 .6rem; padding-left: 1.1rem; font-size: .85rem; }
+  details.detail li { overflow-wrap: anywhere; margin-bottom: .2rem; }
+  .flag { color: var(--k-held); font-weight: 600; }
+
+  footer.page { color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); padding-top: .8rem; }
+  footer.page p { margin: .2rem 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 30rem) {
+    body { padding: 1rem .75rem 2.5rem; }
+    .waiting h2 { font-size: 1.3rem; }
+    .row .go { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page" id="page-head"></header>
+  <noscript>
+    <p class="notice">This page draws itself from the payload below, which
+    needs scripting. With scripting off it shows nothing. The same list is in
+    the run's own hand-back, in the terminal.</p>
+  </noscript>
+  <main id="page-main"></main>
+  <footer class="page" id="page-foot"></footer>
+</div>
+
+<script type="application/json" id="handback-data"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  var KNOWN_SCHEMA = 1;
+  var head = document.getElementById("page-head");
+  var main = document.getElementById("page-main");
+  var foot = document.getElementById("page-foot");
+
+  // --- DOM helpers. Payload text is always set as text, never as markup.
+  function el(tag, cls, content) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (content !== undefined && content !== null && content !== "") { n.textContent = String(content); }
+    return n;
+  }
+  function add(parent) {
+    for (var i = 1; i < arguments.length; i++) {
+      if (arguments[i]) { parent.appendChild(arguments[i]); }
+    }
+    return parent;
+  }
+  function text(parent, s) { parent.appendChild(document.createTextNode(s)); return parent; }
+  function str(v) { return (typeof v === "string" && v !== "") ? v : null; }
+  function arr(v) { return Object.prototype.toString.call(v) === "[object Array]" ? v : []; }
+
+  // A local page opens local and provider addresses only. Anything that
+  // could run on click is shown as plain text instead of a link.
+  function href(u) {
+    var s = str(u);
+    if (!s) { return null; }
+    var probe = s.toLowerCase().replace(/[^a-z0-9+.:/?#@%&=_-]/g, "");
+    if (probe.indexOf("javascript:") === 0 || probe.indexOf("data:") === 0 || probe.indexOf("vbscript:") === 0) { return null; }
+    return s;
+  }
+  function link(u, label, title) {
+    var h = href(u);
+    if (!h) { return el("span", null, label); }
+    var a = el("a", null, label);
+    a.setAttribute("href", h);
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener noreferrer");
+    if (title) { a.setAttribute("title", title); }
+    return a;
+  }
+
+  // --- payload lookups. These read what the run wrote; they never rank,
+  // re-order or work anything out.
+  var slices = [];
+  function sliceOf(n) {
+    for (var i = 0; i < slices.length; i++) {
+      if (slices[i] && slices[i].number === n) { return slices[i]; }
+    }
+    return null;
+  }
+  // The waiting kinds whose url is the issue itself (R5.4). For the rest it
+  // is the pull request, which must never stand in for the issue's address.
+  var ISSUE_URL_KINDS = { promote: true, human: true, conflict: true };
+
+  // Every number naming an issue or a pull request is a link (R15.5), to the
+  // address the payload gives for it and to no address worked out here.
+  function issueLink(n, fallbackUrl) {
+    if (typeof n !== "number") { return el("span", null, "—"); }
+    var s = sliceOf(n);
+    var u = (s && str(s.url)) || fallbackUrl || null;
+    return link(u, "#" + n, u || undefined);
+  }
+  // The payload gives the pull request as an address, so its number is read
+  // back off the address: the last run of digits in the path, which is where
+  // every provider in providers/ puts it, whatever follows it.
+  function prLink(url) {
+    var h = href(url);
+    var label = "pull request";
+    if (h) {
+      var segs = h.split("?")[0].split("#")[0].split("/");
+      for (var i = segs.length - 1; i >= 0; i--) {
+        if (/^[0-9]+$/.test(segs[i])) { label = "#" + segs[i]; break; }
+      }
+    }
+    return link(url, label, h || undefined);
+  }
+  function numberList(parent, nums, fallbackUrl) {
+    for (var i = 0; i < nums.length; i++) {
+      if (i) { text(parent, ", "); }
+      parent.appendChild(issueLink(nums[i], fallbackUrl));
+    }
+    return parent;
+  }
+
+  // --- sections
+  function renderHead(data) {
+    var epic = (data && data.epic) ? data.epic : null;
+    var h1 = el("h1");
+    if (epic) {
+      if (typeof epic.number === "number") {
+        var n = el("span", "n");
+        n.appendChild(link(epic.url, "#" + epic.number, str(epic.url) || undefined));
+        add(h1, n);
+        text(h1, " ");
+      }
+      text(h1, str(epic.title) || "Epic");
+      // Several of these pages are open at once; the tab says which is which.
+      if (typeof epic.number === "number") {
+        document.title = "#" + epic.number + " hand-back page";
+      }
+    } else {
+      text(h1, "Hand-back");
+    }
+    add(head, h1);
+
+    var meta = el("p", "meta");
+    if (epic && str(epic.branch)) { add(meta, el("span", "mono", str(epic.branch))); }
+    if (data && str(data.generated)) { add(meta, el("span", null, "written " + str(data.generated))); }
+    if (data && data.live === false) { add(meta, el("span", null, "written without provider contact")); }
+    if (epic && str(epic.spec)) {
+      var s = el("span");
+      text(s, "spec ");
+      s.appendChild(link(epic.spec, str(epic.spec), str(epic.spec)));
+      add(meta, s);
+    }
+    if (meta.childNodes.length) { add(head, meta); }
+  }
+
+  function renderWaiting(data, newer) {
+    var items = arr(data && data.waiting);
+    var sec = el("section", "waiting");
+    add(sec, el("h2", null, "Waiting on you"));
+    if (!items.length) {
+      // Under a schema this page knows, an empty list means an empty list
+      // (R5.5). Under one it does not, the list may simply be somewhere
+      // this page did not look, and saying nothing waits would be a lie.
+      add(sec, el("p", "none", newer
+        ? "This page could not read the waiting list out of a payload written by a newer orchestrator. Open the run's own hand-back for it."
+        : "Nothing is waiting on you."));
+      add(main, sec);
+      return;
+    }
+    var rows = el("div", "rows");
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i] || {};
+      var kind = str(it.kind) || "other";
+      var row = el("div", "row");
+      row.setAttribute("data-kind", kind);
+
+      var h = el("div", "head");
+      var chip = el("span", "chip", kind);
+      chip.setAttribute("data-kind", kind);
+      add(h, chip);
+      if (typeof it.issue === "number") {
+        add(h, issueLink(it.issue, ISSUE_URL_KINDS[kind] === true ? str(it.url) : null));
+      }
+      if (href(it.url)) {
+        var go = el("span", "go");
+        go.appendChild(link(it.url, "Open →", str(it.url)));
+        add(h, go);
+      }
+      add(row, h);
+
+      if (str(it.why)) { add(row, el("p", "why", str(it.why))); }
+
+      var blocks = arr(it.blocks);
+      if (blocks.length) {
+        var b = el("p", "blocks");
+        text(b, "Holds up ");
+        numberList(b, blocks, null);
+        add(row, b);
+      }
+      add(rows, row);
+    }
+    add(sec, rows);
+    add(main, sec);
+  }
+
+  function renderSlices() {
+    if (!slices.length) { return; }
+    var sec = el("section");
+    add(sec, el("h2", null, "Slices"));
+    var t = el("table");
+    var hr = el("tr");
+    add(hr, el("th", null, "Slice"), el("th", null, "Title"), el("th", null, "State"), el("th", null, "Report"));
+    add(t, add(el("thead"), hr));
+    var tb = el("tbody");
+    for (var i = 0; i < slices.length; i++) {
+      var s = slices[i] || {};
+      var tr = el("tr");
+      var c1 = el("td");
+      c1.appendChild(issueLink(s.number, str(s.url)));
+      var c4 = el("td");
+      var rep = s.report;
+      if (rep && (str(rep.status) || str(rep.at) || str(rep.summary))) {
+        add(c4, el("strong", null, str(rep.status) || "—"));
+        if (str(rep.at)) { add(c4, el("span", "sub mono", str(rep.at))); }
+        if (str(rep.summary)) { add(c4, el("span", "sub", str(rep.summary))); }
+      } else {
+        text(c4, "—");
+      }
+      add(tr, c1, el("td", null, str(s.title) || "—"), el("td", null, str(s.label) || "—"), c4);
+      add(tb, tr);
+    }
+    add(t, tb);
+    add(sec, add(el("div", "scroll"), t));
+    add(main, sec);
+  }
+
+  function renderPullRequests() {
+    var withPr = [];
+    for (var i = 0; i < slices.length; i++) {
+      if (slices[i] && slices[i].pr) { withPr.push(slices[i]); }
+    }
+    if (!withPr.length) { return; }
+    var sec = el("section");
+    add(sec, el("h2", null, "Pull requests"));
+    var t = el("table");
+    var hr = el("tr");
+    add(hr, el("th", null, "Slice"), el("th", null, "Pull request"), el("th", null, "State"),
+            el("th", null, "Checks"), el("th", null, "Mergeable"));
+    add(t, add(el("thead"), hr));
+    var tb = el("tbody");
+    for (var j = 0; j < withPr.length; j++) {
+      var s = withPr[j], pr = s.pr, tr = el("tr");
+      var c1 = el("td");
+      c1.appendChild(issueLink(s.number, str(s.url)));
+      var c2 = el("td");
+      c2.appendChild(prLink(pr.url));
+      var mergeable = (pr.mergeable === true) ? "yes"
+                    : (pr.mergeable === false) ? "no"
+                    : (str(pr.mergeable) || "—");
+      add(tr, c1, c2, el("td", null, str(pr.state) || "—"),
+          el("td", null, str(pr.checks) || "—"), el("td", null, mergeable));
+      add(tb, tr);
+    }
+    add(t, tb);
+    add(sec, add(el("div", "scroll"), t));
+    add(main, sec);
+  }
+
+  function renderDependencies() {
+    var edges = [];
+    for (var i = 0; i < slices.length; i++) {
+      var s = slices[i] || {};
+      if (arr(s.dependsOn).length) { edges.push(s); }
+    }
+    if (!edges.length) { return; }
+    var sec = el("section");
+    add(sec, el("h2", null, "Dependencies"));
+    var ul = el("ul", "plain");
+    for (var j = 0; j < edges.length; j++) {
+      var li = el("li", "edge");
+      li.appendChild(issueLink(edges[j].number, str(edges[j].url)));
+      add(li, el("span", "arrow", "depends on"));
+      numberList(li, arr(edges[j].dependsOn), null);
+      add(ul, li);
+    }
+    add(sec, ul);
+    add(main, sec);
+  }
+
+  function renderDecisions() {
+    var withDecisions = [];
+    for (var i = 0; i < slices.length; i++) {
+      if (slices[i] && arr(slices[i].decisions).length) { withDecisions.push(slices[i]); }
+    }
+    if (!withDecisions.length) { return; }
+    var sec = el("section");
+    add(sec, el("h2", null, "Open review decisions"));
+    var ul = el("ul", "plain");
+    for (var j = 0; j < withDecisions.length; j++) {
+      var s = withDecisions[j], lines = arr(s.decisions);
+      for (var k = 0; k < lines.length; k++) {
+        var li = el("li");
+        li.appendChild(issueLink(s.number, str(s.url)));
+        text(li, " ");
+        add(li, el("span", null, String(lines[k])));
+        add(ul, li);
+      }
+    }
+    add(sec, ul);
+    add(main, sec);
+  }
+
+  function renderRunDetail(data) {
+    var log = arr(data && data.runlog);
+    var trees = arr(data && data.worktrees);
+    if (!log.length && !trees.length) { return; }
+    var sec = el("section");
+    var d = el("details", "detail");
+    add(d, el("summary", null, "Run detail"));
+    if (log.length) {
+      add(d, el("h3", null, "Run log"));
+      add(d, el("pre", "mono", log.join("\n")));
+    }
+    if (trees.length) {
+      add(d, el("h3", null, "Worktrees"));
+      var ul = el("ul");
+      for (var i = 0; i < trees.length; i++) {
+        var w = trees[i] || {};
+        var li = el("li");
+        add(li, el("span", "mono", str(w.path) || "—"));
+        if (w.deferred === true) {
+          text(li, " ");
+          add(li, el("span", "flag", "removal deferred"));
+        }
+        add(ul, li);
+      }
+      add(d, ul);
+    }
+    add(sec, d);
+    add(main, sec);
+  }
+
+  function renderFoot(data) {
+    var line = "Hand-back page · YNG Orchestrator";
+    if (data && str(data.generated)) { line += " · written " + str(data.generated); }
+    add(foot, el("p", null, line));
+    add(foot, el("p", null, "This page shows what is waiting; it never acts. Each action is taken on the provider page it links to."));
+  }
+
+  // --- entry
+  var holder = document.getElementById("handback-data");
+  var raw = holder ? String(holder.textContent || "").trim() : "";
+  var data = null;
+  var problem = null;
+
+  if (!raw) {
+    problem = "This is the shipped template. No payload has been written into it.";
+  } else {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      data = null;
+      problem = "The payload in this page could not be read.";
+    }
+    if (data === null || typeof data !== "object" || arr(data) === data) {
+      data = null;
+      problem = problem || "The payload in this page could not be read.";
+    }
+  }
+
+  renderHead(data);
+
+  // One line, and nothing else: there is no payload to render (R3.8).
+  if (problem) {
+    add(head, el("p", "notice", problem));
+    return;
+  }
+
+  // A schema only ever rises (R4.6), so one this page does not know came
+  // from an orchestrator newer than it.
+  var newer = data.schema !== KNOWN_SCHEMA;
+  if (newer) {
+    var says = (typeof data.schema === "number") ? "payload schema " + data.schema : "a payload schema this page does not know";
+    add(head, el("p", "notice",
+      "This page was written by a newer orchestrator (" + says +
+      "; this page renders schema " + KNOWN_SCHEMA + "). Of that payload, only the waiting list is rendered below."));
+  }
+
+  // The slices are read first, so a waiting row can link a number it names
+  // to the issue the run gave for it. Under an unknown schema they are left
+  // alone: only the waiting list is rendered, from its own fields (R4.6).
+  if (!newer) { slices = arr(data.slices); }
+
+  renderWaiting(data, newer);
+
+  if (!newer) {
+    renderSlices();
+    renderPullRequests();
+    renderDependencies();
+    renderDecisions();
+    renderRunDetail(data);
+  }
+
+  renderFoot(data);
+})();
+</script>
+</body>
+</html>
