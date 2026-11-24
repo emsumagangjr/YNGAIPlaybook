@@ -224,10 +224,14 @@
   // --- payload lookups. These read what the run wrote; they never rank,
   // re-order or work anything out.
   var slices = [];
-  function sliceOf(n) {
+  // The page's own issue, an Epic's and a standalone's alike (R4.1, R9.1).
+  // It is the heading, and the address the payload gives for its own number.
+  var issue = null;
+  function addressOf(n) {
     for (var i = 0; i < slices.length; i++) {
-      if (slices[i] && slices[i].number === n) { return slices[i]; }
+      if (slices[i] && slices[i].number === n) { return str(slices[i].url); }
     }
+    if (issue && issue.number === n) { return str(issue.url); }
     return null;
   }
   // The waiting kinds whose url is the issue itself (R5.4). For the rest it
@@ -238,8 +242,7 @@
   // address the payload gives for it and to no address worked out here.
   function issueLink(n, fallbackUrl) {
     if (typeof n !== "number") { return el("span", null, "—"); }
-    var s = sliceOf(n);
-    var u = (s && str(s.url)) || fallbackUrl || null;
+    var u = addressOf(n) || fallbackUrl || null;
     return link(u, "#" + n, u || undefined);
   }
   // A pull request's number sits beside its address in the payload (R4.1),
@@ -261,25 +264,26 @@
   function renderHead(data) {
     var epic = (data && data.epic) ? data.epic : null;
     var h1 = el("h1");
-    if (epic) {
-      if (typeof epic.number === "number") {
+    // One heading for both kinds. The page names the issue it was written
+    // for, which `issue` carries for an Epic and a standalone alike (R4.1,
+    // R9.1); `epic` is the Epic's own detail, and only an Epic has one.
+    if (issue) {
+      if (typeof issue.number === "number") {
         var n = el("span", "n");
-        n.appendChild(link(epic.url, "#" + epic.number, str(epic.url) || undefined));
+        n.appendChild(link(issue.url, "#" + issue.number, str(issue.url) || undefined));
         add(h1, n);
         text(h1, " ");
+        // Several of these pages are open at once; the tab says which is which.
+        document.title = "#" + issue.number + " hand-back page";
       }
-      text(h1, str(epic.title) || "Epic");
-      // Several of these pages are open at once; the tab says which is which.
-      if (typeof epic.number === "number") {
-        document.title = "#" + epic.number + " hand-back page";
-      }
+      text(h1, str(issue.title) || "Hand-back");
     } else {
       text(h1, "Hand-back");
     }
     add(head, h1);
 
     var meta = el("p", "meta");
-    if (epic && str(epic.branch)) { add(meta, el("span", "mono", str(epic.branch))); }
+    if (issue && str(issue.branch)) { add(meta, el("span", "mono", str(issue.branch))); }
     // The run names its own merge path (R4.1): this page neither works it
     // out from the branch nor reads it out of a waiting item's prose.
     if (data && str(data.mergePath)) { add(meta, el("span", null, "merge path " + str(data.mergePath))); }
@@ -360,8 +364,8 @@
       c1.appendChild(issueLink(s.number, str(s.url)));
       var c4 = el("td");
       var rep = s.report;
-      if (rep && (str(rep.status) || str(rep.at) || str(rep.summary))) {
-        add(c4, el("strong", null, str(rep.status) || "—"));
+      if (rep && (str(rep.outcome) || str(rep.at) || str(rep.summary))) {
+        add(c4, el("strong", null, str(rep.outcome) || "—"));
         if (str(rep.at)) { add(c4, el("span", "sub mono", str(rep.at))); }
         if (str(rep.summary)) { add(c4, el("span", "sub", str(rep.summary))); }
       } else {
@@ -508,6 +512,11 @@
       problem = problem || "The payload in this page could not be read.";
     }
   }
+
+  // The page's own issue is read before anything renders: it is the heading,
+  // which comes first on the page.
+  issue = (data && data.issue && typeof data.issue === "object"
+           && arr(data.issue) !== data.issue) ? data.issue : null;
 
   renderHead(data);
 

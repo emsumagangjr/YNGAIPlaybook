@@ -52,7 +52,7 @@ skills/yngorchestrator/web/template.html        the shipped page: markup and sty
 skills/yngorchestrator/web/index.html           the shipped project index: one row per run log (R8)
 skills/yngorchestrator/SKILL.md                 step 5 hands on to handback.md (R1, R14)
 skills/yngorchestrator/track.md                 a label/report disagreement is a waiting item (R7)
-skills/yngorchestrator/scoped.md                a standalone run renders its own page (R9)
+skills/yngorchestrator/scoped.md                a standalone or slice run hands on to handback.md (R9, R14.3)
 templates/yngorchestratorconfig.yml             handback-page:, and "hand-back page" in Words used below (R12, R16)
 skills/yngorchestrator/locate.md                step 3 resolves <handback-page> with the rest of the config (R12.3)
 scripts/yngv.ps1, scripts/yngv.sh               .html and .htm open in the default browser (R13.6-R13.9)
@@ -129,7 +129,8 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 5.  A template whose rendering disagrees with step 5's prose list is a
     defect in the template.
 6.  The template derives no address. A number it prints is a link when
-    the payload gives an address for it — the `url` of the slice in
+    the payload gives an address for it — the `url` of `issue` where the
+    number is the page's own issue (R4.9), the `url` of the slice in
     `slices[]` that carries that number, or the waiting item's own
     `url` where R5.4 makes that the issue (`promote`, `human`,
     `conflict`) — and plain text when the payload gives none (R15.5).
@@ -153,6 +154,8 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     ``` json
     { "schema": 1, "generated": "<UTC>", "live": true,
       "mergePath": "slice-to-epic",
+      "issue":  { "number": 98, "title": "...", "url": "...",
+                  "branch": "epic/98-..." },
       "epic":   { "number": 98, "title": "...", "branch": "epic/98-...",
                   "url": "...",
                   "spec": "../<worktree>/docs/specs/<feature>/" },
@@ -161,7 +164,7 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
                     "blocks": [105, 106] } ],
       "slices": [ { "number": 104, "title": "...", "url": "...",
                     "label": "workflow:in-review",
-                    "report": { "status": "done", "at": "<UTC>",
+                    "report": { "outcome": "done", "at": "<UTC>",
                                 "summary": "..." },
                     "pr": { "number": 131, "url": "...", "state": "OPEN",
                             "checks": "passed", "mergeable": true },
@@ -174,10 +177,13 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 3.  `generated` is the UTC instant the run wrote the payload, in the
     same form as the lock's `started` (`%Y-%m-%dT%H:%M:%SZ`).
 4.  `label` is the issue's one `workflow:*` state (yngproviders R8).
-    `report.status` is the completion report's `STATUS`
+    `report.outcome` is the completion report's `STATUS`
     (`report.md`). `pr.checks` is the provider's rollup (`none`,
     `pending`, `passed`, `failed`). These are three different things
-    and the payload keeps them apart (R16.3).
+    and the payload keeps them apart (R16.3). The payload's key is
+    `outcome`, not `status`: the bare word already means four things
+    here, and a payload key naming one of them is that collision
+    (R16.3). The report's own field in `report.md` keeps its name.
 5.  `decisions` is the slice's open review record: the lines of the
     report's `REVIEW RECORD`, which are also the pull request
     description's.
@@ -199,6 +205,17 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     folder in the Epic's worktree, written relative to that folder, not
     the repository-relative `docs/specs/<feature>/` the issue and the
     plan name, which resolves to nothing from there.
+9.  `issue` is the issue the page was written for — its `number`,
+    `title`, `url` and `branch` — filled for an Epic and a standalone
+    alike. It is where the page takes its heading and its identity
+    from, and the address the payload gives for its own number (R3.6,
+    R15.5). `epic` stays Epic-only, carrying what only an Epic has:
+    its branch, its spec folder and its slice set. So a standalone's
+    page carries `epic: null` (R9.1) and still names its own issue,
+    which is what R9.4 and R15.5 ask of it. **`schema` stays `1`**:
+    `issue` arrives, and `report`'s own key becomes `outcome` (R4.4),
+    before any page has been written in the field, so nothing in the
+    field changes meaning for a reader (R4.6).
 
 ## R5 The waiting list
 
@@ -274,11 +291,10 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     (R3.1 holds). Its own row the run takes from the payload it has
     just built, not from the file it has just written. The address for
     a row's number the run writes from the provider file's *Issue URL*
-    form, which is a form and not a call (R15.5). A page whose payload
-    carries no title leaves its row showing its number alone: a
-    standalone's page carries none, since R9.1 writes `epic: null`, and
-    what a standalone's payload says about its own issue is R9's to
-    settle.
+    form, which is a form and not a call (R15.5). A row's title is
+    its page's own `issue.title` (R4.9), which an Epic's page and a
+    standalone's carry alike, so every row names its issue; a payload
+    carrying no title leaves its row showing its number alone.
 3.  Each row therefore carries its own age, shown as an absolute UTC
     instant. The problem with a stale row is not that it is old, it is
     that it does not say so. So no field of a row outlives the instant
@@ -334,15 +350,24 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 
 1.  One template serves both kinds. A standalone run (`scoped.md`)
     writes `ynghandback-<n>.html` for its own issue, with `epic: null`
-    and `slices: []`.
-2.  The slice, dependency and review-decision sections **hide** when
-    their arrays are empty; they never render as empty boxes.
+    and `slices: []`. Its `issue` is that issue (R4.9): the page's
+    heading, its identity and the address for its own number come from
+    there, so `epic: null` leaves nothing on the page unnamed.
+2.  The sections an Epic's page builds from `slices[]` — its slices,
+    its pull requests, its dependency edges and its open review
+    decisions (R6.1) — **hide** when those arrays are empty; they never
+    render as empty boxes.
 3.  The merge path shown is `fix-to-main`, as `track.md` reads it for a
     standalone run, not `slice-to-epic`. It is the payload's
     `mergePath` (R4.7), which the run writes and the page prints.
 4.  A standalone's page is its waiting list, its pull request and its
-    run detail. That is all there is to say about it, and a second
-    template for one row of difference is not added.
+    run detail, and nothing more. Its pull request is **the waiting row
+    that links it** — `merge`, `held` or `decision`, whose `url` is the
+    pull request (R5.4) — and not a table of its own: the pull-requests
+    table is one of the four sections an Epic's page builds from
+    `slices[]` (R6.1, R9.2), and a standalone has no slices. That is
+    all there is to say about it, and a second template for one row of
+    difference is not added.
 
 ## R10 Live data, and a provider that cannot be reached
 
@@ -352,7 +377,13 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     report. The log records events, not current truth: a label changed
     by hand, a check gone red, a pull request someone else merged are
     in none of it.
-2.  Generation makes no provider call step 5 does not already make.
+2.  Generation makes no provider call step 5 does not already make. A
+    **slice** run writing its Epic's page (R2.2) may make the reads
+    that page needs: *read issue* on the Epic, *list children*, and the
+    per-slice reads of R10.1. This requirement exists so page
+    generation adds no provider traffic of its own, and for a slice run
+    those reads **are** the page rather than traffic on top of it;
+    reading it to forbid them left R2.2 as dead text.
 3.  When any of those operations fails — a rate limit, an expired
     login, an outage — the run **writes nothing**: the existing
     `ynghandback-<n>.html` and the index are left exactly as they are,
@@ -461,9 +492,10 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     to `handback.md`.
 2.  Not on each tracked event. An Epic of eight slices would open eight
     browser windows.
-3.  A standalone or slice run writes at its own hand-back
-    (`scoped.md`), to its Epic's page (R2.2).
-4.  A run that stops with a reason before step 5 writes no page: the
+3.  A standalone or slice run writes at its own hand-back, in step 8 of
+    `scoped.md`: a standalone its own page, a slice its Epic's (R2.2).
+4.  A run that stops with a reason before its hand-back — step 5 of
+    `SKILL.md`, or step 8 of `scoped.md` (R14.3) — writes no page: the
     page says what is waiting at a hand-back, and there was none.
 5.  The write happens before the lock is deleted, and is logged as one
     run-log line in the format `SKILL.md` defines, event
