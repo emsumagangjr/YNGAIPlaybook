@@ -242,19 +242,12 @@
     var u = (s && str(s.url)) || fallbackUrl || null;
     return link(u, "#" + n, u || undefined);
   }
-  // The payload gives the pull request as an address, so its number is read
-  // back off the address: the last run of digits in the path, which is where
-  // every provider in providers/ puts it, whatever follows it.
-  function prLink(url) {
-    var h = href(url);
-    var label = "pull request";
-    if (h) {
-      var segs = h.split("?")[0].split("#")[0].split("/");
-      for (var i = segs.length - 1; i >= 0; i--) {
-        if (/^[0-9]+$/.test(segs[i])) { label = "#" + segs[i]; break; }
-      }
-    }
-    return link(url, label, h || undefined);
+  // A pull request's number sits beside its address in the payload (R4.1),
+  // so neither is worked out here. Without a number the link says what it is.
+  function prLink(pr) {
+    var u = pr ? pr.url : null;
+    var label = (pr && typeof pr.number === "number") ? "#" + pr.number : "pull request";
+    return link(u, label, href(u) || undefined);
   }
   function numberList(parent, nums, fallbackUrl) {
     for (var i = 0; i < nums.length; i++) {
@@ -287,6 +280,9 @@
 
     var meta = el("p", "meta");
     if (epic && str(epic.branch)) { add(meta, el("span", "mono", str(epic.branch))); }
+    // The run names its own merge path (R4.1): this page neither works it
+    // out from the branch nor reads it out of a waiting item's prose.
+    if (data && str(data.mergePath)) { add(meta, el("span", null, "merge path " + str(data.mergePath))); }
     if (data && str(data.generated)) { add(meta, el("span", null, "written " + str(data.generated))); }
     if (data && data.live === false) { add(meta, el("span", null, "written without provider contact")); }
     if (epic && str(epic.spec)) {
@@ -398,7 +394,7 @@
       var c1 = el("td");
       c1.appendChild(issueLink(s.number, str(s.url)));
       var c2 = el("td");
-      c2.appendChild(prLink(pr.url));
+      c2.appendChild(prLink(pr));
       var mergeable = (pr.mergeable === true) ? "yes"
                     : (pr.mergeable === false) ? "no"
                     : (str(pr.mergeable) || "—");
