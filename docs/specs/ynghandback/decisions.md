@@ -152,3 +152,8 @@ Dated log of options refused, one line of why each.
   That table is one of the four sections an Epic's page builds from
   `slices[]`, and a standalone has no slices; its pull request is the
   waiting row that links it, and that is all there is to say (R9.4).
+- **2026-11-24** Refused: a `branch` of its own on the `epic` object. It
+  carried the same value as `issue.branch` on an Epic's page and nothing
+  ever read it, so it leaves rather than ship as a dead field in
+  1.15.0's schema; `schema` stays `1`, because no release has carried a
+  payload for a reader to hold (R4.6, R4.9).

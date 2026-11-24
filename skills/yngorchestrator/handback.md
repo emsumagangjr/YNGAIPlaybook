@@ -197,7 +197,7 @@ Every key of R4.1, in that order, schema `1`. An absent value is
 | `live`      | `true`: this payload was gathered from the provider (R10.5)                      |
 | `mergePath` | this run's own merge path, as [merge.md](merge.md) and [track.md](track.md) name it: `slice-to-epic` for an Epic and its slices, `fix-to-main` for a standalone (R4.7, R9.3) |
 | `issue`     | the issue this page is about: its `number`, `title`, `url` and `branch`           |
-| `epic`      | the Epic's `number`, `title`, `branch`, `url` and `spec`; `null` in a standalone run |
+| `epic`      | the Epic's `number`, `title`, `url` and `spec`; `null` in a standalone run |
 | `waiting`   | step 2's ranked rows                                                             |
 | `slices`    | one entry per slice from *list children*, in number order; `[]` in a standalone run |
 | `runlog`    | the run log's lines, oldest first, each as its own string                        |
@@ -207,8 +207,9 @@ Of those two keys, `issue` is the one both kinds fill, and the template
 takes the page's heading and identity from it: the Epic in an Epic or a
 slice run, the standalone issue in a standalone run. Its `branch` is
 that issue's own branch — `epic/<n>-<name>` or `fix/<n>-<name>` — and
-its `url` the provider file's *Issue URL*. `epic` is what only an Epic
-has beside that: its spec folder and its slice set.
+its `url` the provider file's *Issue URL*. It is the only branch the
+payload carries: `epic` has none of its own (R4.9). `epic` is what only
+an Epic has beside that: its spec folder and its slice set.
 
 In a standalone run `epic` is `null` and `slices` is `[]` (R9.1). Its
 page is then its waiting list, its pull request — the waiting row that

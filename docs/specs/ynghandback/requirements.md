@@ -156,8 +156,7 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0, and the guide header wit
       "mergePath": "slice-to-epic",
       "issue":  { "number": 98, "title": "...", "url": "...",
                   "branch": "epic/98-..." },
-      "epic":   { "number": 98, "title": "...", "branch": "epic/98-...",
-                  "url": "...",
+      "epic":   { "number": 98, "title": "...", "url": "...",
                   "spec": "../<worktree>/docs/specs/<feature>/" },
       "waiting":[ { "kind": "merge|promote|human|held|decision|conflict",
                     "issue": 104, "why": "...", "url": "...",
@@ -192,7 +191,10 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0, and the guide header wit
     description's.
 6.  `schema` rises when a field changes meaning or leaves. A template
     reading a `schema` it does not know renders the waiting list and a
-    line saying the page was written by a newer orchestrator.
+    line saying the page was written by a newer orchestrator. A field
+    that leaves before any release has carried it is not such a change:
+    1.15.0 is the first version to ship a payload at all, so no reader
+    can hold a page that carries it (R4.9).
 7.  `mergePath` is the run's merge path, as `merge.md` and `track.md`
     name it: `slice-to-epic` for an Epic run and its slices,
     `fix-to-main` for a standalone (R9.3). `pr.number` is the pull
@@ -212,13 +214,16 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0, and the guide header wit
     `title`, `url` and `branch` — filled for an Epic and a standalone
     alike. It is where the page takes its heading and its identity
     from, and the address the payload gives for its own number (R3.6,
-    R15.5). `epic` stays Epic-only, carrying what only an Epic has:
-    its branch, its spec folder and its slice set. So a standalone's
-    page carries `epic: null` (R9.1) and still names its own issue,
-    which is what R9.4 and R15.5 ask of it. **`schema` stays `1`**:
-    `issue` arrives, and `report`'s own key becomes `outcome` (R4.4),
-    before any page has been written in the field, so nothing in the
-    field changes meaning for a reader (R4.6).
+    R15.5). `epic` stays Epic-only, carrying what only an Epic has: its
+    spec folder and its slice set. So a standalone's page carries
+    `epic: null` (R9.1) and still names its own issue, which is what
+    R9.4 and R15.5 ask of it. `issue.branch` is the only branch the
+    payload carries: `epic` declared a `branch` of its own, which held
+    the same value on an Epic's page and which nothing ever read, so it
+    leaves rather than ship as a dead field. **`schema` stays `1`**:
+    `issue` arrives, `report`'s own key becomes `outcome` (R4.4), and
+    `epic.branch` leaves, all before any page has been written in the
+    field, so nothing in the field changes meaning for a reader (R4.6).
 
 ## R5 The waiting list
 
