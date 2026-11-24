@@ -1,12 +1,13 @@
 # Write the hand-back page
 
-The hand-back page is one HTML file for one Epic, written at the
-hand-back and opened in the person's browser: what is waiting on them,
-in the order step 5 of [SKILL.md](SKILL.md) ranked it (ynghandback R1).
+The hand-back page is one HTML file for one Epic or one standalone
+issue, written at the hand-back and opened in the person's browser:
+what is waiting on them, in the order step 5 of [SKILL.md](SKILL.md)
+ranked it (ynghandback R1).
 This file is four things in order — **gather, rank, render, open** — and
 a run-log line at the end.
 
-Step 4 writes two files: this Epic's own page, and the project index
+Step 4 writes two files: this run's own page, and the project index
 that lists every run this project has a log for, each row carrying the
 instant its own page was written (R8).
 
@@ -15,12 +16,15 @@ what waits and in what order; here you write that down, into the shipped
 template, and open it. A page that disagrees with the list the person
 has just read is a defect (R1.2, R3.5).
 
-You arrive from step 5 of [SKILL.md](SKILL.md), once, at the
-hand-back, holding what the run already holds: `<root>`, `<log>` (*Run
-log* in SKILL.md), `<handback-page>` (step 3 of
-[locate.md](locate.md)), `<host>`, `<code repo>`, `<issues repo>`, the
-Epic `<n>` with its title, branch, worktree and spec folder, and step
-5's own list. `<skill>` is the folder holding this file and SKILL.md.
+You arrive once, at the hand-back: from step 5 of
+[SKILL.md](SKILL.md) in an Epic run, or from step 8 of
+[scoped.md](scoped.md) in a slice or a standalone run (R14.1, R14.3).
+You hold what the run already holds: `<root>`, `<log>` (*Run log* in
+SKILL.md), `<handback-page>` (step 3 of [locate.md](locate.md)),
+`<host>`, `<code repo>`, `<issues repo>`, the run's issue `<n>` with its
+title and branch, the Epic's worktree and spec folder where the run
+holds them, and that step's own list. `<skill>` is the folder holding
+this file and SKILL.md.
 
 The page never acts (R11). Nothing here adds a control, a form or a
 request of any kind to it: every waiting row carries the provider
@@ -41,10 +45,30 @@ that stopped with a reason never reaches this file, and writes no page:
 the page says what is waiting at a hand-back, and there was none
 (R14.4).
 
+## Which page this run writes
+
+One page per run log, and `<log>` already names it (*Run log* in
+SKILL.md): the Epic's number for an Epic run and for any of its slices,
+the issue's own number for a standalone. So a slice run writes its
+Epic's page, `ynghandback-<epic>.html`, as it writes its Epic's log,
+and never a page of its own (R2.2).
+
+| This run     | Writes                    | The page is about | `epic`, `slices`     | `mergePath`     |
+|--------------|---------------------------|-------------------|----------------------|-----------------|
+| an Epic      | `ynghandback-<log>.html`  | the Epic          | the Epic, its slices | `slice-to-epic` |
+| one slice    | the same page, its Epic's | the Epic          | the Epic, its slices | `slice-to-epic` |
+| a standalone | `ynghandback-<log>.html`  | the issue itself  | `null`, `[]`         | `fix-to-main`   |
+
+A slice run holds its Epic only as `<parent>` ([scoped.md](scoped.md)),
+so the Epic's title, address and slices are reads it makes here (step
+1). A standalone run's page is about the issue the run is on: there is
+no Epic above it, and it is no slice of one (R9.1).
+
 ## 1. Gather
 
 The payload is live data. Gather it from four operations, on this run's
-own Epic and its slices, and on nothing else (R10.1, R10.2):
+own Epic and its slices — or on a standalone's own issue — and on
+nothing else (R10.1, R10.2):
 
 | What you need                                     | Operation                         |
 |---------------------------------------------------|-----------------------------------|
@@ -52,6 +76,18 @@ own Epic and its slices, and on nothing else (R10.1, R10.2):
 | each slice's body, for its `Depends on:` line     | *read issue* `<m>`                |
 | each slice's pull request                         | *list prs*, head `^slice/[0-9]+-` |
 | a pull request's state, checks, mergeable, number | *pr status* `<PR>`                |
+
+In a **standalone** run there are no slices, so none of those four is a
+read of one: the issue is the page's own subject (*read issue* `<n>`,
+which the run has already made), and its pull request is found by *list
+prs* for the head `^fix/<n>-`, then *pr status* (R9.1).
+
+In a **slice** run the page is its Epic's, so these are the Epic's
+reads: *read issue* `<parent>` for the Epic's title and address, *list
+children* for its slices, and the per-slice reads above. R10.2 permits
+them: it exists so page generation adds no provider traffic of its own,
+and for a slice run writing its Epic's page those reads **are** the
+page, not traffic on top of it.
 
 These four are SKILL.md step 5's own inputs: it ranks its list from the
 same reads. Add no operation to them, and make none about an Epic this
@@ -104,6 +140,11 @@ person acts (R5.4):
 | `decision` | a slice with an open review decision and an `OPEN` pull request   | the pull request |
 | `conflict` | a slice whose label and its last report disagree                  | the issue        |
 
+In a standalone run the issue itself is read as the table's "slice":
+its own label and its own pull request put it on the same rows, and its
+`blocks` is always `[]` — with `slices: []` there is nothing for it to
+hold up (R9.1).
+
 A `promote` row is a slice still waiting for Gate 1: it carries none
 of `workflow:ready-for-agent`, `workflow:in-progress`,
 `workflow:in-review` or `workflow:ready-for-human`. A `conflict` row
@@ -154,12 +195,26 @@ Every key of R4.1, in that order, schema `1`. An absent value is
 | `schema`    | `1`                                                                              |
 | `generated` | now, in UTC, in the lock's form: `date -u +%Y-%m-%dT%H:%M:%SZ` (R4.3)            |
 | `live`      | `true`: this payload was gathered from the provider (R10.5)                      |
-| `mergePath` | `slice-to-epic`, the path [merge.md](merge.md) reads for an Epic's slices (R4.7) |
-| `epic`      | the Epic's `number`, `title`, `branch`, `url` and `spec`                         |
+| `mergePath` | this run's own merge path, as [merge.md](merge.md) and [track.md](track.md) name it: `slice-to-epic` for an Epic and its slices, `fix-to-main` for a standalone (R4.7, R9.3) |
+| `issue`     | the issue this page is about: its `number`, `title`, `url` and `branch`           |
+| `epic`      | the Epic's `number`, `title`, `branch`, `url` and `spec`; `null` in a standalone run |
 | `waiting`   | step 2's ranked rows                                                             |
-| `slices`    | one entry per slice from *list children*, in number order                        |
+| `slices`    | one entry per slice from *list children*, in number order; `[]` in a standalone run |
 | `runlog`    | the run log's lines, oldest first, each as its own string                        |
-| `worktrees` | the Epic's worktree and its slices', as `{ "path": ..., "deferred": ... }`       |
+| `worktrees` | the Epic's worktree and its slices', or a standalone's own, as `{ "path": ..., "deferred": ... }` |
+
+Of those two keys, `issue` is the one both kinds fill, and the template
+takes the page's heading and identity from it: the Epic in an Epic or a
+slice run, the standalone issue in a standalone run. Its `branch` is
+that issue's own branch — `epic/<n>-<name>` or `fix/<n>-<name>` — and
+its `url` the provider file's *Issue URL*. `epic` is what only an Epic
+has beside that: its spec folder and its slice set.
+
+In a standalone run `epic` is `null` and `slices` is `[]` (R9.1). Its
+page is then its waiting list, its pull request — the waiting row that
+links it (R5.4) — and its run detail, and the sections an Epic's page
+builds from `slices[]` hide rather than render as empty boxes (R9.2,
+R9.4).
 
 `epic.url` is the provider file's *Issue URL*. `epic.spec` is an
 address the page can open from `<root>/.yngaiplaybook/`, where the
@@ -185,7 +240,7 @@ A slice's entry:
 
 `label` is the issue's one `workflow:*` state (yngproviders R8).
 `report` is the run log's last `reported` line for `#<m>`:
-`report.status` is the `STATUS` that line carries, `report.at` is
+`report.outcome` is the `STATUS` that line carries, `report.at` is
 that line's date as the log writes it, and `report.summary` the
 report's `SUMMARY`. `pr` is `number`, `url`, `state`, `checks` and
 `mergeable` from *pr status*, where `pr.checks` is the provider's
@@ -196,8 +251,10 @@ is `true` for its `yes`, `false` for its `no` and `null` for its
 
 Those three are three different things, and the payload keeps them
 apart, each named by what it is (R4.4, R16.3): `label` is the provider's
-label, `report.status` the completion report's `STATUS`
+label, `report.outcome` the completion report's `STATUS`
 ([report.md](report.md)), and `pr.checks` the provider's checks rollup.
+The payload's key is `outcome`, as R4.4 names it; the report's own
+field in [report.md](report.md) keeps its name.
 
 `decisions` and `report.summary` come from the completion reports
 this run acted on: `decisions` is the report's `REVIEW RECORD`, which
@@ -208,7 +265,8 @@ holds says otherwise, and fetching them would be a provider call step
 
 `worktrees` comes from
 `git --git-dir="<root>/.bare" worktree list --porcelain`: the Epic's
-worktree and those on this Epic's slice branches. `deferred` is `true`
+worktree and those on this Epic's slice branches, or, in a standalone
+run, the one on `fix/<n>-<name>`. `deferred` is `true`
 where the run log holds a `worktree removal deferred <path>` line with
 no later `worktree removed` for that slice (*Sweep deferred removals*
 in [track.md](track.md)); such a path is listed even when `worktree
@@ -337,7 +395,7 @@ does it, and says nothing at all for a payload this run cannot use:
 
 ``` bash
 jq -c 'if .schema == 1 and (.waiting | type) == "array"
-       then { generated: .generated, waiting: (.waiting | length), title: .epic.title }
+       then { generated: .generated, waiting: (.waiting | length), title: .issue.title }
        else empty end'
 ```
 
@@ -373,8 +431,10 @@ The rest of a row the run writes itself:
 `url` comes from the provider file's *Issue URL*, which is a form and
 not a call, so every number is a link without one (R15.5). `page` is
 the file name, which the index opens from its own folder (R3.6). A
-standalone's page carries `epic: null` (R9.1), so its payload holds no
-title and its row shows its number alone (R8.2).
+row's title is the `issue.title` of that page's own payload, which an
+Epic's page and a standalone's carry alike (R4.1), so a standalone's
+row names its issue like every other row; a payload carrying no title
+leaves its row showing its number alone (R8.2).
 
 For this run's own `<log>`, `title` and `url` are the title and address
 the run already holds, `waiting` is the number of rows step 2 ranked,

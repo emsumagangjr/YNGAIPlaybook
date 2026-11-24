@@ -10,7 +10,8 @@
   Part of YNGAIPlaybook - Emeterio M. Sumagang Jr., YNGSoftware.
 
   This file is shipped with the skill and versioned with it, beside
-  template.html, which renders one Epic's page. The run writes nothing
+  template.html, which renders one Epic's or one standalone issue's
+  page. The run writes nothing
   but the payload: it substitutes its whole JSON output into the one
   empty element of type application/json with the id handback-index,
   below, and writes the result to
@@ -204,8 +205,10 @@
         text(c1, "—");
       }
 
-      // A row whose page the run could not read carries no counts and
-      // says so in its note (R8.4). It is never filled in with a guess.
+      // A row's title is the issue.title of that page's own payload, which
+      // an Epic's page and a standalone's carry alike (R4.9). A row whose
+      // page the run could not read carries no counts and says so in its
+      // note (R8.4). It is never filled in with a guess.
       var c2 = el("td", null, str(r.title) || "—");
       if (str(r.note)) { add(c2, el("span", "sub", str(r.note))); }
 
