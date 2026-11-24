@@ -110,10 +110,14 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     element. The file carries no second copy of that tag, in a comment
     or anywhere else, so a substitution cannot match the wrong one.
 3.  The payload is inlined, never a sibling file: a `file://` page
-    cannot `fetch` a file beside it. Inlined, it ends at the first
-    `</script` in it, so the run escapes that sequence as `<\/script`,
-    which JSON reads back as the same text. An unescaped one closes the
-    element early and leaves the page with no payload to render.
+    cannot `fetch` a file beside it. Inlined, it is markup until the
+    parser meets `</script`, so **the run writes every `<` in the
+    payload as `<`**, which JSON reads back as the same text and
+    no parser can read as a tag. The strings come from issue titles,
+    report summaries, review records and run-log lines — this spec's
+    own R3.2 among them — so one of them holding `</script>` is
+    ordinary, not an attack. Unescaped, it ends the element early and
+    leaves the page with no payload to render.
 4.  **The template never computes anything the run computes.** It
     renders the payload's arrays in the order given. Ranking, the
     waiting list, the merge path, the label/report conflict and every
@@ -123,13 +127,19 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 5.  A template whose rendering disagrees with step 5's prose list is a
     defect in the template.
 6.  The template derives no address. A number it prints is a link when
-    the payload gives an address for it — the item's `url`, or the
-    `url` of the slice in `slices[]` that carries that number — and
-    plain text when the payload gives none (R15.5).
+    the payload gives an address for it — the `url` of the slice in
+    `slices[]` that carries that number, or the waiting item's own
+    `url` where R5.4 makes that the issue (`promote`, `human`,
+    `conflict`) — and plain text when the payload gives none (R15.5).
+    An item's `url` is never lent to a number R5.4 says it does not
+    name: a pull request standing in for an issue is worse than no
+    link. Addresses the run writes are addresses the page can open,
+    `epic.spec` included: the page sits in `.yngaiplaybook/`, so a
+    path relative to the repository root resolves to nothing there.
 7.  Every value from the payload is put on the page as text, never as
     markup, and an address that could run on click is printed instead
-    of linked. The page is built from one run's own output, and still
-    cannot be made to execute it.
+    of linked. With the payload escaped as R3.3 says, nothing a
+    provider or a worker wrote can execute on this page.
 8.  The shipped file is openable on its own. With the placeholder still
     empty, or holding something that is not a payload, the page says so
     in one line and renders nothing else.

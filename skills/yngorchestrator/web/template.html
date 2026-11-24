@@ -164,6 +164,11 @@
 <body>
 <div class="wrap">
   <header class="page" id="page-head"></header>
+  <noscript>
+    <p class="notice">This page draws itself from the payload below, which
+    needs scripting. With scripting off it shows nothing. The same list is in
+    the run's own hand-back, in the terminal.</p>
+  </noscript>
   <main id="page-main"></main>
   <footer class="page" id="page-foot"></footer>
 </div>
@@ -225,16 +230,30 @@
     }
     return null;
   }
-  // Every number naming an issue or a pull request is a link (R15.5).
+  // The waiting kinds whose url is the issue itself (R5.4). For the rest it
+  // is the pull request, which must never stand in for the issue's address.
+  var ISSUE_URL_KINDS = { promote: true, human: true, conflict: true };
+
+  // Every number naming an issue or a pull request is a link (R15.5), to the
+  // address the payload gives for it and to no address worked out here.
   function issueLink(n, fallbackUrl) {
+    if (typeof n !== "number") { return el("span", null, "—"); }
     var s = sliceOf(n);
     var u = (s && str(s.url)) || fallbackUrl || null;
     return link(u, "#" + n, u || undefined);
   }
+  // The payload gives the pull request as an address, so its number is read
+  // back off the address: the last run of digits in the path, which is where
+  // every provider in providers/ puts it, whatever follows it.
   function prLink(url) {
     var h = href(url);
-    var tail = h ? h.replace(/\/+$/, "").split("/").pop() : "";
-    var label = /^[0-9]+$/.test(tail) ? "#" + tail : "pull request";
+    var label = "pull request";
+    if (h) {
+      var segs = h.split("?")[0].split("#")[0].split("/");
+      for (var i = segs.length - 1; i >= 0; i--) {
+        if (/^[0-9]+$/.test(segs[i])) { label = "#" + segs[i]; break; }
+      }
+    }
     return link(url, label, h || undefined);
   }
   function numberList(parent, nums, fallbackUrl) {
@@ -279,12 +298,17 @@
     if (meta.childNodes.length) { add(head, meta); }
   }
 
-  function renderWaiting(data) {
+  function renderWaiting(data, newer) {
     var items = arr(data && data.waiting);
     var sec = el("section", "waiting");
     add(sec, el("h2", null, "Waiting on you"));
     if (!items.length) {
-      add(sec, el("p", "none", "Nothing is waiting on you."));
+      // Under a schema this page knows, an empty list means an empty list
+      // (R5.5). Under one it does not, the list may simply be somewhere
+      // this page did not look, and saying nothing waits would be a lie.
+      add(sec, el("p", "none", newer
+        ? "This page could not read the waiting list out of a payload written by a newer orchestrator. Open the run's own hand-back for it."
+        : "Nothing is waiting on you."));
       add(main, sec);
       return;
     }
@@ -299,7 +323,9 @@
       var chip = el("span", "chip", kind);
       chip.setAttribute("data-kind", kind);
       add(h, chip);
-      if (typeof it.issue === "number") { add(h, issueLink(it.issue, str(it.url))); }
+      if (typeof it.issue === "number") {
+        add(h, issueLink(it.issue, ISSUE_URL_KINDS[kind] === true ? str(it.url) : null));
+      }
       if (href(it.url)) {
         var go = el("span", "go");
         go.appendChild(link(it.url, "Open →", str(it.url)));
@@ -335,7 +361,7 @@
       var s = slices[i] || {};
       var tr = el("tr");
       var c1 = el("td");
-      c1.appendChild(link(s.url, "#" + s.number, str(s.url) || undefined));
+      c1.appendChild(issueLink(s.number, str(s.url)));
       var c4 = el("td");
       var rep = s.report;
       if (rep && (str(rep.status) || str(rep.at) || str(rep.summary))) {
@@ -370,7 +396,7 @@
     for (var j = 0; j < withPr.length; j++) {
       var s = withPr[j], pr = s.pr, tr = el("tr");
       var c1 = el("td");
-      c1.appendChild(link(s.url, "#" + s.number, str(s.url) || undefined));
+      c1.appendChild(issueLink(s.number, str(s.url)));
       var c2 = el("td");
       c2.appendChild(prLink(pr.url));
       var mergeable = (pr.mergeable === true) ? "yes"
@@ -489,9 +515,9 @@
 
   renderHead(data);
 
+  // One line, and nothing else: there is no payload to render (R3.8).
   if (problem) {
     add(head, el("p", "notice", problem));
-    renderFoot(data);
     return;
   }
 
@@ -502,7 +528,7 @@
     var says = (typeof data.schema === "number") ? "payload schema " + data.schema : "a payload schema this page does not know";
     add(head, el("p", "notice",
       "This page was written by a newer orchestrator (" + says +
-      "; this page renders schema " + KNOWN_SCHEMA + "). Only the waiting list below is shown."));
+      "; this page renders schema " + KNOWN_SCHEMA + "). Of that payload, only the waiting list is rendered below."));
   }
 
   // The slices are read first, so a waiting row can link a number it names
@@ -510,7 +536,7 @@
   // alone: only the waiting list is rendered, from its own fields (R4.6).
   if (!newer) { slices = arr(data.slices); }
 
-  renderWaiting(data);
+  renderWaiting(data, newer);
 
   if (!newer) {
     renderSlices();
