@@ -104,3 +104,56 @@ Dated log of options refused, one line of why each.
   GNU `sed` reads `\u` as "uppercase the next character" and `gawk` 5.3
   reads `\u003c` as `<`, so each silently wrote a payload that parsed
   and was wrong; the backslash now comes from its character code.
+- **2026-11-24** Refused: the run opening the browser itself. The step
+  would carry a per-platform opener of its own, beside the one `yngv`
+  already has on the person's PATH, and no per-person default to go
+  with it; `yngv` gains the `.html` case and `YNGV_HTML_BROWSER`
+  persists the choice (R13.6, R13.7).
+- **2026-11-24** Refused: matching `YNGV_HTML_BROWSER` as written. A
+  value with a trailing space, or `NO` in capitals, would have read as
+  "the browser", the opposite of what was set; both scripts strip
+  surrounding whitespace and fold case first, in the same way, so the
+  two can never answer differently (R13.7).
+- **2026-11-24** Refused: a second `yngv` version bump for the
+  whitespace fix. 1.2.0 is unreleased and ships with this release, and
+  the `.ps1` and the `.sh` move together; a bump for a fix to a change
+  no one has yet would only put the two headers out of step.
+- **2026-11-24** Refused: withholding step 5's prose list when the
+  gather fails. It was printed before this step, from data the run
+  already held, so the person keeps the list and is told which
+  operation failed beside it; only the page is not written (R10.3).
+- **2026-11-24** Refused: reading R10.2 as forbidding a slice run the
+  reads its Epic's page needs. R2.2 makes that run the writer of that
+  page, so the stricter reading left R2.2 as dead text; the
+  requirement exists to stop page generation adding traffic of its
+  own, and for a slice run those reads are the page.
+- **2026-11-24** Refused: a page taking its heading and its identity
+  from `epic`. A standalone's page carries `epic: null`, which left it
+  unable to name its own issue or give an address for its own number;
+  the payload gains a top-level `issue` that both kinds fill (R4.9).
+- **2026-11-24** Refused: `report.status` as the payload's key. The
+  bare word already means four things here, and a key naming one of
+  them is that collision; the key is `report.outcome`, while the
+  completion report's own field keeps its name (R4.4).
+- **2026-11-24** Refused: `report.at` as a UTC instant. A run-log line
+  carries a date and nothing finer, so an instant there would be
+  precision the run does not have; the field is that line's own date,
+  and R4.1's example was corrected rather than the data invented.
+- **2026-11-24** Refused: the template working the merge path out of a
+  waiting row's `why`, and a pull request's number out of the last
+  digits of its address. Both are things the run knows and the page
+  was re-deriving; they are now the payload's `mergePath` and
+  `pr.number`, read as written (R3.4, R4.7).
+- **2026-11-24** Refused: raising the payload's `schema` for the fields
+  settled mid-Epic (`issue`, `mergePath`, `pr.number`, `outcome`). No
+  page had been written in the field, and R4.6 raises it when a field
+  changes meaning or leaves, not when one arrives.
+- **2026-11-24** Refused: a pull-requests table on a standalone's page.
+  That table is one of the four sections an Epic's page builds from
+  `slices[]`, and a standalone has no slices; its pull request is the
+  waiting row that links it, and that is all there is to say (R9.4).
+- **2026-11-24** Refused: a `branch` of its own on the `epic` object. It
+  carried the same value as `issue.branch` on an Epic's page and nothing
+  ever read it, so it leaves rather than ship as a dead field in
+  1.15.0's schema; `schema` stays `1`, because no release has carried a
+  payload for a reader to hold (R4.6, R4.9).
