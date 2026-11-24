@@ -54,6 +54,7 @@ skills/yngorchestrator/track.md                 a label/report disagreement is a
 skills/yngorchestrator/scoped.md                a standalone run renders its own page (R9)
 templates/yngorchestratorconfig.yml             handback-page:, and "hand-back page" in Words used below (R12, R16)
 skills/yngorchestrator/locate.md                step 3 resolves <handback-page> with the rest of the config (R12.3)
+scripts/yngv.ps1, scripts/yngv.sh               .html and .htm open in the default browser (R13.6-R13.9)
 INSTALL.md, README.md, guides/epic-workflow.md  section 25 subsection, the files in the tree, the setting (R17)
 VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 ```
@@ -302,8 +303,9 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 
 ## R13 Opening a page outside a run
 
-1.  A page is opened outside a run by `yngv`, which is already on the
-    person's PATH and already opens HTML in the default browser:
+1.  A page is opened outside a run by `yngv`, which the installer
+    already put on the person's PATH (yngorchestrator R13), and which
+    opens an HTML file in the default browser (R13.6):
 
     ``` text
     yngv <root>/.yngaiplaybook/ynghandback.html
@@ -320,6 +322,29 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     the only context that already holds the data.
 5.  `INSTALL.md` and the guide name the `yngv` line, so the person
     never has to work the path out.
+6.  `yngv` opens `.html` and `.htm` in the default browser, as one more
+    case in the extension switch each script already has: `yngv.ps1`
+    through `Start-Process` on Windows, and `open` (macOS) or
+    `xdg-open` (Linux) when it runs under PowerShell 7 there;
+    `yngv.sh` through the `open_default` helper it already uses for
+    markdown. Where that fails or no opener exists, it says so and
+    shows the file's source, the way markdown falls back to its console
+    renderer.
+7.  `YNGV_HTML_BROWSER` persists the default per person, as an
+    environment variable rather than project config: `yngv` is a
+    per-user tool on PATH, installed outside any project
+    (yngorchestrator R13.5). Unset, empty, or any value other than `0`,
+    `no`, `false` or `off` means the browser; those values mean the
+    console. An unknown value never stops the call, as with
+    `handback-page` (R12.2).
+8.  `-Raw` / `--raw` and `-Console` / `--console` win per call, over
+    both the default and the variable, as they already do for markdown.
+    HTML has no console renderer of its own, so each shows the file's
+    own source. A missing or unreadable path fails exactly as it
+    already does for markdown; no error style is added.
+9.  Each script's own help names the two extensions and
+    `YNGV_HTML_BROWSER`; the help is the script's header block, which
+    `yngv.sh -h` and `Get-Help yngv.ps1` print.
 
 ## R14 When a page is written
 
