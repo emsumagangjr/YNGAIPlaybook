@@ -113,7 +113,7 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 3.  The payload is inlined, never a sibling file: a `file://` page
     cannot `fetch` a file beside it. Inlined, it is markup until the
     parser meets `</script`, so **the run writes every `<` in the
-    payload as `<`**, which JSON reads back as the same text and
+    payload as `\u003c`**, which JSON reads back as the same text and
     no parser can read as a tag. The strings come from issue titles,
     report summaries, review records and run-log lines — this spec's
     own R3.2 among them — so one of them holding `</script>` is
@@ -122,9 +122,9 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 4.  **The template never computes anything the run computes.** It
     renders the payload's arrays in the order given. Ranking, the
     waiting list, the merge path, the label/report conflict and every
-    other judgement belong to the run (R5, R7). The payload carries no
-    merge path of its own: where one belongs in the page, the run says
-    it in the item's `why`.
+    other judgement belong to the run (R5, R7). The merge path is the
+    payload's own `mergePath` (R4.7), read as written: it was prose in
+    a waiting item's `why` only while no field carried it.
 5.  A template whose rendering disagrees with step 5's prose list is a
     defect in the template.
 6.  The template derives no address. A number it prints is a link when
@@ -151,8 +151,10 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 
     ``` json
     { "schema": 1, "generated": "<UTC>", "live": true,
+      "mergePath": "slice-to-epic",
       "epic":   { "number": 98, "title": "...", "branch": "epic/98-...",
-                  "url": "...", "spec": "docs/specs/.../" },
+                  "url": "...",
+                  "spec": "../<worktree>/docs/specs/<feature>/" },
       "waiting":[ { "kind": "merge|promote|human|held|decision|conflict",
                     "issue": 104, "why": "...", "url": "...",
                     "blocks": [105, 106] } ],
@@ -160,7 +162,7 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
                     "label": "workflow:in-review",
                     "report": { "status": "done", "at": "<UTC>",
                                 "summary": "..." },
-                    "pr": { "url": "...", "state": "OPEN",
+                    "pr": { "number": 131, "url": "...", "state": "OPEN",
                             "checks": "passed", "mergeable": true },
                     "dependsOn": [103], "decisions": ["..."] } ],
       "runlog": ["..."], "worktrees": [ { "path": "...", "deferred": false } ] }
@@ -181,6 +183,21 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 6.  `schema` rises when a field changes meaning or leaves. A template
     reading a `schema` it does not know renders the waiting list and a
     line saying the page was written by a newer orchestrator.
+7.  `mergePath` is the run's merge path, as `merge.md` and `track.md`
+    name it: `slice-to-epic` for an Epic run and its slices,
+    `fix-to-main` for a standalone (R9.3). `pr.number` is the pull
+    request's number in the code repo, beside its address. Both arrived
+    after the template shipped, which until then had to work each one
+    out — the merge path from a waiting item's `why`, the number from
+    the last run of digits in the address — which R3.4 forbids.
+    **`schema` stays `1`**: R4.6 raises it when a field changes
+    meaning or leaves, and these two only arrive. A template written
+    for schema 1 before them renders exactly as it did.
+8.  `epic.spec` is an address the page can open from
+    `<root>/.yngaiplaybook/`, where the page sits (R3.6): the spec
+    folder in the Epic's worktree, written relative to that folder, not
+    the repository-relative `docs/specs/<feature>/` the issue and the
+    plan name, which resolves to nothing from there.
 
 ## R5 The waiting list
 
@@ -258,7 +275,8 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 2.  The slice, dependency and review-decision sections **hide** when
     their arrays are empty; they never render as empty boxes.
 3.  The merge path shown is `fix-to-main`, as `track.md` reads it for a
-    standalone run, not `slice-to-epic`.
+    standalone run, not `slice-to-epic`. It is the payload's
+    `mergePath` (R4.7), which the run writes and the page prints.
 4.  A standalone's page is its waiting list, its pull request and its
     run detail. That is all there is to say about it, and a second
     template for one row of difference is not added.

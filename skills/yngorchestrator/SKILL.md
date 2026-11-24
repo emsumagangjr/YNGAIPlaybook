@@ -279,6 +279,17 @@ against `requirements.md`. When a person has already merged it, skip
 to the `epic-to-main` close in step 3 of [merge.md](merge.md): the
 Epic is closed there if the merge left it open (R12.2).
 
+Then write the Epic's hand-back page: follow
+[handback.md](handback.md), which renders this same list as
+`<root>/.yngaiplaybook/ynghandback-<log>.html` and opens it as
+`<handback-page>` says (ynghandback R14.1). The list above stays
+first and stays whole, because it is what reaches the person over
+Remote Control, where a `file://` path is useless: where a page is
+written, add one line to it naming that page's path (ynghandback
+R1.3). Where its gather fails, no page is written, the list above
+still stands, and handback.md names the operation that failed.
+
 Last, delete the run's lock (*The lock* above): the run has ended.
 
-Done when the person holds the list and the lock is gone.
+Done when the person holds the list and the page's path, the run log
+has the hand-back page's line, and the lock is gone.

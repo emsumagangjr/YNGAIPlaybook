@@ -225,3 +225,41 @@ run's instance lets the next sweep remove it.
 
 Done when every deferred removal whose log was free is removed, or
 reported and still deferred, and every lock the sweep took is gone.
+
+## A label and a report that disagree
+
+A run that stops between a worker's report and the *set state* it
+calls for leaves a slice whose `workflow:*` label and whose last
+report in the run log describe different things (ynghandback R7.1).
+Only a person can say which is right, so the hand-back page carries it
+as a waiting item ([handback.md](handback.md)).
+
+These are the pairs that agree. Each row is a slice's last `reported`
+line in the run log — its value is the completion report's `STATUS`
+([report.md](report.md)) — the line *On a report* writes next when it
+acts on that report, and the label that then agrees with both:
+
+| Last `reported` line                                  | The line that follows it | The label that agrees                                             |
+|-------------------------------------------------------|--------------------------|-------------------------------------------------------------------|
+| `reported done`                                       | `in-review <PR>`         | `workflow:in-review`, or none once the merge has closed the issue |
+| `reported blocked`, `reported failed`, first attempt  | `re-dispatched`          | `workflow:in-progress`                                            |
+| `reported blocked`, `reported failed`, second attempt | `handed back`            | `workflow:ready-for-human`                                        |
+| `reported needs-human`                                | `ready-for-human`        | `workflow:ready-for-human`                                        |
+
+They disagree when either holds:
+
+1. the slice's last `reported` line is followed by none of the lines
+   above: a run stopped between the report and the *set state* it
+   calls for;
+2. the slice's last such line and the issue's `workflow:*` label name
+   different states: the label was changed outside the run.
+
+The **label wins**: it is the provider's record and the gate's audit
+trail, and the only thing that can be authoritative (R7.2). Act on it,
+here and everywhere else. The report is neither silently dropped nor
+silently preferred: it is shown beside the label, with the date of its
+run-log line (R7.3), and the disagreement is a `conflict` row in the
+hand-back page's waiting list (R7.4).
+
+Done when a slice whose readings disagree is known to be a `conflict`
+row, and the run has acted on its label.
