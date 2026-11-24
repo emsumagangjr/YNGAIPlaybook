@@ -6,6 +6,10 @@ in the order step 5 of [SKILL.md](SKILL.md) ranked it (ynghandback R1).
 This file is four things in order — **gather, rank, render, open** — and
 a run-log line at the end.
 
+Step 4 writes two files: this Epic's own page, and the project index
+that lists every run this project has a log for, each row carrying the
+instant its own page was written (R8).
+
 It is a rendering, not a second source of truth. That step worked out
 what waits and in what order; here you write that down, into the shipped
 template, and open it. A page that disagrees with the list the person
@@ -25,11 +29,11 @@ it already does.
 
 ## When a page is written, and when none is
 
-| `<handback-page>` | What this file does                                   |
-|-------------------|-------------------------------------------------------|
-| `open` (default)  | writes the page, then opens it (steps 1 to 5)         |
-| `write`           | writes the page and opens nothing (steps 1 to 4)      |
-| `no`              | writes no page: go to step 6 with `handback-page: no` |
+| `<handback-page>` | What this file does                                      |
+|-------------------|----------------------------------------------------------|
+| `open` (default)  | writes both (steps 1 to 4), then opens the page (step 5) |
+| `write`           | writes both and opens nothing (steps 1 to 4)             |
+| `no`              | writes neither: go to step 6 with `handback-page: no`    |
 
 Once per run, here, and never on a tracked event: an Epic of eight
 slices would otherwise open eight browser windows (R14.1, R14.2). A run
@@ -212,49 +216,201 @@ list` no longer shows it.
 
 Done when the payload holds every key of R4.1, in that order.
 
-## 4. Render
+## 4. Render the page and the index
 
-The page's markup and style are the shipped template, and the run
-authors none of them (R3.1). Substitute the payload into the
-template's one empty placeholder (R3.2), and write the result to
-`<root>/.yngaiplaybook/ynghandback-<log>.html`, whole: no history is
-kept, because the run log is the history (R2.1, R2.3).
+Two files, under one set of rules (R8.6): this Epic's own page, and the
+project index. The markup and style of both are shipped files, and the
+run authors neither (R3.1): it substitutes a payload into the one empty
+placeholder each carries (R3.2).
 
-Write the payload to a temporary file **outside** `.yngaiplaybook/`:
-`ynghandback.html` and `ynghandback-<log>.html` are the only paths
-this feature adds there (R2.4).
+| Written to                                     | Shipped file                | Placeholder's `id` |
+|------------------------------------------------|-----------------------------|--------------------|
+| `<root>/.yngaiplaybook/ynghandback-<log>.html` | `<skill>/web/template.html` | `handback-data`    |
+| `<root>/.yngaiplaybook/ynghandback.html`       | `<skill>/web/index.html`    | `handback-index`   |
+
+Write every payload and every half-built file to a temporary file
+**outside** `.yngaiplaybook/`: those two names are the only paths this
+feature adds there (R2.4).
+
+### Escaping a payload
+
+Every `<` in a payload is written `\u003c`, which JSON reads back as
+the same character and no parser can read as a tag (R3.3). Do it with
+this `awk`, on the Epic's payload and on the index's alike:
+
+``` bash
+escape() {  # escape <in> <out>
+  awk 'BEGIN { bs = sprintf("%c", 92) }
+       { n = split($0, part, "<")
+         line = part[1]
+         for (i = 2; i <= n; i++) { line = line bs "u003c" part[i] }
+         print line }' "$1" > "$2"
+}
+```
+
+The backslash comes from its own character code because a tool's escape
+syntax can swallow it, silently and without failing: GNU `sed` reads
+`\u` in a replacement as *uppercase the next character*, so
+`sed 's/</\\u003c/g'` writes `003c`, and `gawk` 5.3 and later read
+`"\\u003c"` in a string literal as `<` itself, which escapes nothing.
+Either leaves a payload that still parses and is wrong in its strings.
+
+### Substituting a payload
+
+One function puts a payload into either shipped file, so the two
+writes cannot drift apart:
+
+``` bash
+substitute() {  # substitute <shipped file> <id> <escaped payload> <out>
+  awk -v id="$2" -v data="$3" '
+    { line = $0; sub(/\r$/, "", line) }
+    line == "<script type=\"application/json\" id=\"" id "\"></script>" {
+      print "<script type=\"application/json\" id=\"" id "\">"
+      while ((getline payload < data) > 0) print payload
+      close(data)
+      print "</script>"
+      found++
+      next
+    }
+    { print }
+    END { exit(found == 1 ? 0 : 1) }' "$1" > "$4"
+}
+```
+
+It succeeds only if it met that file's placeholder exactly once: one
+substitution, into the element R3.2 names, and never into a second copy
+of that tag.
+
+### The Epic's page
+
+Substitute step 3's payload into the template, to be written whole: no
+history is kept, because the run log is the history (R2.1, R2.3).
 
 ``` bash
 json=<the payload file>; esc=$(mktemp); out=$(mktemp)
-tpl="<skill>/web/template.html"
 page="<root>/.yngaiplaybook/ynghandback-<log>.html"
 
-# Every < in the payload is written `\u003c`, which JSON reads back as
-# the same character and no parser can read as a tag (R3.3).
-sed 's/</\\u003c/g' "$json" > "$esc"
-
-awk -v data="$esc" '
-  { line = $0; sub(/\r$/, "", line) }
-  line == "<script type=\"application/json\" id=\"handback-data\"></script>" {
-    print "<script type=\"application/json\" id=\"handback-data\">"
-    while ((getline payload < data) > 0) print payload
-    close(data)
-    print "</script>"
-    found++
-    next
-  }
-  { print }
-  END { exit(found == 1 ? 0 : 1) }' "$tpl" > "$out" && mv "$out" "$page"
+escape "$json" "$esc"
+substitute "<skill>/web/template.html" handback-data "$esc" "$out"
 ```
 
-That `awk` writes no page unless it met the placeholder exactly once:
-one substitution, into the element R3.2 names, and never into a second
-copy of that tag. When it fails, leave the page and the project index
-as they are and go to step 6 with the reason
+Nothing moves into `.yngaiplaybook/` yet — *Both, or neither* below
+says when.
+
+### The project index
+
+One row per run log in
+`<root>/.yngaiplaybook/yngorchestratorruns/`, which is every Epic and
+standalone issue this project has run (R8.1):
+
+``` bash
+for log in "<root>/.yngaiplaybook/yngorchestratorruns"/*.md; do
+  m=${log##*/}; m=${m%.md}
+  case $m in '' | *[!0-9]*) continue ;; esac   # a log is named by its number
+  printf '%s\n' "$m"
+done
+```
+
+This run's own row is step 3's payload, in hand: never a read of the
+page it has just written. Every other row is read from that run's own
+page and from nothing else, and **no provider call is made about an
+Epic this run is not running** (R8.2). What is read is the payload a
+run inlined in that page, as JSON:
+
+``` bash
+other="<root>/.yngaiplaybook/ynghandback-<m>.html"
+
+# The lines between the placeholder's tags are the payload and nothing
+# else: R3.3 wrote every `<` in it as the escape above, so no line
+# inside it holds one, and the `</script>` that ends it can only be the
+# tag. The markup around it is never parsed (R3.1).
+awk '
+  { line = $0; sub(/\r$/, "", line) }
+  line == "<script type=\"application/json\" id=\"handback-data\">" { inside = 1; next }
+  inside && line == "</script>" { exit }
+  inside { print line }' "$other"
+```
+
+Read `generated`, the number of items in `waiting[]` and the title the
+payload carries out of that JSON. Where `jq` is installed, one line
+does it, and says nothing at all for a payload this run cannot use:
+
+``` bash
+jq -c 'if .schema == 1 and (.waiting | type) == "array"
+       then { generated: .generated, waiting: (.waiting | length), title: .epic.title }
+       else empty end'
+```
+
+No output, or a failure, is a row the run could not read. `jq` is only
+the Bitbucket provider's tool, so where it is absent, parse the
+extracted text as JSON yourself: it is JSON this feature wrote, and
+reading it is never reading the markup.
+
+A row is built from what that gives:
+
+- **A payload of schema 1.** `waiting` is the number of items in its
+  `waiting[]`, `generated` is its own, and `note` is `null`.
+- **No page on disk.** `waiting` and `generated` are `null`, and `note`
+  is:
+  `No hand-back page has been written for this run.`
+- **A payload absent, unparseable, or of a schema this run does not
+  know.** `waiting` and `generated` are `null`, and `note` is:
+  `This run's hand-back page could not be read, so this row carries no counts.`
+
+A row the run could not read says so and carries no counts, never a
+guess (R8.4), and keeps nothing an earlier run knew: every field of a
+row is true as of the instant beside it (R8.3).
+
+The rest of a row the run writes itself:
+
+| Key      | What you write                                       |
+|----------|------------------------------------------------------|
+| `number` | the log's own number, `<m>`                          |
+| `title`  | the title the page's payload carries, or `null`      |
+| `url`    | `<m>`'s issue address in `<issues repo>`             |
+| `page`   | `ynghandback-<m>.html`, or `null` with no page there |
+
+`url` comes from the provider file's *Issue URL*, which is a form and
+not a call, so every number is a link without one (R15.5). `page` is
+the file name, which the index opens from its own folder (R3.6). A
+standalone's page carries `epic: null` (R9.1), so its payload holds no
+title and its row shows its number alone (R8.2).
+
+For this run's own `<log>`, `title` and `url` are the title and address
+the run already holds, `waiting` is the number of rows step 2 ranked,
+and `generated` is step 3's own `generated`.
+
+Then the index payload, every key of R8.5 in that order, schema `1`:
+`generated` the instant the index is written, `project` the
+`<issues repo>`, and `runs` in number order, lowest first. Substitute
+it into the shipped index, on that file's own placeholder:
+
+``` bash
+ijson=<the index payload file>; iesc=$(mktemp); iout=$(mktemp)
+index="<root>/.yngaiplaybook/ynghandback.html"
+
+escape "$ijson" "$iesc"
+substitute "<skill>/web/index.html" handback-index "$iesc" "$iout"
+```
+
+### Both, or neither
+
+Only once both substitutions have succeeded does either file move into
+place:
+
+``` bash
+mv "$out" "$page" && mv "$iout" "$index"
+```
+
+A page refreshed beside an index still carrying the old instant for it
+would say two different things about one run (R8.6). So where either
+`awk` failed, neither file is written: leave the page and the index
+exactly as they are, and go to step 6 with the reason
 `template placeholder not found`.
 
 Done when `ynghandback-<log>.html` is the shipped template holding this
-run's payload, or nothing was written and step 6 has the reason.
+run's payload and `ynghandback.html` is the shipped index holding its
+own, or neither was written and step 6 has the reason.
 
 ## 5. Open
 
@@ -272,12 +428,18 @@ it themselves.
 
 With `write`, open nothing.
 
+The index is written, never opened: one run hands back one page, and
+the index's own rows link to the others. Name its path in that same
+line, so the person can open it with `yngv` whenever they want the
+whole project (R8.6, R13.1).
+
 Either way, name the page's path in one line beside SKILL.md step
 5's list.
 That list stays first and stays whole: it is what reaches the person
 over Remote Control, where a `file://` path is useless (R1.3).
 
-Done when the page is open, or the person has its path.
+Done when the page is open, or the person has its path and the
+index's.
 
 ## 6. Log the line
 
@@ -291,12 +453,15 @@ deletes the lock (R14.5):
 <date> #<n> handback page skipped <reason>
 ```
 
-| What happened                                     | The event                                                |
-|---------------------------------------------------|----------------------------------------------------------|
-| the page was written (step 4)                     | `handback page written`                                  |
-| `<handback-page>` is `no`                         | `handback page skipped handback-page: no`                |
-| a gathered operation failed (step 1)              | `handback page skipped <operation> failed`               |
-| the placeholder was not met exactly once (step 4) | `handback page skipped template placeholder not found`   |
+| What happened                                   | The event                                              |
+|-------------------------------------------------|--------------------------------------------------------|
+| the page and the index were written (step 4)    | `handback page written`                                |
+| `<handback-page>` is `no`                       | `handback page skipped handback-page: no`              |
+| a gathered operation failed (step 1)            | `handback page skipped <operation> failed`             |
+| a placeholder was not met exactly once (step 4) | `handback page skipped template placeholder not found` |
+
+One line covers both files, because step 4 writes both or neither
+(R8.6): there is one outcome per run to record.
 
 Done when the run log holds the line, and step 5 of SKILL.md can delete
 the lock.
