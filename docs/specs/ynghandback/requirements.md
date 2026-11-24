@@ -107,15 +107,32 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 2.  The template holds one placeholder, an empty
     `<script type="application/json" id="handback-data"></script>`. The
     run's whole output is the payload (R4), substituted into that
-    element.
+    element. The file carries no second copy of that tag, in a comment
+    or anywhere else, so a substitution cannot match the wrong one.
 3.  The payload is inlined, never a sibling file: a `file://` page
-    cannot `fetch` a file beside it.
+    cannot `fetch` a file beside it. Inlined, it ends at the first
+    `</script` in it, so the run escapes that sequence as `<\/script`,
+    which JSON reads back as the same text. An unescaped one closes the
+    element early and leaves the page with no payload to render.
 4.  **The template never computes anything the run computes.** It
     renders the payload's arrays in the order given. Ranking, the
     waiting list, the merge path, the label/report conflict and every
-    other judgement belong to the run (R5, R7).
+    other judgement belong to the run (R5, R7). The payload carries no
+    merge path of its own: where one belongs in the page, the run says
+    it in the item's `why`.
 5.  A template whose rendering disagrees with step 5's prose list is a
     defect in the template.
+6.  The template derives no address. A number it prints is a link when
+    the payload gives an address for it — the item's `url`, or the
+    `url` of the slice in `slices[]` that carries that number — and
+    plain text when the payload gives none (R15.5).
+7.  Every value from the payload is put on the page as text, never as
+    markup, and an address that could run on click is printed instead
+    of linked. The page is built from one run's own output, and still
+    cannot be made to execute it.
+8.  The shipped file is openable on its own. With the placeholder still
+    empty, or holding something that is not a payload, the page says so
+    in one line and renders nothing else.
 
 ## R4 The payload
 
