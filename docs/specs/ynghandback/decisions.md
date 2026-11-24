@@ -53,8 +53,8 @@ Dated log of options refused, one line of why each.
   issues. Two templates to keep in step for one row of difference; the
   one template hides the sections that do not apply.
 - **2026-11-24** Refused: `yngorch handback`. `yngorch` is flags-only
-  with no positional verb, and `yngv` already opens HTML in the
-  browser from PATH.
+  with no positional verb, and `yngv` opens HTML in the browser from
+  PATH (R13.6).
 - **2026-11-24** Refused: regenerating a page outside a run. The
   provider reads would exist a second time, in PowerShell and shell,
   doubling every future provider change (yngproviders R7).
@@ -78,3 +78,13 @@ Dated log of options refused, one line of why each.
 - **2026-11-24** Refused: a new section 26 in the guide. The page is
   dispatcher behaviour, and the config template cites section 25 by
   number as the dispatcher's normative home.
+- **2026-11-24** Refused: a new `-Browser` / `--browser` flag on `yngv`
+  for HTML. `-Raw` and `-Console` already say "not the browser" per
+  call; a third flag would only restate the default.
+- **2026-11-24** Refused: putting `yngv`'s HTML default in the project
+  config. `yngv` is installed per user, outside any project
+  (yngorchestrator R13.5), and reads no config; the default is the
+  environment variable `YNGV_HTML_BROWSER` (R13.7).
+- **2026-11-24** Refused: converting HTML before opening it, or opening
+  it through `Show-Markdown`. A hand-back page is already the finished
+  document; it goes to the browser untouched.
