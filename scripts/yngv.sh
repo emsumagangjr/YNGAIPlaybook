@@ -3,7 +3,7 @@
 # yngv - view a file in the terminal, rendered according to its type.
 #
 #   Name:     yngv.sh
-#   Version:  1.1.0
+#   Version:  1.2.0
 #   Created:  2026-09-19
 #   Author:   Emeterio M. Sumagang Jr.
 #   Company:  YNGSoftware (www.yngsoftware.com)
@@ -17,12 +17,25 @@
 #       1. pwsh (PowerShell 7+)  -> Show-Markdown -UseBrowser
 #       2. pandoc                -> converts to a temporary HTML file
 #   If neither is installed it falls back to an ANSI-styled rendering in the
-#   terminal. Any unrecognized file type is shown as plain text (the default).
+#   terminal. HTML (.html, .htm) opens in your default web browser as it is,
+#   with no conversion and no extra tool. Any unrecognized file type is shown
+#   as plain text (the default).
+#
+# ENVIRONMENT
+#   YNGV_HTML_BROWSER   The persisted default for .html and .htm. Unset, empty,
+#                       or any value other than 0, no, false or off: open the
+#                       file in the default browser. 0 (or no, false, off):
+#                       print the file to the terminal instead. The value is
+#                       matched with surrounding whitespace stripped and
+#                       without regard to case, so "no ", " NO" and "no" all
+#                       mean the console. -r/--raw and -c/--console still win
+#                       for the call they are given on.
 #
 # REQUIREMENTS
 #   - bash 3.2+ (the macOS default is fine), awk, sed.
-#   - For the browser view: pwsh OR pandoc, plus 'open' (macOS) or 'xdg-open'
-#     (Linux). Without them markdown still displays via the console renderer.
+#   - For the browser view: 'open' (macOS) or 'xdg-open' (Linux), and for
+#     markdown also pwsh OR pandoc. Without them markdown still displays via
+#     the console renderer, and HTML as its own source.
 #
 # INSTALL
 #   1. Copy this file to a folder on your PATH, dropping the extension so the
@@ -38,6 +51,8 @@
 #   yngv notes.md          markdown -> opens in the browser
 #   yngv notes.md -c       markdown -> ANSI-styled in this terminal
 #   yngv notes.md -r       any file -> plain text
+#   yngv page.html         HTML -> opens in the browser as it is
+#   yngv page.html -c      HTML -> its source in this terminal
 #   yngv -h                show this help
 #
 # EXTENDING
@@ -107,6 +122,18 @@ open_default() {
     else
         return 1
     fi
+}
+
+# The persisted default for HTML: the browser unless YNGV_HTML_BROWSER says no.
+# The value is lower-cased and stripped of surrounding whitespace before it is
+# matched, so 'no ', ' no' and 'NO' all mean the console, as they do in
+# yngv.ps1; a value of whitespace only is left empty, and so means the browser.
+html_browser_wanted() {
+    case "$(printf '%s' "${YNGV_HTML_BROWSER:-}" | tr '[:upper:]' '[:lower:]' \
+            | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')" in
+        0|no|false|off) return 1 ;;
+        *)              return 0 ;;
+    esac
 }
 
 # Returns 0 when it managed to open the browser, 1 when no converter/opener exists.
@@ -213,6 +240,15 @@ case "$ext" in
         elif ! show_markdown_browser "$ABS_FILE"; then
             printf '\033[90m(no pwsh/pandoc/browser opener found - using the console renderer)\033[0m\n\n'
             show_markdown_console "$ABS_FILE"
+        fi
+        ;;
+    .html|.htm)
+        if [ "$CONSOLE" -eq 1 ] || ! html_browser_wanted; then
+            # HTML has no console renderer of its own: show the file as it is.
+            show_raw "$ABS_FILE"
+        elif ! open_default "$ABS_FILE"; then
+            printf '\033[90m(no browser opener found - showing the HTML source)\033[0m\n\n'
+            show_raw "$ABS_FILE"
         fi
         ;;
     *)

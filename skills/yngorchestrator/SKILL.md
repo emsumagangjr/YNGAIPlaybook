@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.14.1
+  version: 1.15.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -146,8 +146,9 @@ A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
 planned, dispatched, reported, relabelled, merged, closed, a worktree
-removed or its removal deferred ([track.md](track.md)), and a run
-launched into its own instance ([launch.md](launch.md)).
+removed or its removal deferred ([track.md](track.md)), a run launched
+into its own instance ([launch.md](launch.md)), and the hand-back page
+written or skipped ([handback.md](handback.md)).
 
 ### The lock
 
@@ -279,6 +280,17 @@ against `requirements.md`. When a person has already merged it, skip
 to the `epic-to-main` close in step 3 of [merge.md](merge.md): the
 Epic is closed there if the merge left it open (R12.2).
 
+Then write the Epic's hand-back page: follow
+[handback.md](handback.md), which renders this same list as
+`<root>/.yngaiplaybook/ynghandback-<log>.html` and opens it as
+`<handback-page>` says (ynghandback R14.1). The list above stays
+first and stays whole, because it is what reaches the person over
+Remote Control, where a `file://` path is useless: where a page is
+written, add one line to it naming that page's path (ynghandback
+R1.3). Where its gather fails, no page is written, the list above
+still stands, and handback.md names the operation that failed.
+
 Last, delete the run's lock (*The lock* above): the run has ended.
 
-Done when the person holds the list and the lock is gone.
+Done when the person holds the list and the page's path, the run log
+has the hand-back page's line, and the lock is gone.
