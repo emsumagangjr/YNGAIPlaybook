@@ -80,6 +80,9 @@
                             empty, or any value other than 0, no, false or off:
                             open the file in the default browser. 0 (or no,
                             false, off): print the file to the console instead.
+                            The value is matched with surrounding whitespace
+                            stripped and without regard to case, so "no ",
+                            " NO" and "no" all mean the console.
                             -Raw and -Console still win for the call they are
                             given on.
 
