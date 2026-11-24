@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Hand-back project index</title>
+<!--
+  YNG Orchestrator hand-back project index.
+  Part of YNGAIPlaybook - Emeterio M. Sumagang Jr., YNGSoftware.
+
+  This file is shipped with the skill and versioned with it, beside
+  template.html, which renders one Epic's page. The run writes nothing
+  but the payload: it substitutes its whole JSON output into the one
+  empty element of type application/json with the id handback-index,
+  below, and writes the result to
+  <root>/.yngaiplaybook/ynghandback.html. That element is the only
+  placeholder, and this comment keeps no second copy of its tag for a
+  substitution to match by mistake.
+
+  It keeps every rule template.html keeps, and a reviewer can check
+  each by reading this file:
+    - It opens from file:// with no network. No remote script, style,
+      font or image, and no request of any kind.
+    - It renders. The run reads each page's own payload and builds the
+      rows; this page shows them in the order it was given them.
+    - It never writes. No control here changes issue state: each row's
+      number links to the issue on the provider.
+
+  One row per run log, carrying the instant that run's own page was
+  written, as an absolute UTC instant and never a relative age: the
+  problem with a stale row is not that it is old, it is that it does
+  not say so.
+
+  The payload shape is docs/specs/ynghandback/requirements.md, R8.5.
+-->
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f9;
+    --panel: #ffffff;
+    --panel-2: #fafbfd;
+    --ink: #151a22;
+    --muted: #5b6575;
+    --line: #dde2ea;
+    --accent: #23457f;
+    --k-held: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1218;
+      --panel: #161b23;
+      --panel-2: #1b212b;
+      --ink: #e9edf4;
+      --muted: #9aa5b6;
+      --line: #28303c;
+      --accent: #9db8ef;
+      --k-held: #e2b457;
+    }
+  }
+
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    padding: 1.25rem 1rem 3rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  * { box-sizing: border-box; }
+  .wrap { max-width: 62rem; margin: 0 auto; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+
+  header.page { margin-bottom: 1.5rem; }
+  h1 { font-size: 1.35rem; line-height: 1.3; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: .85rem; margin: 0; }
+  .meta span { display: inline-block; margin-right: .9rem; overflow-wrap: anywhere; max-width: 100%; }
+  .notice {
+    margin: 1rem 0 0; padding: .65rem .8rem; border: 1px solid var(--line);
+    border-left: 4px solid var(--k-held); border-radius: 6px;
+    background: var(--panel); font-size: .92rem; overflow-wrap: anywhere;
+  }
+
+  section { margin: 0 0 2rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 .7rem; letter-spacing: .01em; }
+
+  .none { margin: 0; padding: .9rem 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+
+  .scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--panel-2); font-size: .76rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; }
+  th.count { text-align: right; }
+  tr:last-child td { border-bottom: 0; }
+  td .sub { display: block; color: var(--muted); font-size: .82rem; margin-top: .2rem; overflow-wrap: anywhere; }
+  td.n, td.when { white-space: nowrap; }
+  td.count { text-align: right; font-variant-numeric: tabular-nums; }
+
+  footer.page { color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); padding-top: .8rem; }
+  footer.page p { margin: .2rem 0; overflow-wrap: anywhere; }
+
+  @media (max-width: 30rem) {
+    body { padding: 1rem .75rem 2.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page" id="page-head"></header>
+  <noscript>
+    <p class="notice">This page draws itself from the payload below, which
+    needs scripting. With scripting off it shows nothing. The same list is in
+    the run's own hand-back, in the terminal.</p>
+  </noscript>
+  <main id="page-main"></main>
+  <footer class="page" id="page-foot"></footer>
+</div>
+
+<script type="application/json" id="handback-index"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  var KNOWN_SCHEMA = 1;
+  var head = document.getElementById("page-head");
+  var main = document.getElementById("page-main");
+  var foot = document.getElementById("page-foot");
+
+  // --- DOM helpers. Payload text is always set as text, never as markup.
+  function el(tag, cls, content) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (content !== undefined && content !== null && content !== "") { n.textContent = String(content); }
+    return n;
+  }
+  function add(parent) {
+    for (var i = 1; i < arguments.length; i++) {
+      if (arguments[i]) { parent.appendChild(arguments[i]); }
+    }
+    return parent;
+  }
+  function text(parent, s) { parent.appendChild(document.createTextNode(s)); return parent; }
+  function str(v) { return (typeof v === "string" && v !== "") ? v : null; }
+  function arr(v) { return Object.prototype.toString.call(v) === "[object Array]" ? v : []; }
+
+  // A local page opens local and provider addresses only. Anything that
+  // could run on click is shown as plain text instead of a link.
+  function href(u) {
+    var s = str(u);
+    if (!s) { return null; }
+    var probe = s.toLowerCase().replace(/[^a-z0-9+.:/?#@%&=_-]/g, "");
+    if (probe.indexOf("javascript:") === 0 || probe.indexOf("data:") === 0 || probe.indexOf("vbscript:") === 0) { return null; }
+    return s;
+  }
+  function link(u, label, title) {
+    var h = href(u);
+    if (!h) { return el("span", null, label); }
+    var a = el("a", null, label);
+    a.setAttribute("href", h);
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener noreferrer");
+    if (title) { a.setAttribute("title", title); }
+    return a;
+  }
+
+  // --- sections
+  function renderHead(data) {
+    add(head, el("h1", null, "Hand-back project index"));
+    var meta = el("p", "meta");
+    if (data && str(data.project)) { add(meta, el("span", "mono", str(data.project))); }
+    if (data && str(data.generated)) { add(meta, el("span", null, "written " + str(data.generated))); }
+    if (meta.childNodes.length) { add(head, meta); }
+  }
+
+  function renderRuns(data) {
+    var runs = arr(data && data.runs);
+    var sec = el("section");
+    add(sec, el("h2", null, "Runs with a hand-back page"));
+    if (!runs.length) {
+      add(sec, el("p", "none", "No run in this project has a hand-back page yet."));
+      add(main, sec);
+      return;
+    }
+    var t = el("table");
+    var hr = el("tr");
+    add(hr, el("th", null, "Run"), el("th", null, "Title"), el("th", "count", "Waiting on you"),
+            el("th", null, "Written (UTC)"), el("th", null, "Page"));
+    add(t, add(el("thead"), hr));
+    var tb = el("tbody");
+    for (var i = 0; i < runs.length; i++) {
+      var r = runs[i] || {};
+      var tr = el("tr");
+
+      // Every number naming an issue is a link to it (R15.5), to the
+      // address the run wrote for it and to no address worked out here.
+      var c1 = el("td", "n");
+      if (typeof r.number === "number") {
+        c1.appendChild(link(r.url, "#" + r.number, href(r.url) || undefined));
+      } else {
+        text(c1, "—");
+      }
+
+      // A row whose page the run could not read carries no counts and
+      // says so in its note (R8.4). It is never filled in with a guess.
+      var c2 = el("td", null, str(r.title) || "—");
+      if (str(r.note)) { add(c2, el("span", "sub", str(r.note))); }
+
+      var c3 = el("td", "count", (typeof r.waiting === "number") ? r.waiting : "—");
+      var c4 = el("td", "when mono", str(r.generated) || "—");
+
+      // The page sits beside this one, so the run writes its file name
+      // and this page opens it as given.
+      var c5 = el("td");
+      if (str(r.page)) {
+        c5.appendChild(link(r.page, "open page", str(r.page)));
+      } else {
+        text(c5, "—");
+      }
+
+      add(tr, c1, c2, c3, c4, c5);
+      add(tb, tr);
+    }
+    add(t, tb);
+    add(sec, add(el("div", "scroll"), t));
+    add(main, sec);
+  }
+
+  function renderFoot(data) {
+    var line = "Hand-back project index · YNG Orchestrator";
+    if (data && str(data.generated)) { line += " · written " + str(data.generated); }
+    add(foot, el("p", null, line));
+    add(foot, el("p", null, "Each row carries the instant its own page was written. A run refreshes its own row and leaves every other row as the run that wrote it left it."));
+  }
+
+  // --- entry
+  var holder = document.getElementById("handback-index");
+  var raw = holder ? String(holder.textContent || "").trim() : "";
+  var data = null;
+  var problem = null;
+
+  if (!raw) {
+    problem = "This is the shipped index. No payload has been written into it.";
+  } else {
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      data = null;
+      problem = "The payload in this page could not be read.";
+    }
+    if (data === null || typeof data !== "object" || arr(data) === data) {
+      data = null;
+      problem = problem || "The payload in this page could not be read.";
+    }
+  }
+
+  renderHead(data);
+
+  // One line, and nothing else: there is no payload to render (R3.8).
+  if (problem) {
+    add(head, el("p", "notice", problem));
+    return;
+  }
+
+  // A schema only ever rises (R8.5), so one this page does not know came
+  // from an orchestrator newer than it. Every row is of that schema, so
+  // no part of this payload is left for this page to show.
+  if (data.schema !== KNOWN_SCHEMA) {
+    var says = (typeof data.schema === "number") ? "payload schema " + data.schema : "a payload schema this page does not know";
+    add(head, el("p", "notice",
+      "This page was written by a newer orchestrator (" + says +
+      "; this page renders schema " + KNOWN_SCHEMA + "). Open each Epic's own hand-back page for what is waiting."));
+    renderFoot(data);
+    return;
+  }
+
+  renderRuns(data);
+  renderFoot(data);
+})();
+</script>
+</body>
+</html>

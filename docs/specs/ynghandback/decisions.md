@@ -88,3 +88,19 @@ Dated log of options refused, one line of why each.
 - **2026-11-24** Refused: converting HTML before opening it, or opening
   it through `Show-Markdown`. A hand-back page is already the finished
   document; it goes to the browser untouched.
+- **2026-11-24** Refused: an index mode inside `template.html`. The two
+  page shapes share no section, so one file would be two pages behind a
+  branch; the index is its own shipped file beside it.
+- **2026-11-24** Refused: reading a row's data back out of a page's
+  markup. A row comes from the JSON payload the run itself inlined in
+  that page, parsed as JSON; no HTML is ever read back as markup.
+- **2026-11-24** Refused: carrying a row's title or counts over from the
+  index's own last payload. A field would then outlive the instant
+  printed beside it, which is the one thing a row must not do.
+- **2026-11-24** Refused: writing the Epic's page when the index cannot
+  be written, or the other way about. A fresh page beside a row still
+  carrying the old instant for it says two things about one run.
+- **2026-11-24** Refused: `sed 's/</\u003c/g'` for the payload's escape.
+  GNU `sed` reads `\u` as "uppercase the next character" and `gawk` 5.3
+  reads `\u003c` as `<`, so each silently wrote a payload that parsed
+  and was wrong; the backslash now comes from its character code.

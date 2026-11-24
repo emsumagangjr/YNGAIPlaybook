@@ -47,8 +47,9 @@ spec changes one of them, it names it.
 ## Deliverables
 
 ``` text
-skills/yngorchestrator/handback.md              the step: gather, rank, render, open (R1, R5, R14)
+skills/yngorchestrator/handback.md              the step: gather, rank, render, open (R1, R5, R8, R14)
 skills/yngorchestrator/web/template.html        the shipped page: markup and style, no external asset (R3, R15)
+skills/yngorchestrator/web/index.html           the shipped project index: one row per run log (R8)
 skills/yngorchestrator/SKILL.md                 step 5 hands on to handback.md (R1, R14)
 skills/yngorchestrator/track.md                 a label/report disagreement is a waiting item (R7)
 skills/yngorchestrator/scoped.md                a standalone run renders its own page (R9)
@@ -261,11 +262,73 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 2.  A run refreshes its own Epic's row with live data (R10) and leaves
     every other row as that Epic's last run left it. A run makes no
     provider call about an Epic it is not running.
+
+    Every other row is read from that Epic's own
+    `ynghandback-<n>.html`: the **payload inlined in it** (R3.2),
+    parsed as JSON, which gives the row's `generated`, the number of
+    items in its `waiting[]`, and the title its payload carries. The
+    run wrote that payload itself, into the one element R3.2 names,
+    and R3.3 left no `<` anywhere inside it, so the lines between that
+    element's tags are the payload and nothing else. **The page's
+    markup is never parsed, and no HTML is ever read back as markup**
+    (R3.1 holds). Its own row the run takes from the payload it has
+    just built, not from the file it has just written. The address for
+    a row's number the run writes from the provider file's *Issue URL*
+    form, which is a form and not a call (R15.5). A page whose payload
+    carries no title leaves its row showing its number alone: a
+    standalone's page carries none, since R9.1 writes `epic: null`, and
+    what a standalone's payload says about its own issue is R9's to
+    settle.
 3.  Each row therefore carries its own age, shown as an absolute UTC
     instant. The problem with a stale row is not that it is old, it is
-    that it does not say so.
+    that it does not say so. So no field of a row outlives the instant
+    beside it: nothing is carried over from the index's own last
+    payload, and a row the run could not read keeps none of what an
+    earlier run knew (R8.4).
 4.  A row whose `ynghandback-<n>.html` is absent renders with no counts
-    and a note that no page has been written for it.
+    and a note that no page has been written for it. A page whose
+    payload is absent, unparseable, or of a `schema` the run does not
+    know renders as that same no-counts row, with a note that its page
+    could not be read: never as a guess, and never as a crash.
+5.  `web/index.html` is a second shipped file beside `template.html`,
+    static and versioned with the skill (R3.1), with its own empty
+    `<script type="application/json" id="handback-index"></script>`
+    placeholder and its own inlined payload (R3.2, R3.3). It keeps
+    every rule the Epic's page keeps: no network and no request of any
+    kind (R3, R11.4), no bare word "status" (R16.3), both palettes and
+    a first screen that reads at phone width (R15). It is a file and
+    not an index mode inside `template.html`, because the two page
+    shapes share no section. Schema version 1:
+
+    ``` json
+    { "schema": 1, "generated": "<UTC>", "project": "<issues repo>",
+      "runs": [ { "number": 135, "title": "...", "url": "...",
+                  "page": "ynghandback-135.html", "waiting": 3,
+                  "generated": "<UTC>", "note": null } ] }
+    ```
+
+    Every key appears, in this order. An absent value is `null`, an
+    absent list `[]`. `schema` is the index's own number, separate from
+    R4.1's and rising on its own file for the reasons R4.6 gives; an
+    index page reading a `schema` it does not know says so and renders
+    no rows, because every row is of that schema and no part of the
+    payload is left for it to show. The payload's `generated` is the
+    instant the run wrote the index; a **row's** `generated` is the
+    instant that row's own page was written (R8.1), and is never
+    recomputed here. `waiting` is the number of items in that page's
+    `waiting[]`, and `null` where R8.4 applies; `note` is R8.4's one
+    sentence, and `null` on a row that was read. `page` is the page's
+    file name, which the index opens from its own folder (R3.6), and
+    `url` the issue's address, so every number naming an issue is a
+    link to it (R15.5). Rows are in number order, lowest first.
+6.  The index is written in the same step as the Epic's page (R14.1)
+    and under the same rules: whole, with no history kept (R2.3), only
+    when the gather succeeded (R10.3), and only when `<handback-page>`
+    is `open` or `write` (R12.1). Either both files are written or
+    neither is: a page refreshed beside an index still carrying the old
+    instant for it would say two different things about one run. The
+    run opens the Epic's page (R14.1); the index it writes and names,
+    and the person opens it with `yngv` (R13.1).
 
 ## R9 Standalone issues
 
