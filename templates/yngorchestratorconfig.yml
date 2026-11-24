@@ -40,6 +40,10 @@
 #   Gate 1  the decision that an issue is ready for an agent to start. Its
 #           mark is the label workflow:ready-for-agent ("Agent-Ready").
 #   Gate 2  the decision to merge a pull request.
+#   Hand-back page
+#           what a run writes when it hands back to you: one HTML file
+#           per Epic, listing what is waiting on you, in the order the
+#           run gives it. See handback-page below.
 
 
 # --- Setting: provider -------------------------------------------------------
@@ -210,6 +214,27 @@ merge:
 # Changed by: you. yngorch never writes the key; it adds this setting
 #   when it is missing.
 remote-control: yes
+
+
+# --- Setting: handback-page --------------------------------------------------
+# Decides: whether a run writes a hand-back page when it hands back to
+#   you, and whether it opens that page in your browser. Not a gate: the
+#   page only shows what is already waiting on you. It never changes an
+#   issue, a label or a pull request, and the list the run tells you at
+#   the end is the same whatever you set here.
+# Values:
+#   open   the run writes the page and opens it in your default browser.
+#          (default)
+#   write  the run writes the page and opens nothing. For a machine you
+#          work on over SSH, or a run you follow from your phone, where
+#          a file:// path in a browser is no use to you.
+#   no     the run writes no page at all.
+# Default: open. An absent key, an empty value or any value other than
+#   write or no means open, and never stops a run.
+# Read: at the start of every run, and held until that run ends.
+# Changed by: you. yngorch never writes the key; it adds this setting
+#   when it is missing.
+handback-page: open
 
 
 # --- Setting: agent ----------------------------------------------------------

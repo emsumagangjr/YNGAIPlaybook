@@ -53,7 +53,7 @@ skills/yngorchestrator/SKILL.md                 step 5 hands on to handback.md (
 skills/yngorchestrator/track.md                 a label/report disagreement is a waiting item (R7)
 skills/yngorchestrator/scoped.md                a standalone run renders its own page (R9)
 templates/yngorchestratorconfig.yml             handback-page:, and "hand-back page" in Words used below (R12, R16)
-scripts/yngorch.ps1, scripts/yngorch.sh         add handback-page to an existing config on reinstall (R12.4)
+skills/yngorchestrator/locate.md                step 3 resolves <handback-page> with the rest of the config (R12.3)
 scripts/yngv.ps1, scripts/yngv.sh               .html and .htm open in the default browser (R13.6-R13.9)
 INSTALL.md, README.md, guides/epic-workflow.md  section 25 subsection, the files in the tree, the setting (R17)
 VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
@@ -287,12 +287,17 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 
 2.  Default `open`. An absent key, an empty value, or any value other
     than `write` or `no` means `open`, and never stops a run.
-3.  Read at the start of every run, with the rest of the config.
+3.  Read at the start of every run, with the rest of the config, in
+    step 3 of `skills/yngorchestrator/locate.md`. The run holds the
+    value it read to its end; an edit counts from the next run.
 4.  `yngorch` adds the setting to an existing config on reinstall as an
     **active key at its default** (`handback-page: open`), the way
     `auto-promote: no` and `remote-control: yes` are added, not
     commented out the way `agent` and `issues` are. It never changes a
-    value the person set.
+    value the person set. Both installers merge settings from the
+    template by its `# --- Setting: <name> ---` headers, so this needs
+    no change to either script; it is verified against a config
+    without the key, not assumed.
 5.  It sits beside `launcher` and `remote-control`: the settings that
     say what a run may do on the person's own machine.
 

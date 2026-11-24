@@ -256,6 +256,24 @@ case "$(value remote-control | tr '[:upper:]' '[:lower:]')" in
 esac
 ```
 
+**The hand-back page**, `<handback-page>`, is `handback-page:`, in lower
+case (ynghandback R12): `write` writes the page and opens nothing, `no`
+writes no page; no file, no key, an empty value or any other value is
+`open`, which writes the page and opens it in the browser. It never
+stops the run, and it decides one thing: what step 5 of
+[SKILL.md](SKILL.md) does at the hand-back.
+
+``` bash
+case "$(value handback-page | tr '[:upper:]' '[:lower:]')" in
+  write) handbackpage=write ;;
+  no)    handbackpage=no ;;
+  *)     handbackpage=open ;;
+esac
+```
+
+Hold `<handback-page>` for the whole run, as read here; a change to the
+file takes effect at the next run.
+
 **The agent**, `<agent>`, is `agent:`, in lower case; no file, no key
 or an empty value is `claude` (R49):
 
@@ -311,9 +329,9 @@ pull request, not an issue.
 
 Done when you hold `<provider>`, its provider file, `<host>`,
 `<code repo>`, `<issues repo>`, `<auto-promote>`, `<launcher>`,
-`<agent>` and `<n>`, the issue exists
-in the issues repo, and you hold its state, state reason, title, body
-and labels.
+`<remote control>`, `<handback-page>`, `<agent>` and `<n>`, the issue
+exists in the issues repo, and you hold its state, state reason,
+title, body and labels.
 
 ## 4. Tell the kind
 
