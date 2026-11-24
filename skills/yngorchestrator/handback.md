@@ -234,9 +234,9 @@ feature adds there (R2.4).
 
 ### Escaping a payload
 
-Every `<` in a payload is written `<`, which JSON reads back as the
-same character and no parser can read as a tag (R3.3). Do it with this
-`awk`, on the Epic's payload and on the index's alike:
+Every `<` in a payload is written `\u003c`, which JSON reads back as
+the same character and no parser can read as a tag (R3.3). Do it with
+this `awk`, on the Epic's payload and on the index's alike:
 
 ``` bash
 escape() {  # escape <in> <out>
@@ -255,37 +255,47 @@ syntax can swallow it, silently and without failing: GNU `sed` reads
 `"\\u003c"` in a string literal as `<` itself, which escapes nothing.
 Either leaves a payload that still parses and is wrong in its strings.
 
+### Substituting a payload
+
+One function puts a payload into either shipped file, so the two
+writes cannot drift apart:
+
+``` bash
+substitute() {  # substitute <shipped file> <id> <escaped payload> <out>
+  awk -v id="$2" -v data="$3" '
+    { line = $0; sub(/\r$/, "", line) }
+    line == "<script type=\"application/json\" id=\"" id "\"></script>" {
+      print "<script type=\"application/json\" id=\"" id "\">"
+      while ((getline payload < data) > 0) print payload
+      close(data)
+      print "</script>"
+      found++
+      next
+    }
+    { print }
+    END { exit(found == 1 ? 0 : 1) }' "$1" > "$4"
+}
+```
+
+It succeeds only if it met that file's placeholder exactly once: one
+substitution, into the element R3.2 names, and never into a second copy
+of that tag.
+
 ### The Epic's page
 
-Substitute step 3's payload into the template and write the result
-whole: no history is kept, because the run log is the history (R2.1,
-R2.3).
+Substitute step 3's payload into the template, to be written whole: no
+history is kept, because the run log is the history (R2.1, R2.3).
 
 ``` bash
 json=<the payload file>; esc=$(mktemp); out=$(mktemp)
-tpl="<skill>/web/template.html"
 page="<root>/.yngaiplaybook/ynghandback-<log>.html"
 
 escape "$json" "$esc"
-
-awk -v data="$esc" '
-  { line = $0; sub(/\r$/, "", line) }
-  line == "<script type=\"application/json\" id=\"handback-data\"></script>" {
-    print "<script type=\"application/json\" id=\"handback-data\">"
-    while ((getline payload < data) > 0) print payload
-    close(data)
-    print "</script>"
-    found++
-    next
-  }
-  { print }
-  END { exit(found == 1 ? 0 : 1) }' "$tpl" > "$out"
+substitute "<skill>/web/template.html" handback-data "$esc" "$out"
 ```
 
-That `awk` succeeds only if it met the placeholder exactly once: one
-substitution, into the element R3.2 names, and never into a second copy
-of that tag. Nothing moves into `.yngaiplaybook/` yet — *Both, or
-neither* below says when.
+Nothing moves into `.yngaiplaybook/` yet — *Both, or neither* below
+says when.
 
 ### The project index
 
@@ -380,19 +390,7 @@ ijson=<the index payload file>; iesc=$(mktemp); iout=$(mktemp)
 index="<root>/.yngaiplaybook/ynghandback.html"
 
 escape "$ijson" "$iesc"
-
-awk -v data="$iesc" '
-  { line = $0; sub(/\r$/, "", line) }
-  line == "<script type=\"application/json\" id=\"handback-index\"></script>" {
-    print "<script type=\"application/json\" id=\"handback-index\">"
-    while ((getline payload < data) > 0) print payload
-    close(data)
-    print "</script>"
-    found++
-    next
-  }
-  { print }
-  END { exit(found == 1 ? 0 : 1) }' "<skill>/web/index.html" > "$iout"
+substitute "<skill>/web/index.html" handback-index "$iesc" "$iout"
 ```
 
 ### Both, or neither
