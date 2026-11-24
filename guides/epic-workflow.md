@@ -1501,6 +1501,9 @@ skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
 skills/yngorchestrator/dispatch.md  Gate 1 check, worktree, launch a worker
 skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
+skills/yngorchestrator/handback.md  write the hand-back page at the hand-back: gather, rank, render, open
+skills/yngorchestrator/web/template.html  one Epic's or one standalone issue's hand-back page: its markup and style
+skills/yngorchestrator/web/index.html  the project index of hand-back pages: one row per run log
 skills/yngorchestrator/report.md    the completion report every worker ends with
 skills/yngorchestrator/providers/README.md  the operations every provider implements; adding a provider
 skills/yngorchestrator/providers/<provider>.md  one provider's commands: github.md, gitlab.md, bitbucket.md
@@ -1564,6 +1567,8 @@ myproject/
 │   ├── README.md                # the folder explained, written by yngorch
 │   ├── yngorchestratorconfig.yml # provider, issues repo, auto-promote, merge rules
 │   ├── yngorchestratorconfig.yml.bak # the config before a reinstall added to it
+│   ├── ynghandback.html         # the project index: every Epic and standalone issue with a run log
+│   ├── ynghandback-100.html     # Epic #100's hand-back page, rewritten at each hand-back
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
@@ -1986,7 +1991,11 @@ A slice or standalone run checks Gate 1 before it creates any branch.
 Run it again on an issue at `workflow:in-review` and it resumes from
 the pull request. Each run ends with one list of everything waiting on
 you: pull requests to merge, issues handed back, slices waiting for
-promotion.
+promotion. It writes that same list as a hand-back page too, and, with
+the default `handback-page: open`, opens it in your browser
+(*Hand-back page* below); the list it prints here comes first and whole
+either way, since it is what reaches you over Remote Control, where a
+`file://` path is no use to you.
 
 After a slice or standalone merge, the run's own instance still sits
 in the worktree it would remove, and stays open, so the run does not
@@ -2000,6 +2009,92 @@ is still open or the worktree has changes, is reported and stays
 deferred for the next sweep; close the instance and run `continue`
 again. A run started outside the worktree removes it at once, as
 before.
+
+### Hand-back page
+
+Every run ends by telling you what is waiting on you. It also writes
+that same list as a **hand-back page**: one self-contained HTML file
+for one Epic or one standalone issue, in `.yngaiplaybook/`, opened in
+your default browser. It opens from `file://` with no server, no
+network and no installed runtime.
+
+The page is an **addition** to the list the run prints, never a
+replacement. That list stays first and stays whole: it is what reaches
+you over Remote Control, on claude.ai or the Claude app, where a
+`file://` path is no use to you. The run adds one line naming the
+page's path.
+
+Two names, each rewritten whole, with no history kept, because the run
+log is the history:
+
+| File | What it is |
+|------|------------|
+| `.yngaiplaybook/ynghandback.html` | the project index: one row per Epic and standalone issue that has a run log, each row carrying the instant its own page was written |
+| `.yngaiplaybook/ynghandback-<n>.html` | one Epic's or one standalone issue's page, `<n>` being its run log's number |
+
+A slice run writes its Epic's page, as it writes its Epic's log, and
+never a page of its own.
+
+The page is a rendering of the run's own hand-back list, not a second
+source of truth: the run ranks what is waiting and writes it into the
+page as data, so the two cannot disagree. First and largest is the
+waiting list — a pull request open for review, a merge held by a
+condition, a slice handed to you, a slice waiting for Gate 1, an open
+review decision, and an issue whose workflow state and whose last
+report disagree — in the run's own order: the items holding up the
+most slices first, and a slice waiting on you ahead of what it holds
+up. Beside it, an Epic's page shows four things and no fifth: its
+slices with their workflow states, its pull requests, the dependency
+edges from each issue's `Depends on:` line, and the open review
+decisions. The run log and the worktrees sit in a *run detail* section,
+closed when the page opens, and the spec folder is a link.
+
+The page never acts. It has no promote control, no merge control and
+no form, and makes no request of any kind: every waiting row links to
+the provider page where you take the action, and the next run reads
+what you did there, as it already does. Both gates stay yours, on the
+provider, where the label and the merge are the record. Where an
+issue's workflow state and its last report disagree, the state wins —
+it is the provider's record and the gate's audit trail — and the
+report is shown beside it as a dated note.
+
+One top-level key in `.yngaiplaybook/yngorchestratorconfig.yml`,
+beside `launcher:` and `remote-control:`, says what each run does:
+
+| `handback-page:` | At the hand-back |
+|------------------|------------------|
+| `open` | writes the page and the index, then opens the page in your default browser. The default: an absent key, an empty value or any other value means `open`, and never stops a run |
+| `write` | writes both and opens nothing. For a machine you work on over SSH, or a run you follow from your phone |
+| `no` | writes no page at all |
+
+`yngorch` adds the key at its default on a reinstall, and never
+changes a value you set.
+
+A run that stops with a reason before its hand-back writes no page:
+the page says what is waiting at a hand-back, and there was none. The
+page is built from the same live provider reads the printed list came
+from, and from all of them or none: when one fails — a rate limit, an
+expired login, an outage — the page and the index on disk are left
+exactly as they are, and the run names the operation that failed, so
+an honestly dated page from yesterday is never replaced by a freshly
+dated one that is wrong where you cannot see it. Either way the run
+log gets one line, `handback page written` or
+`handback page skipped <reason>`, before the lock goes.
+
+To open a page outside a run, use `yngv`, the file viewer the
+installer puts on your PATH, which opens `.html` and `.htm` in your
+default browser from 1.15.0 on:
+
+``` text
+yngv <root>/.yngaiplaybook/ynghandback.html
+```
+
+`YNGV_HTML_BROWSER=no` makes it print the file's own source in the
+terminal instead, and `-Console` / `-c` does the same for one call.
+Nothing outside a run regenerates a page or calls the provider, and
+`yngorch` gains no command, flag or subcommand for it: a page too old
+to trust is refreshed by starting a run, the only context that already
+holds the data.
 
 ------------------------------------------------------------------------
 

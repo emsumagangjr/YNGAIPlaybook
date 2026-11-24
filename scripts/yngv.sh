@@ -25,8 +25,11 @@
 #   YNGV_HTML_BROWSER   The persisted default for .html and .htm. Unset, empty,
 #                       or any value other than 0, no, false or off: open the
 #                       file in the default browser. 0 (or no, false, off):
-#                       print the file to the terminal instead. -r/--raw and
-#                       -c/--console still win for the call they are given on.
+#                       print the file to the terminal instead. The value is
+#                       matched with surrounding whitespace stripped and
+#                       without regard to case, so "no ", " NO" and "no" all
+#                       mean the console. -r/--raw and -c/--console still win
+#                       for the call they are given on.
 #
 # REQUIREMENTS
 #   - bash 3.2+ (the macOS default is fine), awk, sed.

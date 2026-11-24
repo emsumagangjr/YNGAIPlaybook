@@ -483,9 +483,12 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     HTML has no console renderer of its own, so each shows the file's
     own source. A missing or unreadable path fails exactly as it
     already does for markdown; no error style is added.
-9.  Each script's own help names the two extensions and
-    `YNGV_HTML_BROWSER`; the help is the script's header block, which
-    `yngv.sh -h` and `Get-Help yngv.ps1` print.
+9.  Each script's own help names the two extensions,
+    `YNGV_HTML_BROWSER`, and how its value is matched (R13.7): one
+    sentence, word for word the same in both scripts, so a reader
+    comparing them finds no difference to explain. The help is the
+    script's header block, which `yngv.sh -h` and `Get-Help yngv.ps1`
+    print.
 
 ## R14 When a page is written
 
@@ -550,7 +553,9 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 3.  `INSTALL.md`: `handback-page` among the config's settings, with its
     three values, and how to open a page outside a run.
 4.  `templates/yngaiplaybookreadme.md`: a line for `handback-page`,
-    beside the lines for the other settings.
+    beside the lines for the other settings, and the two page names of
+    R2.1 in its layout and its file table, because the folder it
+    documents now holds them.
 5.  Every place that says what a run leaves the person says the page is
     an addition to step 5's list, never a replacement (R1.3).
 

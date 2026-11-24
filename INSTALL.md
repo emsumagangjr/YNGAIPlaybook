@@ -543,6 +543,42 @@ clone until you have checked the new one:
     changes a value you set, and never writes `agent:` or
     `remote-control:`.
 
+    **What a run leaves you.** Every run ends by telling you what is
+    waiting on you, and writes that same list as a **hand-back page**:
+    one self-contained HTML file per Epic or standalone issue, in
+    `<root>/.yngaiplaybook/` beside the config and the run logs.
+    `ynghandback-<n>.html` is one run's page, `<n>` being its run log's
+    number, and `ynghandback.html` is the project index, one row per run
+    log. The page is an addition to the list the run prints, never a
+    replacement: that printed list is what reaches you over Remote
+    Control, where a `file://` path is no use to you. One key, yours:
+
+    ``` yaml
+    handback-page: open  # open | write | no; absent, empty or any other value: open
+    ```
+
+    - `open` — the run writes the page and the index, then opens
+      the page in your default browser. The default.
+    - `write` — the run writes both and opens nothing. For a machine
+      you work on over SSH, or a run you follow from your phone.
+    - `no` — the run writes no page at all.
+
+    `yngorch` adds the key at `open` when it is missing, and never
+    changes a value you set. To open a page outside a run, use `yngv`,
+    which the installer puts on your PATH and which opens `.html` and
+    `.htm` in your default browser, new in 1.15.0:
+
+    ``` bash
+    yngv <root>/.yngaiplaybook/ynghandback.html
+    ```
+
+    `YNGV_HTML_BROWSER=no` makes `yngv` print the file's own source in
+    the terminal instead, and `-Console` / `-c` does the same for one
+    call. Nothing outside a run regenerates a page or calls the
+    provider, and `yngorch` gains no command or flag for it: a page too
+    old to trust is refreshed by starting a run (guide, section 25,
+    *Hand-back page*).
+
 2.  **Start an Epic:** create its issue, in the issues repo when you
     have one, marked as an Epic: the `epic` label on GitHub and
     GitLab, the `epic` milestone on Bitbucket. Start
