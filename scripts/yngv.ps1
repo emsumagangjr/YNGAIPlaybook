@@ -6,25 +6,34 @@
     opens rendered as HTML in your default web browser, via PowerShell 7's built-in
     Show-Markdown -UseBrowser (auto-hopping into pwsh if run from Windows PowerShell
     5.1, which doesn't ship that cmdlet). If pwsh isn't available at all, it falls
-    back to an ANSI-styled rendering in the console. Unknown extensions fall back to
-    plain text. New renderers can be added by adding a case to the switch statement
-    at the bottom of this file.
+    back to an ANSI-styled rendering in the console. HTML (.html, .htm) opens in
+    your default web browser as it is, with no conversion and no extra tool.
+    Unknown extensions fall back to plain text. New renderers can be added by
+    adding a case to the switch statement at the bottom of this file.
+
+    The environment variable YNGV_HTML_BROWSER holds the persisted default for
+    HTML: unset means open it in the browser; 0 (or no, false, off) means print
+    the file to the console instead. -Raw and -Console win over it, per call.
 .PARAMETER Path
     Path to the file to view.
 .PARAMETER Raw
     Force plain-text output regardless of file extension.
 .PARAMETER Console
-    Force the ANSI-styled in-console renderer for markdown instead of opening it
-    in the browser.
+    Force in-console output instead of opening the browser: the ANSI-styled
+    renderer for markdown, the file's own source for HTML.
 .EXAMPLE
     yngv README.md
+.EXAMPLE
+    yngv page.html
 .EXAMPLE
     yngv notes.md -Raw
 .EXAMPLE
     yngv notes.md -Console
+.EXAMPLE
+    yngv page.html -Console
 .NOTES
     Name:         yngv
-    Version:      1.1.0
+    Version:      1.2.0
     Created:      2026-09-19
     Author:       Emeterio M. Sumagang Jr.
     Company:      YNGSoftware (www.yngsoftware.com)
@@ -36,6 +45,8 @@
       it supplies the Show-Markdown -UseBrowser cmdlet this script calls.
       Without pwsh on PATH, markdown still displays fine via the built-in
       console renderer.
+    - Nothing extra for HTML: the file goes straight to whichever browser
+      the system opens .html with.
 
     INSTALL
     1. Save this file as yngv.ps1 in a folder that is on your PATH,
@@ -60,7 +71,17 @@
         yngv notes.md                    # markdown -> opens in browser
         yngv notes.md -Console           # markdown -> ANSI in this console
         yngv notes.md -Raw               # any file -> plain text
+        yngv page.html                   # HTML -> opens in the browser as it is
+        yngv page.html -Console          # HTML -> its source in this console
         yngv file.unknownext             # unrecognized type -> plain text (the default)
+
+    ENVIRONMENT
+        YNGV_HTML_BROWSER   The persisted default for .html and .htm. Unset,
+                            empty, or any value other than 0, no, false or off:
+                            open the file in the default browser. 0 (or no,
+                            false, off): print the file to the console instead.
+                            -Raw and -Console still win for the call they are
+                            given on.
 
     EXTENDING
     To support another file type, add a case to the switch statement at
@@ -206,6 +227,44 @@ function Show-MarkdownInBrowser {
     return $true
 }
 
+# The persisted default for HTML: the browser unless YNGV_HTML_BROWSER switches it off.
+function Test-HtmlBrowserWanted {
+    $value = $env:YNGV_HTML_BROWSER
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $true
+    }
+    return $value.Trim().ToLowerInvariant() -notin '0', 'no', 'false', 'off'
+}
+
+# Returns $true when the file was handed to a browser, $false when no opener exists.
+function Show-HtmlInBrowser {
+    param([string]$FilePath)
+
+    # $IsMacOS and $IsLinux exist only in PowerShell 6+; Get-Variable reads them
+    # without assuming they are there, so Windows PowerShell 5.1 (and any session
+    # with Set-StrictMode on) lands on the Windows branch below instead of failing.
+    $onMac = [bool](Get-Variable -Name IsMacOS -ValueOnly -ErrorAction SilentlyContinue)
+    $onLinux = [bool](Get-Variable -Name IsLinux -ValueOnly -ErrorAction SilentlyContinue)
+    $opener = if ($onMac) { 'open' } elseif ($onLinux) { 'xdg-open' } else { $null }
+
+    if ($null -eq $opener) {
+        # Windows: ShellExecute hands the file to whatever opens .html there.
+        try {
+            Start-Process -FilePath $FilePath -ErrorAction Stop
+            return $true
+        } catch {
+            return $false
+        }
+    }
+
+    $openerCmd = Get-Command $opener -ErrorAction SilentlyContinue
+    if (-not $openerCmd) {
+        return $false
+    }
+    & $openerCmd.Source $FilePath | Out-Null
+    return ($LASTEXITCODE -eq 0)
+}
+
 if ($Raw) {
     Show-RawFile -FilePath $resolvedPath
     exit 0
@@ -221,6 +280,19 @@ switch ($extension) {
                 Write-Host "$($fg.Gray)(pwsh not found - falling back to console renderer; install PowerShell 7 for the browser view)$reset"
                 Write-Host ""
                 Show-MarkdownFile -FilePath $resolvedPath
+            }
+        }
+    }
+    { $_ -in '.html', '.htm' } {
+        if ($Console -or -not (Test-HtmlBrowserWanted)) {
+            # HTML has no console renderer of its own: show the file as it is.
+            Show-RawFile -FilePath $resolvedPath
+        } else {
+            $opened = Show-HtmlInBrowser -FilePath $resolvedPath
+            if (-not $opened) {
+                Write-Host "$($fg.Gray)(no browser opener found - showing the HTML source)$reset"
+                Write-Host ""
+                Show-RawFile -FilePath $resolvedPath
             }
         }
     }
