@@ -146,8 +146,9 @@ A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
 planned, dispatched, reported, relabelled, merged, closed, a worktree
-removed or its removal deferred ([track.md](track.md)), and a run
-launched into its own instance ([launch.md](launch.md)).
+removed or its removal deferred ([track.md](track.md)), a run launched
+into its own instance ([launch.md](launch.md)), and the hand-back page
+written or skipped ([handback.md](handback.md)).
 
 ### The lock
 
