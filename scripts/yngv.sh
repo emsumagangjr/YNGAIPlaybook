@@ -122,8 +122,12 @@ open_default() {
 }
 
 # The persisted default for HTML: the browser unless YNGV_HTML_BROWSER says no.
+# The value is lower-cased and stripped of surrounding whitespace before it is
+# matched, so 'no ', ' no' and 'NO' all mean the console, as they do in
+# yngv.ps1; a value of whitespace only is left empty, and so means the browser.
 html_browser_wanted() {
-    case "$(printf '%s' "${YNGV_HTML_BROWSER:-}" | tr '[:upper:]' '[:lower:]')" in
+    case "$(printf '%s' "${YNGV_HTML_BROWSER:-}" | tr '[:upper:]' '[:lower:]' \
+            | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')" in
         0|no|false|off) return 1 ;;
         *)              return 0 ;;
     esac
