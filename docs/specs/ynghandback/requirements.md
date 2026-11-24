@@ -57,7 +57,7 @@ templates/yngorchestratorconfig.yml             handback-page:, and "hand-back p
 skills/yngorchestrator/locate.md                step 3 resolves <handback-page> with the rest of the config (R12.3)
 scripts/yngv.ps1, scripts/yngv.sh               .html and .htm open in the default browser (R13.6-R13.9)
 INSTALL.md, README.md, guides/epic-workflow.md  section 25 subsection, the files in the tree, the setting (R17)
-VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
+VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0, and the guide header with them (R18)
 ```
 
 ------------------------------------------------------------------------
@@ -164,7 +164,7 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
                     "blocks": [105, 106] } ],
       "slices": [ { "number": 104, "title": "...", "url": "...",
                     "label": "workflow:in-review",
-                    "report": { "outcome": "done", "at": "<UTC>",
+                    "report": { "outcome": "done", "at": "<date>",
                                 "summary": "..." },
                     "pr": { "number": 131, "url": "...", "state": "OPEN",
                             "checks": "passed", "mergeable": true },
@@ -184,6 +184,9 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
     `outcome`, not `status`: the bare word already means four things
     here, and a payload key naming one of them is that collision
     (R16.3). The report's own field in `report.md` keeps its name.
+    `report.at` is the date of that report's run-log line, as the log
+    writes it: a run-log line carries a date and nothing finer, so this
+    one field is a **date** where `generated` is an instant (R4.3).
 5.  `decisions` is the slice's open review record: the lines of the
     report's `REVIEW RECORD`, which are also the pull request
     description's.
@@ -561,8 +564,16 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.15.0 (R18)
 
 ## R18 Version
 
-1.  A feature, so a minor bump: `VERSION` and `SKILL.md`'s
-    `metadata.version` to **1.15.0**.
+1.  A feature, so a minor bump: `VERSION`, `SKILL.md`'s
+    `metadata.version` and the version in the header of
+    `guides/epic-workflow.md` to **1.15.0**. `CHANGELOG.md` says
+    `VERSION` and the guide header are kept in sync with its latest
+    entry, so the three move together.
 2.  A `## [1.15.0]` entry in `CHANGELOG.md`, naming the page, the
-    `handback-page` setting and the `yngv` line.
-3.  `decisions.md` beside this file carries the options refused.
+    `handback-page` setting and the `yngv` line, in the shape the
+    existing entries use.
+3.  `decisions.md` beside this file carries the options refused,
+    including those settled while the Epic ran.
+4.  `yngv` stays at **1.2.0** in both script headers: that version is
+    unreleased and ships with 1.15.0, and `yngv.ps1` and `yngv.sh`
+    carry the same version as each other.
