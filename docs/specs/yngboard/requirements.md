@@ -56,6 +56,7 @@ skills/yngorchestrator/locate.md                reads run-board, falling back to
 scripts/yngboard.ps1, scripts/yngboard.sh       opens this worktree's board (R9)
 scripts/yngorch.ps1, scripts/yngorch.sh         installs yngboard beside yngv; adds run-board (R8, R9)
 templates/yngorchestratorconfig.yml             run-board, and handback-page marked the former name (R8)
+templates/yngaiplaybookreadme.md                a run-board line, and yngboard-<n>.html in the folder's layout (R12)
 INSTALL.md, README.md, guides/epic-workflow.md  section 25 subsection, the files, the command (R12)
 VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 ```
@@ -601,6 +602,23 @@ page at every width, in place of the waiting list.
 5.  Every place that says what a run leaves the person says the board
     is an addition to step 5's list, never a replacement (ynghandback
     R17.5), and says the board is run-only (R1.6).
+6.  Guide **section 20, rule 1** — *work only inside its assigned
+    slice worktree* — names the one exception R14.3 creates: a worker
+    may append to the progress channel the dispatcher opened for it
+    and named in its prompt, and to nothing else outside its worktree.
+    The channel sits outside every worktree by R14.3, so the rule
+    states the exception rather than being left quietly contradicted
+    by it.
+7.  Guide **section 6, *What `in-review` means***, said the agent's
+    own review "never appears on the board". That passage is about the
+    **tracker's** columns, and with R14 the review does reach the run
+    board, as step 5's interim report. It names which board it means,
+    so both readings are true: no column of its own on the tracker, a
+    line on the run board while the slice is in flight.
+8.  `README.md` and `INSTALL.md` say that `yngorch` installs
+    `yngboard` beside `yngv` (R9.4): in the same step, honouring
+    `--bin-dir`, and left out by `--skip-viewer`, since `yngboard`
+    opens a board with `yngv`.
 
 ## R13 Version
 
