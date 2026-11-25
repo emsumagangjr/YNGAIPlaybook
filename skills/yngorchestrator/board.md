@@ -445,12 +445,12 @@ rm -f "<root>/.yngaiplaybook/ynghandback.html" \
       "<root>/.yngaiplaybook/ynghandback-<log>.html"
 ```
 
-Those are 1.15.0's hand-back page for this run log and the project
-index that listed every run's page. Nothing writes either any more, and
-a file nothing updates is worse than one that is either current or
-absent. Delete them after the board is in place, and only for this
-run's own `<log>`: another log's hand-back page belongs to a run on
-that log (R2.3).
+Those are the two files 1.15.0 wrote for this run log: the page it
+wrote at the hand-back, and the project index that listed every run's
+page. Nothing writes either any more, and a file nothing updates is
+worse than one that is either current or absent. Delete them after the
+board is in place, and only for this run's own `<log>`: another log's
+stale files belong to a run on that log (R2.3).
 
 Done when `yngboard-<log>.html` holds this payload and neither stale
 file is left beside it.
