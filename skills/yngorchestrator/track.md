@@ -21,10 +21,18 @@ apply that rule through [merge.md](merge.md).
 
 ## On a report
 
-### 1. Validate
+### 1. Drain, then validate
 
-The report must carry every field of [report.md](report.md), in
-order, with STATUS one of its four values. Log `reported <status>`.
+A worker's message has reached you, so drain every open progress
+channel first (*Interim reports* in [SKILL.md](SKILL.md)): this
+slice's last interim reports reach the log, and the board, ahead of
+the report that ends them, and the slices still out get theirs logged
+while their workers are still working. This slice's own channel is
+closed at the end of step 2, once you have acted on the report.
+
+The report must carry every field of *Completion report* in
+[report.md](report.md), in order, with STATUS one of its four values.
+Log `reported <status>`.
 
 When a field is missing or STATUS is unknown, ask the worker once, with
 SendMessage, to resend the full report. A second malformed report is
@@ -64,8 +72,11 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 
   Post the `Dispatched:` comment again, as in step 3 of
   [dispatch.md](dispatch.md), naming the same branch and worktree
-  folder (R44.2). Log `re-dispatched`, with the UTC instant that line
-  carries (*Run log* in [SKILL.md](SKILL.md)).
+  folder (R44.2). Open a fresh progress channel for the new attempt
+  and name it in `PROGRESS:` (step 4 of [dispatch.md](dispatch.md)):
+  what the first attempt reported is not this one's (yngboard R14.5).
+  Log `re-dispatched`, with the UTC instant that line carries (*Run
+  log* in [SKILL.md](SKILL.md)).
 - Two attempts: hand back to a person. *Set state*
   `workflow:ready-for-human`, and *comment* on the issue:
 
@@ -82,8 +93,13 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 
 Log `ready-for-human`.
 
+Delete this attempt's progress channel last, whichever row acted: the
+slice is in flight no longer, or a re-dispatch has opened a fresh one
+(*Interim reports* in [SKILL.md](SKILL.md)).
+
 Done when the issue's state matches the STATUS row above, its comment
-is posted, and the run log has the line.
+is posted, the run log has the line, and this attempt's channel is
+gone.
 
 ## On a merge
 
