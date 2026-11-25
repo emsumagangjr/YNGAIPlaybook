@@ -1,6 +1,7 @@
 # YNG Board: Decisions
 
-Dated log of options refused, one line of why each.
+Dated log of options refused, one line of why each, and of any refusal
+taken back.
 
 - **2026-11-25** Refused: keeping the hand-back page's scope — only what
   waits on a person. It cannot answer "where has everything got to",
@@ -23,11 +24,14 @@ Dated log of options refused, one line of why each.
   six shipped kinds each already attach to one slice, and renaming them
   would orphan the payload, the template and nine closed slices.
 - **2026-11-25** Refused: a progress bar, a percentage or a phase on an
-  in-flight slice. The worker sends no interim report, so every one of
-  them would be invented. → context
-- **2026-11-25** Refused: making the worker report progress as part of
-  this feature. It changes the report format and the worker's contract;
-  it gets its own issue.
+  in-flight slice. The worker reports what it has done, never a fraction
+  of what is left (R14.2), so every one of them would be invented.
+  → context
+- **2026-11-25** Taken back: making the worker report progress was
+  refused as out of this feature and given its own issue. An in-flight
+  row that can only ever say *nothing reported yet* answers "where has
+  everything got to" with silence for the longest part of a slice's
+  life, which is the question this feature exists for. → R14
 - **2026-11-25** Refused: an elapsed figure without the absolute
   instant. An age alone cannot say when the data was true.
 - **2026-11-25** Refused: reading ynghandback R3.4 to forbid arithmetic.

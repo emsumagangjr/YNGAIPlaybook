@@ -46,9 +46,11 @@ below names what it changes. Where it names nothing, it is new.
 
 ``` text
 skills/yngorchestrator/board.md                 replaces handback.md: gather, render, write, open (R1, R3)
-skills/yngorchestrator/web/template.html        one table, attention column, elapsed on render (R4, R5, R7)
+skills/yngorchestrator/web/template.html        one table, attention column, elapsed and latest report on render (R4, R5, R7, R14)
 skills/yngorchestrator/web/index.html           deleted (R2)
-skills/yngorchestrator/SKILL.md                 the Run log section carries the write rule (R3)
+skills/yngorchestrator/SKILL.md                 the Run log section carries the write rule; a line per interim report (R3, R14)
+agents/slice-worker.md                          sends an interim report as each step finishes (R14)
+skills/yngorchestrator/report.md                the interim report's fields, beside the completion report's (R14)
 skills/yngorchestrator/locate.md                reads run-board, falling back to handback-page (R8)
 scripts/yngboard.ps1, scripts/yngboard.sh       opens this worktree's board (R9)
 scripts/yngorch.ps1, scripts/yngorch.sh         installs yngboard beside yngv; adds run-board (R8, R9)
@@ -189,12 +191,14 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 ## R5 A slice in flight
 
 1.  Between `dispatch.md` step 3's *set state* `workflow:in-progress`
-    and the worker's completion report, the dispatcher knows **nothing
-    else**: `agents/slice-worker.md` sends no interim report, no
-    progress and no comment, by design — the completion report is its
-    whole hand-off.
-2.  Such a row therefore shows its **dispatch instant** and the words
-    *nothing reported yet*, and nothing more.
+    and the worker's completion report, the dispatcher knows only what
+    the worker's **interim reports** tell it (R14). Until the first one
+    arrives it knows **nothing else**, and the completion report stays
+    the worker's whole hand-off either way.
+2.  A row for a slice dispatched with no interim report yet therefore
+    shows its **dispatch instant** and the words *nothing reported
+    yet*, and nothing more. Once one has arrived, the row shows it
+    (R14.5).
 3.  No progress bar, no percentage, no phase, no spinner, no guess. A
     board that implies progress it cannot see is worse than one that
     says it cannot see any.
@@ -202,8 +206,9 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     hours is visibly stuck, which is how a hung worker is found. It is
     derived on render (R7).
 5.  Making workers report progress is a change to
-    `agents/slice-worker.md` and the report format, and is **not in
-    this feature**. It gets its own issue.
+    `agents/slice-worker.md` and the report format. It was refused as
+    out of this feature and has been **taken back into it**: `R14`
+    states what the worker sends and what the board does with it.
 
 ## R6 The payload
 
@@ -414,3 +419,44 @@ page at every width, in place of the waiting list.
     event, the default now `write`, the key renamed with its alias, the
     `yngboard` command added, the project index removed.
 3.  `decisions.md` beside this file carries the options refused.
+
+## R14 The worker reports while it works
+
+1.  The worker sends an **interim report** while it works: one as it
+    finishes each step of `agents/slice-worker.md`, and one when it
+    stops early. It never replaces the completion report, which stays
+    the worker's whole hand-off and the only thing the orchestrator
+    acts on (`report.md`). An interim report is news, not a hand-off.
+2.  An interim report carries four things and no more: the issue's
+    full reference, the **step** just finished (its number and name,
+    as `agents/slice-worker.md` writes it), **one line** of what that
+    step did or found, and the **UTC instant**. No estimate, no
+    percentage, no count of what is left, no time to completion: the
+    worker reports what it has done, never a fraction of what remains.
+3.  The worker **sends; it writes nothing**. It appends no run-log line
+    and sets no issue state: both stay the orchestrator's, as the
+    worker's guardrails already say. What carries an interim report
+    back to the dispatcher is for the slice that builds this to settle,
+    under one constraint: it must reach the dispatcher *while the
+    worker is still working*, or it tells the board nothing the
+    completion report would not have told it first.
+4.  The dispatcher appends **one run-log line per interim report** it
+    receives, in the log's own form (`<date> #<issue> <event>`), under
+    its own event word, `progress`; `reported` stays the completion
+    report's, and the log keeps the two apart as R6.5 keeps the
+    payload's. By R3.2 that line rewrites the board, so an interim
+    report reaches it the way everything else a run learns does, and
+    the run log, not the board, holds their history.
+5.  An in-flight row renders the **latest** interim report: its step,
+    its one line, its instant, and the elapsed figure since it (R7.3).
+    Earlier ones are not rendered; the run log holds them. The
+    payload's slice gains `progress` — `{ "at": "<UTC>", "step": "...",
+    "note": "..." }` — null until the first interim report arrives. It
+    is an arrival, not a field changing meaning or leaving, so `schema`
+    stays at **2** (R6.1, ynghandback R4.6).
+6.  **R5.3 holds for everything the worker has not reported.** No
+    progress bar, no percentage, no phase, no spinner, and no guess at
+    where the worker has got to between two interim reports. The board
+    shows the last thing the worker actually said and how long ago it
+    said it, and nothing in between: a row whose latest interim report
+    is hours old reads as stuck, which is what R5.4 is for.
