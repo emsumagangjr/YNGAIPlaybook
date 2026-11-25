@@ -525,8 +525,12 @@ END {
     # the new setting is added only when the file has neither name as an
     # active key, so a config carrying the old key is left to go on as it
     # is. No value of either name is ever written or changed. One line per
-    # rename, and the same list as yngorch.ps1 holds.
+    # rename, and the same list as yngorch.ps1 holds. renamed reads that
+    # list backwards: the setting a former name belongs to, so the
+    # template block carrying that former name is reported as what it is
+    # rather than as new.
     former["run-board"] = "handback-page"
+    for (fn in former) renamed[former[fn]] = fn
 
     # Missing settings (R39.5, R39.6): whole sections, in template order.
     warns = ""; ins_set = ""
@@ -539,7 +543,8 @@ END {
         }
         missing[n] = 1
         for (i = sstart[s]; i <= send[s]; i++) ins_set = ins_set t[i] eol
-        addl[sstart[s]] = "A " disp ": " n " (new in the template)\n"
+        what = (n in renamed) ? "the former name of " renamed[n] : "new in the template"
+        addl[sstart[s]] = "A " disp ": " n " (" what ")\n"
     }
 
     # Missing nested keys (R39.7, R39.8), in template order.

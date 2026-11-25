@@ -380,8 +380,14 @@ $headerPattern = '^# --- Setting: (\S+)'
 # A setting that was renamed keeps its former name readable (spec R8.4):
 # the new setting is added only when the file has neither name as an active
 # key, so a config carrying the old key is left to go on as it is. No value
-# of either name is ever written or changed. One entry per rename.
-$settingFormerNames = @{ 'run-board' = 'handback-page' }
+# of either name is ever written or changed. One entry per rename, and the
+# same list as yngorch.sh holds. The second table reads it backwards: the
+# setting a former name belongs to, so the template block carrying that
+# former name is reported as what it is rather than as new.
+$settingFormerNames = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+$settingFormerNames['run-board'] = 'handback-page'
+$settingRenamedFrom = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+foreach ($n in $settingFormerNames.Keys) { $settingRenamedFrom[$settingFormerNames[$n]] = $n }
 
 # $Text's lines, each with its own line ending.
 function Split-Lines([string]$Text) {
@@ -559,7 +565,8 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
                 continue
             }
             for ($i = $start; $i -lt $end; $i++) { $sections.Add($tLines[$i]) }
-            $ctx.Added.Add("${Display}: $name (new in the template)")
+            $what = if ($settingRenamedFrom.ContainsKey($name)) { "the former name of $($settingRenamedFrom[$name])" } else { 'new in the template' }
+            $ctx.Added.Add("${Display}: $name ($what)")
         }
         elseif ($tTop.Count) { Add-MissingKeys $ctx $tTop[0].Pos $fTop $name }
     }
