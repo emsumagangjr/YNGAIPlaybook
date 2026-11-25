@@ -110,13 +110,13 @@ confirm it: `issue.pr` is `null`.
 The **run log** is the narrative spine, and is read from
 `<root>/.yngaiplaybook/yngorchestratorruns/<log>.md`, never from the
 provider (R10, ynghandback R10.1). It gives `runlog`, each slice's
-dispatch instant and last report, the conditions that held a merge, and
-the deferred worktree removals. It records events, not current truth —
-a label changed by hand, a check gone red, a pull request someone else
-merged are in none of it — so where the log and a live read differ, the
-live read is what the board shows. For a label and a report,
-ynghandback R7 settles it, carried over whole by R10: step 2's
-`conflict` value.
+dispatch instant, its latest interim report and its last completion
+report, the conditions that held a merge, and the deferred worktree
+removals. It records events, not current truth — a label changed by
+hand, a check gone red, a pull request someone else merged are in none
+of it — so where the log and a live read differ, the live read is what
+the board shows. For a label and a report, ynghandback R7 settles it,
+carried over whole by R10: step 2's `conflict` value.
 
 **A failed operation writes nothing.** When any of the four fails — a
 rate limit, an expired login, an outage — leave the existing
@@ -279,6 +279,7 @@ the issue names would be a dead link from there:
 | `attention`, `why`, `actionUrl` | step 2's                                            |
 | `dispatchedAt`           | the instant it was last dispatched, from the run log       |
 | `report`                 | the slice's last completion report, from the run log       |
+| `progress`               | its latest interim report, from the run log                |
 | `pr`                     | its pull request, from *pr status*                         |
 | `dependsOn`              | the numbers on the issue's `Depends on:` line              |
 | `blocks`                 | step 2's                                                   |
@@ -310,6 +311,23 @@ label, `report.outcome` the completion report's `STATUS`
 ([report.md](report.md)), and `pr.checks` the provider's checks rollup.
 The payload's key is `outcome`; the report's own field in
 [report.md](report.md) keeps its name.
+
+`progress` is the slice's latest **interim report** (R14.5): the last
+readable `progress` line for `#<m>` that comes after its last
+`dispatched` or `re-dispatched` line, as
+`{ "at": <its instant>, "step": <its step>, "note": <its one line> }`,
+and `null` where this attempt has none. Nothing earlier than that
+dispatch is carried: a re-dispatched slice's fresh worker has reported
+nothing yet, and the attempt before would read as this one — the
+inversion R6.7 already guards `dispatchedAt` against. A line logged
+`progress unreadable` is no interim report: it stays in `runlog`,
+where the person can see what arrived, and nothing is built from it
+(R14.4). `at` is written in `generated`'s own form, which names its
+zone, because the row derives an elapsed figure from it (R5.4, R7.3);
+`step` and `note` are the worker's own words, and no phase, fraction
+or guess is added to them (R14.6). The template shows it on an
+in-flight row alone, and a slice with none still reads *nothing
+reported yet* beside its dispatch instant (R5.2).
 
 `decisions` and `report.summary` come from the completion reports this
 run acted on: `decisions` is the report's `REVIEW RECORD`, which is

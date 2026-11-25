@@ -146,13 +146,16 @@ A slice run writes to its Epic's log, so a later Epic run resumes from
 what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
 planned, dispatched, reported, relabelled, merged, closed, a worktree
-removed or its removal deferred ([track.md](track.md)), and a run
-launched into its own instance ([launch.md](launch.md)).
+removed or its removal deferred ([track.md](track.md)), a run launched
+into its own instance ([launch.md](launch.md)), and each interim
+report a worker sends while it works (*Interim reports* below).
 
 The `dispatched` line carries the instant, not its date alone, and so
 does `re-dispatched`: a board's elapsed figure needs better than a date
 to tell a slice dispatched minutes ago from one dispatched before
-breakfast (yngboard R6.3). Every other event keeps the bare `<date>`.
+breakfast (yngboard R6.3). Every other event keeps the bare `<date>`;
+an interim report's own instant is part of its event (*Interim
+reports* below).
 
 ``` text
 2026-11-25 #104 dispatched 2026-11-25T03:21:55Z
@@ -191,6 +194,53 @@ A line the *Sweep deferred removals* path of [track.md](track.md)
 appends to **another** log is not this run's: that log's board waits
 for a run on it, because the board would need provider reads about an
 Epic this run is not running (R1.6).
+
+### Interim reports
+
+A worker sends **interim reports** while it works, and each one you
+receive becomes one run-log line (yngboard R14). The worker writes no
+line itself and sets no state: it appends to the **progress channel**
+[dispatch.md](dispatch.md) opened for it, and you are its only reader.
+
+**Drain every open channel each time a worker's message reaches you,
+and before you append any line of your own.** You hold how many of
+each channel's lines you have already logged; the rest are new:
+
+``` bash
+tail -n +$((logged + 1)) "$progress"
+```
+
+Append one line per new channel line, oldest first, keeping the
+instant, the step and the one line as the worker wrote them:
+
+``` text
+2026-11-25 #104 progress 2026-11-25T03:40:12Z | 3. Lead-in | The refresh path already has a seam: the token store.
+```
+
+`<date>` is the day you logged it, as on every line. `progress` is the
+interim report's event word and `reported` stays the completion
+report's, so the log keeps news and hand-off apart (yngboard R14.4).
+The lines you append here are not channel lines, so a drain never
+drains itself, and each one rewrites the board by the rule above: an
+interim report reaches the board the way everything else a run learns
+does.
+
+A channel line you cannot read — a field missing, a reference that is
+not that slice's, an instant that does not name its zone — is logged
+as it arrived and built into nothing:
+
+``` text
+2026-11-25 #104 progress unreadable <the line as it arrived, on one line>
+```
+
+It never fails the slice and never changes its state: the row falls
+back to what you already know about it (yngboard R14.4). Invent no
+field for it and ask the worker for nothing — news is not a hand-off,
+and the completion report is still what you act on.
+
+Delete a channel once you have acted on that slice's completion report
+(*On a report* in [track.md](track.md)): drain it one last time, then
+`rm -f` it. It is scratch, and the run log holds the history.
 
 ### The lock
 
@@ -286,9 +336,10 @@ Done when every dispatchable slice has a worker running.
 ### 4. Track
 
 As each worker's completion report arrives, follow [track.md](track.md).
-The report format is defined in [report.md](report.md). After acting on
-a report, return to step 3: a merge, yours on an `auto` path or the
-person's, closes a slice and can unblock the slices waiting on it.
+The report format is defined by *Completion report* in
+[report.md](report.md). After acting on a report, return to step 3: a
+merge, yours on an `auto` path or the person's, closes a slice and can
+unblock the slices waiting on it.
 
 Done when every slice issue is closed, or is waiting on a person.
 

@@ -45,12 +45,13 @@ below names what it changes. Where it names nothing, it is new.
 ## Deliverables
 
 ``` text
-skills/yngorchestrator/board.md                 replaces handback.md: gather, rank, build the payload, render, write, open (R1, R3)
+skills/yngorchestrator/board.md                 replaces handback.md: gather, rank, build the payload, render, write, open (R1, R3, R14)
 skills/yngorchestrator/web/template.html        one table, attention column, elapsed and latest report on render (R4, R5, R7, R14)
 skills/yngorchestrator/web/index.html           deleted (R2)
 skills/yngorchestrator/SKILL.md                 the Run log section carries the write rule; a line per interim report (R3, R14)
 agents/slice-worker.md                          sends an interim report as each step finishes (R14)
 skills/yngorchestrator/report.md                the interim report's fields, beside the completion report's (R14)
+skills/yngorchestrator/dispatch.md, track.md    opens a progress channel per dispatch, drains it, closes it (R14)
 skills/yngorchestrator/locate.md                reads run-board, falling back to handback-page (R8)
 scripts/yngboard.ps1, scripts/yngboard.sh       opens this worktree's board (R9)
 scripts/yngorch.ps1, scripts/yngorch.sh         installs yngboard beside yngv; adds run-board (R8, R9)
@@ -337,6 +338,8 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
                     "dispatchedAt": "<UTC>",
                     "report": { "outcome": "done", "at": "<date>",
                                 "summary": "..." },
+                    "progress": { "at": "<UTC>", "step": "...",
+                                  "note": "..." },
                     "pr": { "number": 131, "url": "...", "state": "OPEN",
                             "checks": "passed", "mergeable": true },
                     "dependsOn": [103], "blocks": [105, 106],
@@ -614,37 +617,82 @@ page at every width, in place of the waiting list.
 ## R14 The worker reports while it works
 
 1.  The worker sends an **interim report** while it works: one as it
-    finishes each step of `agents/slice-worker.md`, and one when it
-    stops early. It never replaces the completion report, which stays
-    the worker's whole hand-off and the only thing the orchestrator
-    acts on (`report.md`). An interim report is news, not a hand-off.
+    finishes each step of `agents/slice-worker.md` that is not the
+    report itself — its steps 1 to 6 — and one when it stops early.
+    Step 7 *is* the completion report, and a row stops being in flight
+    the moment the dispatcher acts on one, so an interim report beside
+    it would be news about a slice already handed back. It never
+    replaces the completion report, which stays the worker's whole
+    hand-off and the only thing the orchestrator acts on
+    (`report.md`). An interim report is news, not a hand-off.
 2.  An interim report carries four things and no more: the issue's
     full reference, the **step** just finished (its number and name,
     as `agents/slice-worker.md` writes it), **one line** of what that
     step did or found, and the **UTC instant**. No estimate, no
     percentage, no count of what is left, no time to completion: the
     worker reports what it has done, never a fraction of what remains.
-3.  The worker **sends; it writes nothing**. It appends no run-log line
-    and sets no issue state: both stay the orchestrator's, as the
-    worker's guardrails already say. What carries an interim report
-    back to the dispatcher is for the slice that builds this to settle,
-    under one constraint: it must reach the dispatcher *while the
-    worker is still working*, or it tells the board nothing the
-    completion report would not have told it first.
+3.  The worker **sends; it writes nothing of the run's**. It appends no
+    run-log line and sets no issue state: both stay the orchestrator's,
+    as the worker's guardrails already say. What carries an interim
+    report back to the dispatcher is settled here, as the **progress
+    channel**: one scratch file per dispatch, created by step 4 of
+    `dispatch.md` outside every worktree and outside `.yngaiplaybook/`
+    (R2.5), named to the worker in its prompt's `PROGRESS:` field,
+    appended to by that worker alone — one line per interim report,
+    carrying R14.2's four things — and read by the dispatcher alone. It
+    is scratch, not a record: the run log holds the history (R14.4),
+    and the channel is deleted once the slice's completion report has
+    been acted on. A worker whose prompt carries no `PROGRESS:` field
+    sends nothing and works as it did before.
+
+    The dispatcher **drains every open channel each time a worker's
+    message reaches it, and before it appends any line of its own.** A
+    channel line is on disk the moment its step ends, and reaches the
+    log at the dispatcher's next waking. For slices dispatched together
+    — the usual round — that waking is while the other workers are
+    still working, which is what this carrier is for. For a slice
+    dispatched alone (`scoped.md`, and a round of one) the dispatcher
+    is a subagent's caller and has no waking until that worker returns
+    (yngorchestrator R46.3): its interim reports reach the log at that
+    moment, each carrying the instant its own step ended, so the log is
+    still true about when each step ended and the board still shows the
+    last one. That gap is the subagent model's, and a watcher that
+    would close it is refused by R1.6.
 4.  The dispatcher appends **one run-log line per interim report** it
     receives, in the log's own form (`<date> #<issue> <event>`), under
     its own event word, `progress`; `reported` stays the completion
     report's, and the log keeps the two apart as R6.5 keeps the
-    payload's. By R3.2 that line rewrites the board, so an interim
-    report reaches it the way everything else a run learns does, and
-    the run log, not the board, holds their history.
+    payload's. The event carries the three things the log's `#<issue>`
+    does not already say, as the channel wrote them:
+
+    ``` text
+    2026-11-25 #161 progress 2026-11-25T03:40:12Z | 3. Lead-in | Settled the carrier as a file the dispatcher drains.
+    ```
+
+    A channel line that is not an interim report — a field missing, a
+    reference that is not the slice's, an instant that does not name
+    its zone — **does not fail the slice**. It is logged as received,
+    under the same event word and marked `unreadable`, so the person
+    can see what arrived; nothing is built from it, and the row falls
+    back to what the run already knows (R14.5). A worker's news can no
+    more stop a slice than a failed board write can. By R3.2 each of
+    these lines rewrites the board, so an interim report reaches it the
+    way everything else a run learns does, and the run log, not the
+    board, holds their history.
 5.  An in-flight row renders the **latest** interim report: its step,
     its one line, its instant, and the elapsed figure since it (R7.3).
     Earlier ones are not rendered; the run log holds them. The
     payload's slice gains `progress` — `{ "at": "<UTC>", "step": "...",
-    "note": "..." }` — null until the first interim report arrives. It
-    is an arrival, not a field changing meaning or leaving, so `schema`
-    stays at **2** (R6.1, ynghandback R4.6).
+    "note": "..." }` — built from the last readable `progress` line
+    after that slice's last `dispatched` or `re-dispatched` line, and
+    null until the first interim report of this attempt arrives. A
+    re-dispatched slice carries none of the attempt before: a fresh
+    worker has reported nothing yet, and the first attempt's last step
+    would read as this one's, the inversion R6.7 already guards
+    `dispatchedAt` against. `at` is written in `generated`'s own form,
+    which names its zone, because an elapsed figure is derived from it
+    on render (R5.4). It is an arrival, not a field changing meaning or
+    leaving, so `schema` stays at **2** (R6.1, ynghandback R4.6).
 6.  **R5.3 holds for everything the worker has not reported.** No
     progress bar, no percentage, no phase, no spinner, and no guess at
     where the worker has got to between two interim reports. The board
