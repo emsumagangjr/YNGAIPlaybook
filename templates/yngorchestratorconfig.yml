@@ -40,10 +40,10 @@
 #   Gate 1  the decision that an issue is ready for an agent to start. Its
 #           mark is the label workflow:ready-for-agent ("Agent-Ready").
 #   Gate 2  the decision to merge a pull request.
-#   Hand-back page
-#           what a run writes when it hands back to you: one HTML file
-#           per Epic, listing what is waiting on you, in the order the
-#           run gives it. See handback-page below.
+#   Run board
+#           what a run writes as it goes: one HTML file per Epic,
+#           showing every slice of it, where each one has got to, and
+#           which of them need you. See run-board below.
 
 
 # --- Setting: provider -------------------------------------------------------
@@ -216,25 +216,47 @@ merge:
 remote-control: yes
 
 
-# --- Setting: handback-page --------------------------------------------------
-# Decides: whether a run writes a hand-back page when it hands back to
-#   you, and whether it opens that page in your browser. Not a gate: the
-#   page only shows what is already waiting on you. It never changes an
-#   issue, a label or a pull request, and the list the run tells you at
-#   the end is the same whatever you set here.
+# --- Setting: run-board ------------------------------------------------------
+# Decides: whether a run writes its run board as it goes, and whether it
+#   opens that board in your browser. Not a gate: the board only shows
+#   where the run has got to. It never changes an issue, a label or a
+#   pull request, and the list the run tells you at the end is the same
+#   whatever you set here.
 # Values:
-#   open   the run writes the page and opens it in your default browser.
-#          (default)
-#   write  the run writes the page and opens nothing. For a machine you
-#          work on over SSH, or a run you follow from your phone, where
-#          a file:// path in a browser is no use to you.
-#   no     the run writes no page at all.
-# Default: open. An absent key, an empty value or any value other than
-#   write or no means open, and never stops a run.
+#   write  the run writes the board at every run-log event and opens
+#          nothing. Open it when you want it: leave a tab on it and
+#          reload, or type yngboard. (default)
+#   open   the run writes the same board, and opens it in your default
+#          browser once, at that run's first write.
+#   no     the run writes no board at all.
+# Default: write, not open. The board is now written from the start of a
+#   run rather than at its end, so open raises a browser window near the
+#   start of every run, including a run that turns out to have nothing
+#   to do. An absent key, an empty value or any value other than open or
+#   no means write, and never stops a run.
 # Read: at the start of every run, and held until that run ends.
-# Changed by: you. yngorch never writes the key; it adds this setting
-#   when it is missing.
-handback-page: open
+# Changed by: you. yngorch never writes the key; it adds this setting,
+#   at write, only when your file has neither run-board nor
+#   handback-page, its former name.
+run-board: write
+
+
+# --- Setting: handback-page --------------------------------------------------
+# Former name: handback-page is what run-board was called in 1.15.0, when
+#   the file was a hand-back page written once, at the end of a run. A
+#   config that still carries the key is honoured as it is: with no
+#   run-board key beside it, its value is read in run-board's place, and
+#   nothing ever rewrites it. Set both, and run-board wins.
+# Decides: what run-board decides, when and only when your file has no
+#   run-board key. See run-board above.
+# Values: open, write and no, each read as run-board reads it, so a key
+#   you set to write or no in 1.15.0 goes on meaning what it meant.
+# Default: run-board's, write: an absent key, an empty value or any value
+#   other than open or no is read as write, and never stops a run.
+# Read: at the start of every run, and held until that run ends.
+# Changed by: you. yngorch never writes the key; it adds this setting,
+#   commented out as below, when it is missing.
+# handback-page: open
 
 
 # --- Setting: agent ----------------------------------------------------------

@@ -516,11 +516,22 @@ END {
         if (!K_tab) { sp++; sind[sp] = K_ind; spath[sp] = p }
     }
 
+    # A setting that was renamed keeps its former name readable (spec R8.4):
+    # the new setting is added only when the file has neither name as an
+    # active key, so a config carrying the old key is left to go on as it
+    # is. No value of either name is ever written or changed. One line per
+    # rename, and the same list as yngorch.ps1 holds.
+    former["run-board"] = "handback-page"
+
     # Missing settings (R39.5, R39.6): whole sections, in template order.
     warns = ""; ins_set = ""
     for (s = 1; s <= ns; s++) {
         n = sname[s]
         if (cnt[n] > 0 || (n in hdr)) continue
+        if ((n in former) && cnt[former[n]] > 0) {
+            notes = notes "N " disp ": " n " not added; " former[n] ", its former name, is set in your file and is still read in its place\n"
+            continue
+        }
         missing[n] = 1
         for (i = sstart[s]; i <= send[s]; i++) ins_set = ins_set t[i] eol
         addl[sstart[s]] = "A " disp ": " n " (new in the template)\n"

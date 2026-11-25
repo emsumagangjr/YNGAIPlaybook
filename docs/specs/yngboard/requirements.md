@@ -303,13 +303,20 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     uses its value, so a config nobody has touched keeps behaving as it
     does today, including a deliberate `write` or `no`. When both are
     present, `run-board` wins. The orchestrator never rewrites either
-    key.
+    key. The fall-back turns on the **key**, not on its value: a
+    `run-board:` key with nothing after it is the setting's own default
+    (R8.2), not a reason to read the former name. Whichever name the
+    value comes from, R8.1's table reads it, so a `handback-page` value
+    other than `open` or `no` is `write` where 1.15.0 read it as `open`.
 4.  `yngorch` adds `run-board` at its default only when **neither** key
-    is present, and never changes a value. The template's
-    `handback-page` block gains one line saying it is the former name of
-    `run-board` and is still honoured; the cross-reference in the
-    template's header (its "See handback-page below") names
-    `run-board`.
+    is present as an active key, and never changes a value of either. A
+    run that skips it says so, as a note. The template's `handback-page`
+    block gains one line saying it is the former name of `run-board` and
+    is still honoured, and its key is commented out, as `agent`'s is:
+    the block stays to be read, and a file written from the template
+    carries one live key for the setting, `run-board`. The
+    cross-reference in the template's header (its "See handback-page
+    below") names `run-board`.
 5.  It stays beside `launcher` and `remote-control`: what a run may do
     on the person's own machine (ynghandback R12.5).
 
