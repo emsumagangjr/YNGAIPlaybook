@@ -58,7 +58,7 @@ scripts/yngorch.ps1, scripts/yngorch.sh         installs yngboard beside yngv; a
 templates/yngorchestratorconfig.yml             run-board, and handback-page marked the former name (R8)
 templates/yngaiplaybookreadme.md                a run-board line, and yngboard-<n>.html in the folder's layout (R12)
 INSTALL.md, README.md, guides/epic-workflow.md  section 25 subsection, the files, the command (R12)
-VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
+VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0, and the guide header with them (R13)
 ```
 
 ------------------------------------------------------------------------
@@ -631,14 +631,18 @@ page at every width, in place of the waiting list.
 
 ## R13 Version
 
-1.  `VERSION` and `SKILL.md`'s `metadata.version` to **1.16.0**, not
-    2.0.0: the alias of R8.3 keeps every existing config working, and
-    the renamed step file and the deleted `web/index.html` are internal
-    to the skill.
+1.  `VERSION`, `SKILL.md`'s `metadata.version` and the version in the
+    header of `guides/epic-workflow.md` to **1.16.0**, not 2.0.0: the
+    alias of R8.3 keeps every existing config working, and the renamed
+    step file and the deleted `web/index.html` are internal to the
+    skill. `CHANGELOG.md` says `VERSION` and the guide header are kept
+    in sync with its latest entry, so the three move together.
 2.  A `## [1.16.0]` entry in `CHANGELOG.md` with explicit **Changed**
     and **Removed** headings: the page renamed and rewritten at every
     event, the default now `write`, the key renamed with its alias, the
-    `yngboard` command added, the project index removed.
+    `yngboard` command added, a worker reporting while it works (R14),
+    the project index removed, and with it the `handback page written`
+    and `handback page skipped` run-log lines (R3.4).
 3.  `decisions.md` beside this file carries the options refused.
 
 ## R14 The worker reports while it works
