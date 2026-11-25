@@ -208,7 +208,11 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     report where one has arrived — `report.outcome`, `report.at` and
     `report.summary`, kept apart from the label and the checks as
     R6.5 keeps them. The word *reported* names it, never the bare word
-    "status" (R11.3).
+    "status" (R11.3). An in-flight row with no interim report but a
+    completion report shows that report rather than *nothing reported
+    yet*: that is the label/report disagreement ynghandback R7
+    surfaces as `conflict`, and a row must not deny beside the chip
+    what the chip's `why` says arrived.
 9.  **The order is the run's.** The template renders `slices[]` in the
     order it is given, after the first row, and sorts nothing (R4.2,
     R7.2). Rows in the wrong order are a defect in the run, not in the
@@ -217,7 +221,11 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     `attention` other than `none`. Under a `schema` the template does
     not know it is not shown: the values may be somewhere the template
     did not look, and saying nothing needs a person would be a guess
-    (R6.6).
+    (R6.6). The line R6.6 asks for names which way the mismatch runs:
+    a `schema` above the template's came from a newer orchestrator, and
+    one below it from an older. Schema 1 exists in the field (R6.1), so
+    "newer" is not always true, and a board that is wrong about where
+    it came from is worse than one that says nothing.
 
 ## R5 A slice in flight
 
@@ -241,7 +249,16 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     says it cannot see any.
 4.  The elapsed figure is what makes the row useful: a slice silent for
     hours is visibly stuck, which is how a hung worker is found. It is
-    derived on render (R7).
+    derived on render (R7), and only from an instant that **names its
+    zone**, in `generated`'s own form (ynghandback R4.3). A browser
+    reads a bare `2026-11-25 00:30` as local time, so east of UTC a
+    slice dispatched minutes ago would read as hours old — the signal
+    this item exists for, inverted. Any other form is shown as the run
+    wrote it, with no age beside it, and so is an instant ahead of the
+    reader's own clock. The figures are derived again when the page is
+    looked at, so a tab left open does not keep saying *2m ago*: that
+    is arithmetic on the payload already in the page, not a refresh of
+    the board, which stays run-only (R1.6).
 5.  Making workers report progress is a change to
     `agents/slice-worker.md` and the report format. It was refused as
     out of this feature and has been **taken back into it**: `R14`
@@ -261,7 +278,12 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     { "schema": 2, "generated": "<UTC>", "live": true,
       "mergePath": "slice-to-epic",
       "issue":  { "number": 155, "title": "...", "url": "...",
-                  "branch": "epic/155-..." },
+                  "branch": "epic/155-...",
+                  "label": "workflow:in-review",
+                  "attention": "merge", "why": "...", "actionUrl": "...",
+                  "pr": { "number": 200, "url": "...", "state": "OPEN",
+                          "checks": "passed", "mergeable": true },
+                  "blocks": [] },
       "epic":   { "number": 155, "title": "...", "url": "...",
                   "spec": "../<worktree>/docs/specs/<feature>/" },
       "slices": [ { "number": 104, "title": "...", "url": "...",
@@ -284,6 +306,10 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     for that attention, null for `none`), `blocks` (what waits on it,
     `[]` when nothing does) and `dispatchedAt` (the UTC instant of its
     `dispatched` run-log line, null when it has not been dispatched).
+    `issue` carries the same row fields, because the board's own issue
+    is the table's first row (R4.1, R4.7): without them that row — the
+    `epic-to-main` pull request's — has nothing to show. They arrive;
+    nothing changes meaning and nothing leaves, so `schema` stays 2.
 3.  `dispatchedAt` is an **instant**, not the log line's date:
     ynghandback R4.4 made `report.at` a date because a run-log line
     carries nothing finer, and R5.4's elapsed figure needs better than

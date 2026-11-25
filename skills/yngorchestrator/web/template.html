@@ -171,8 +171,9 @@
   <header class="page" id="page-head"></header>
   <noscript>
     <p class="notice">This board draws itself from the payload below, which
-    needs scripting. With scripting off it shows nothing. The same list is in
-    the run's own hand-back, in the terminal.</p>
+    needs scripting. With scripting off it shows nothing. The run's own
+    hand-back, in the terminal, lists what waits on a person; this board is
+    the only place every slice is listed with its state.</p>
   </noscript>
   <main id="page-main"></main>
   <footer class="page" id="page-foot"></footer>
@@ -230,18 +231,51 @@
   // --- arithmetic on a value the run supplied (R7.2). This derives an
   // elapsed figure from an instant the run baked in; it decides nothing,
   // and the absolute instant is always shown beside it (R7.3).
+  //
+  // Only an instant that names its zone is counted from. A bare
+  // "2026-11-25 00:30" is read as local time by every browser, so east of
+  // UTC a slice dispatched minutes ago would read as hours old and a
+  // healthy worker would look hung - the signal R5.4 exists for, inverted.
+  // Anything else is shown as the run wrote it, with no age beside it.
+  var INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/;
   var now = Date.now();
   function elapsed(instant) {
     var s = str(instant);
-    if (!s) { return null; }
+    if (!s || !INSTANT.test(s)) { return null; }
     var t = Date.parse(s);
     if (isNaN(t)) { return null; }
-    var mins = Math.floor(Math.max(0, now - t) / 60000);
+    var gap = now - t;
+    // Ahead of this machine's clock by more than a minute: the two clocks
+    // disagree, and no age derived from them would be true.
+    if (gap < -60000) { return null; }
+    var mins = Math.floor(Math.max(0, gap) / 60000);
     if (mins < 1) { return "under a minute ago"; }
     if (mins < 60) { return mins + "m ago"; }
     var hours = Math.floor(mins / 60);
     if (hours < 24) { return hours + "h " + (mins % 60) + "m ago"; }
     return Math.floor(hours / 24) + "d " + (hours % 24) + "h ago";
+  }
+
+  // An age is true only at the moment it was derived, and a board is a tab
+  // left open and come back to (R8.2). Each one is kept with the instant it
+  // came from and derived again when the page is looked at. Nothing is
+  // scheduled and nothing is re-read: it is arithmetic on the payload
+  // already in the page, which is the only thing that could change here
+  // between runs (R1.6, R7.2).
+  var ages = [];
+  function paint(age) {
+    var since = elapsed(age.at);
+    age.node.textContent = age.prefix + (since ? " · " + since : "");
+  }
+  function ageNode(cls, prefix, instant) {
+    var age = { node: el("span", cls), prefix: prefix, at: instant };
+    paint(age);
+    ages.push(age);
+    return age.node;
+  }
+  function repaint() {
+    now = Date.now();
+    for (var i = 0; i < ages.length; i++) { paint(ages[i]); }
   }
 
   // --- payload lookups. These read what the run wrote; they never rank,
@@ -297,6 +331,16 @@
     return td;
   }
 
+  // The completion report, where the run has one (R6.4). Its `at` is a date,
+  // not an instant (ynghandback R4.4), so no age is derived from it.
+  function addReport(td, rep) {
+    if (!rep || !(str(rep.outcome) || str(rep.at) || str(rep.summary))) { return false; }
+    add(td, el("span", "sub", "reported " + (str(rep.outcome) || "—")));
+    if (str(rep.at)) { add(td, el("span", "sub mono", str(rep.at))); }
+    if (str(rep.summary)) { add(td, el("span", "sub", str(rep.summary))); }
+    return true;
+  }
+
   // State is the one workflow:* label (R4.1). Beneath it, what the run knows
   // about the slice right now: the latest interim report while a worker is
   // out (R5.2, R14.5), or the completion report once one has arrived (R6.4).
@@ -308,8 +352,7 @@
     if (label === LABEL_IN_FLIGHT) {
       var at = str(row.dispatchedAt);
       if (at) {
-        var since = elapsed(at);
-        add(td, el("span", "sub mono", "dispatched " + at + (since ? " · " + since : "")));
+        add(td, ageNode("sub mono", "dispatched " + at, at));
       } else {
         // `dispatchedAt` is null where an older run log carried a date and
         // nothing finer, so there is no instant to count from (R6.3).
@@ -319,35 +362,34 @@
       if (p && (str(p.step) || str(p.note) || str(p.at))) {
         if (str(p.step)) { add(td, el("span", "sub", str(p.step))); }
         if (str(p.note)) { add(td, el("span", "sub", str(p.note))); }
-        if (str(p.at)) {
-          var ago = elapsed(p.at);
-          add(td, el("span", "sub mono", str(p.at) + (ago ? " · " + ago : "")));
-        }
-      } else {
-        // No guess at where the worker has got to: only what it has said
-        // and how long ago it said it (R5.3, R14.6).
+        if (str(p.at)) { add(td, ageNode("sub mono", str(p.at), str(p.at))); }
+      } else if (!addReport(td, obj(row.report))) {
+        // No interim report, and no completion report either: no guess at
+        // where the worker has got to (R5.3, R14.6). Where a completion
+        // report has arrived and the label has not caught up - the
+        // disagreement ynghandback R7 surfaces as `conflict` - the row shows
+        // the report rather than denying it.
         add(td, el("span", "sub", "nothing reported yet"));
       }
       return td;
     }
 
-    var rep = obj(row.report);
-    if (rep && (str(rep.outcome) || str(rep.at) || str(rep.summary))) {
-      add(td, el("span", "sub", "reported " + (str(rep.outcome) || "—")));
-      if (str(rep.at)) { add(td, el("span", "sub mono", str(rep.at))); }
-      if (str(rep.summary)) { add(td, el("span", "sub", str(rep.summary))); }
-    }
+    addReport(td, obj(row.report));
     return td;
   }
 
   // A pull request's number sits beside its address in the payload (R6.4),
-  // so neither is worked out here. Without a number the cell says what it is.
+  // so neither is worked out here. Without a number the cell says nothing
+  // where the number would be, and invents no words for it (R4.7).
   function cellPr(row) {
     var td = el("td", "num");
     var pr = obj(row.pr);
     if (!pr) { add(td, el("span", "quiet", "—")); return td; }
-    var label = (typeof pr.number === "number") ? "#" + pr.number : "pull request";
-    td.appendChild(link(pr.url, label, href(pr.url) || undefined));
+    if (typeof pr.number === "number") {
+      td.appendChild(link(pr.url, "#" + pr.number, href(pr.url) || undefined));
+    } else {
+      add(td, el("span", "quiet", "—"));
+    }
     if (str(pr.state)) { add(td, el("span", "sub tag", str(pr.state))); }
     // The label, the report's outcome and the checks are three different
     // things, and the payload keeps them apart (R6.5).
@@ -468,8 +510,7 @@
     if (data && str(data.generated)) {
       // The absolute UTC instant is always shown; the age sits beside it,
       // never instead of it (R7.3).
-      var age = elapsed(data.generated);
-      add(meta, el("span", null, "written " + str(data.generated) + (age ? " · " + age : "")));
+      add(meta, ageNode(null, "written " + str(data.generated), str(data.generated)));
     }
     if (data && data.live === false) { add(meta, el("span", null, "written without provider contact")); }
     if (epic && str(epic.spec)) {
@@ -552,22 +593,34 @@
     return;
   }
 
-  // A schema only ever rises (R6.1), so one this page does not know came
-  // from an orchestrator newer than it. The table still renders: every
-  // field it reads is one this page knows (R6.6).
-  var newer = data.schema !== KNOWN_SCHEMA;
-  if (newer) {
+  // A schema this page does not know. It still renders the table, and says
+  // which way the mismatch runs (R6.6): a schema above this page's came
+  // from a newer orchestrator, and one below it - 1.15.0 shipped schema 1
+  // in the field (R6.1) - from an older one. Saying "newer" of an older
+  // payload would be the one thing worse than saying nothing.
+  var unknown = data.schema !== KNOWN_SCHEMA;
+  if (unknown) {
     var says = (typeof data.schema === "number") ? "payload schema " + data.schema : "a payload schema this page does not know";
+    var older = (typeof data.schema === "number") && data.schema < KNOWN_SCHEMA;
     add(head, el("p", "notice",
-      "This board was written by a newer orchestrator (" + says +
-      "; this page renders schema " + KNOWN_SCHEMA + "). The table below may leave out what that payload added."));
+      "This board was written by " + (older ? "an older" : "a newer") + " orchestrator (" + says +
+      "; this page renders schema " + KNOWN_SCHEMA + "). The table below is what this page could read of it."));
   }
 
   slices = arr(data.slices);
 
-  renderBoard(newer);
+  renderBoard(unknown);
   renderRunDetail(data);
   renderFoot(data);
+
+  // The ages, derived again when the page is looked at (R7.3). No timer and
+  // no request: a board is still true only as of the instant it names.
+  if (document.addEventListener) {
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) { repaint(); }
+    }, false);
+    window.addEventListener("pageshow", function () { repaint(); }, false);
+  }
 })();
 </script>
 </body>
