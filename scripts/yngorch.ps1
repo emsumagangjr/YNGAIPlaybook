@@ -832,7 +832,7 @@ else {
 # 7. The yngv viewer and the yngboard command, per user (not per project):
 # a .ps1 and a .cmd shim each in BinDir, which goes on the user PATH when it
 # is not there yet. The two go together: yngboard opens a board with yngv,
-# and finds it beside itself (yngboard R9.7).
+# and finds it beside itself (yngboard R9.8).
 if ($SkipViewer) { Step 'skipped' 'yngv and yngboard (-SkipViewer)' }
 else {
     New-Item -ItemType Directory -Force $BinDir | Out-Null

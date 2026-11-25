@@ -17,7 +17,8 @@
 #   <root>/.yngaiplaybook/yngboard-<n>.html. It shows every slice of the
 #   Epic, each slice's state, and whether each needs a person. yngboard
 #   finds the board this worktree belongs to and hands it to yngv, which
-#   opens it in the default browser.
+#   opens it in the default browser - unless YNGV_HTML_BROWSER is off, when
+#   it names the board and opens nothing.
 #
 #   It opens a file and nothing else: no provider call, no gather, no
 #   ranking, no regeneration, no write. A board is as old as the timestamp
@@ -39,14 +40,26 @@
 #   Epic is worse than no board.
 #
 # ENVIRONMENT
-#   yngboard reads no environment variable of its own. YNGV_HTML_BROWSER
-#   belongs to yngv and reaches it through yngv, which trims and matches
-#   the value the same way in both of its scripts: one reader, one rule.
+#   YNGV_HTML_BROWSER   Whether a board is opened in the browser at all.
+#                       Unset, empty, whitespace only, or any value other
+#                       than 0, no, false or off: open it. 0 (or no, false,
+#                       off): open nothing, and name the board's path so
+#                       you have it. The value is matched with surrounding
+#                       whitespace stripped and without regard to case, so
+#                       "no ", " NO" and "no" all mean the same. That rule
+#                       is stated in those same words in yngv.sh, yngv.ps1,
+#                       yngboard.sh and yngboard.ps1, and the function
+#                       applying it is character for character the same in
+#                       each pair, so a reader comparing any two finds no
+#                       difference to explain: one variable with four
+#                       readers, and the defect #148 found was two of them
+#                       drifting apart.
 #
 # REQUIREMENTS
 #   - bash 3.2+ (the macOS default is fine), git, sed, grep, ls.
-#   - yngv, beside this script or on PATH. yngorch installs the two
-#     together, into the same folder.
+#   - yngv, beside this script or on PATH, to open a board in the browser.
+#     yngorch installs the two together, into the same folder. With
+#     YNGV_HTML_BROWSER off, nothing is opened and yngv is never needed.
 #
 # INSTALL
 #   yngorch installs it. By hand it is the two steps yngv takes:
@@ -59,7 +72,7 @@
 #   yngboard -h     show this help
 #
 # EXIT
-#   0  the board was handed to yngv
+#   0  the board was handed to yngv, or named because the browser is off
 #   1  no board for this worktree's log, no project around this folder,
 #      or no yngv to open it with
 #   2  an argument was given; yngboard takes none
@@ -69,6 +82,20 @@ set -u
 usage() {
     # Print the header comment block (lines 2 up to the first non-comment line).
     sed -n '2,/^[^#]/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'
+}
+
+# The persisted default for HTML: the browser unless YNGV_HTML_BROWSER says no.
+# The value is lower-cased and stripped of surrounding whitespace before it is
+# matched, so 'no ', ' no' and 'NO' all mean no browser, as they do in yngv.sh,
+# yngv.ps1 and yngboard.ps1; a value of whitespace only is left empty, and so
+# means the browser. This function is yngv.sh's, character for character: four
+# scripts read this one variable, and #148 was two of them reading it apart.
+html_browser_wanted() {
+    case "$(printf '%s' "${YNGV_HTML_BROWSER:-}" | tr '[:upper:]' '[:lower:]' \
+            | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')" in
+        0|no|false|off) return 1 ;;
+        *)              return 0 ;;
+    esac
 }
 
 while [ $# -gt 0 ]; do
@@ -143,20 +170,34 @@ if [ -z "$board" ]; then
     exit 1
 fi
 
-# 5. Hand it to yngv, which opens an .html file in the default browser:
-# beside this script, where yngorch puts the two together, else on PATH.
-here=$(cd "$(dirname "$0")" && pwd -P)
-if [ -x "$here/yngv" ]; then
-    set -- "$here/yngv"
-elif [ -f "$here/yngv.sh" ]; then
-    set -- bash "$here/yngv.sh"
-elif yngv=$(command -v yngv 2>/dev/null); then
-    set -- "$yngv"
+# 5. Open it, unless YNGV_HTML_BROWSER says no. Opening is yngv's: it is
+# beside this script, where yngorch puts the two together, else on PATH. The
+# variable is read here rather than left to yngv, because "no browser" means
+# something of yngboard's own - name the board, open nothing - and a board's
+# source in a terminal is no use to anyone.
+if html_browser_wanted; then
+    browser=1
+    here=$(cd "$(dirname "$0")" && pwd -P)
+    if [ -x "$here/yngv" ]; then
+        set -- "$here/yngv"
+    elif [ -f "$here/yngv.sh" ]; then
+        set -- bash "$here/yngv.sh"
+    elif yngv=$(command -v yngv 2>/dev/null); then
+        set -- "$yngv"
+    else
+        printf 'yngboard: yngv not found beside this script or on PATH - open it yourself: %s\n' "$board" >&2
+        exit 1
+    fi
 else
-    printf 'yngboard: yngv not found beside this script or on PATH - open it yourself: %s\n' "$board" >&2
-    exit 1
+    browser=0
 fi
 
 printf 'yngboard: %s (%s; as of the timestamp on the page - a run refreshes it)\n' "$board" "$why"
+
+if [ "$browser" = 0 ]; then
+    printf 'yngboard: YNGV_HTML_BROWSER is off: nothing was opened\n'
+    exit 0
+fi
+
 "$@" "$board"
 exit $?

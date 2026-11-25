@@ -7,7 +7,8 @@
     <root>\.yngaiplaybook\yngboard-<n>.html. It shows every slice of the
     Epic, each slice's state, and whether each needs a person. yngboard
     finds the board this worktree belongs to and hands it to yngv, which
-    opens it in the default browser.
+    opens it in the default browser - unless YNGV_HTML_BROWSER is off, when
+    it names the board and opens nothing.
 
     It opens a file and nothing else: no provider call, no gather, no
     ranking, no regeneration, no write. A board is as old as the timestamp
@@ -44,20 +45,32 @@
 
     REQUIREMENTS
     - Windows PowerShell 5.1 or PowerShell 7+, and Git on PATH.
-    - yngv, beside this script or on PATH. yngorch installs the two
-      together, into the same folder.
+    - yngv, beside this script or on PATH, to open a board in the browser.
+      yngorch installs the two together, into the same folder. With
+      YNGV_HTML_BROWSER off, nothing is opened and yngv is never needed.
 
     INSTALL
     yngorch installs it: yngboard.ps1 and a yngboard.cmd shim beside
     yngv in -BinDir, which it puts on your user PATH.
 
     ENVIRONMENT
-    yngboard reads no environment variable of its own. YNGV_HTML_BROWSER
-    belongs to yngv and reaches it through yngv, which trims and matches
-    the value the same way in both of its scripts: one reader, one rule.
+    YNGV_HTML_BROWSER   Whether a board is opened in the browser at all.
+                        Unset, empty, whitespace only, or any value other
+                        than 0, no, false or off: open it. 0 (or no, false,
+                        off): open nothing, and name the board's path so
+                        you have it. The value is matched with surrounding
+                        whitespace stripped and without regard to case, so
+                        "no ", " NO" and "no" all mean the same. That rule
+                        is stated in those same words in yngv.sh, yngv.ps1,
+                        yngboard.sh and yngboard.ps1, and the function
+                        applying it is character for character the same in
+                        each pair, so a reader comparing any two finds no
+                        difference to explain: one variable with four
+                        readers, and the defect #148 found was two of them
+                        drifting apart.
 
     EXIT
-    0  the board was handed to yngv
+    0  the board was handed to yngv, or named because the browser is off
     1  no board for this worktree's log, no project around this folder,
        or no yngv to open it with
     2  an argument was given; yngboard takes none
@@ -76,6 +89,17 @@ param(
 function Stop-Yngboard([string]$Message, [int]$Code) {
     [Console]::Error.WriteLine($Message)
     exit $Code
+}
+
+# The persisted default for HTML: the browser unless YNGV_HTML_BROWSER switches
+# it off. This function is yngv.ps1's, character for character: four scripts
+# read this one variable, and #148 was two of them reading it apart.
+function Test-HtmlBrowserWanted {
+    $value = $env:YNGV_HTML_BROWSER
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        return $true
+    }
+    return $value.Trim().ToLowerInvariant() -notin '0', 'no', 'false', 'off'
 }
 
 if ($Help) {
@@ -169,22 +193,34 @@ if (-not $board) {
     Stop-Yngboard ('yngboard: no board written in {0} yet - start a run to write one: /yngorchestrator <issue>' -f $boards) 1
 }
 
-# 5. Hand it to yngv, which opens an .html file in the default browser:
-# beside this script, where yngorch puts the two together, else on PATH.
+# 5. Open it, unless YNGV_HTML_BROWSER says no. Opening is yngv's: it is
+# beside this script, where yngorch puts the two together, else on PATH. The
+# variable is read here rather than left to yngv, because "no browser" means
+# something of yngboard's own - name the board, open nothing - and a board's
+# source in a terminal is no use to anyone.
+$browser = Test-HtmlBrowserWanted
 $yngv = ''
-$beside = Join-Path $PSScriptRoot 'yngv.ps1'
-if (Test-Path -LiteralPath $beside -PathType Leaf) { $yngv = $beside }
-else {
-    # Source is the path for a command on PATH, and empty for a function or
-    # an alias someone has defined; its name runs either way.
-    $found = Get-Command yngv -ErrorAction SilentlyContinue
-    if ($found) { $yngv = if ($found.Source) { $found.Source } else { $found.Name } }
-}
-if (-not $yngv) {
-    Stop-Yngboard ('yngboard: yngv not found beside this script or on PATH - open it yourself: {0}' -f $board) 1
+if ($browser) {
+    $beside = Join-Path $PSScriptRoot 'yngv.ps1'
+    if (Test-Path -LiteralPath $beside -PathType Leaf) { $yngv = $beside }
+    else {
+        # Source is the path for a command on PATH, and empty for a function
+        # or an alias someone has defined; its name runs either way.
+        $found = Get-Command yngv -ErrorAction SilentlyContinue
+        if ($found) { $yngv = if ($found.Source) { $found.Source } else { $found.Name } }
+    }
+    if (-not $yngv) {
+        Stop-Yngboard ('yngboard: yngv not found beside this script or on PATH - open it yourself: {0}' -f $board) 1
+    }
 }
 
 Write-Host ('yngboard: {0} ({1}; as of the timestamp on the page - a run refreshes it)' -f $board, $why)
+
+if (-not $browser) {
+    Write-Host 'yngboard: YNGV_HTML_BROWSER is off: nothing was opened'
+    exit 0
+}
+
 $LASTEXITCODE = 0
 & $yngv $board
 exit $LASTEXITCODE

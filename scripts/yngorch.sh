@@ -868,7 +868,7 @@ fi
 
 # 7. The yngv viewer and the yngboard command, per user (not per project).
 # The two go together: yngboard opens a board with yngv, and finds it beside
-# itself (yngboard R9.7). The person's shell startup file is theirs: when
+# itself (yngboard R9.8). The person's shell startup file is theirs: when
 # bin_dir is not on PATH, print the line.
 if [ "$skip_viewer" = 1 ]; then step skipped "yngv and yngboard (--skip-viewer)"
 else

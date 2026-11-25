@@ -373,24 +373,52 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     pull request number later in the line is never read as an issue. A
     slice with no such line in any log has no board, which is the third
     row of R9.1's table.
-7.  It **hands the file to `yngv`**: beside itself, where R9.4 installs
-    the two together, else on PATH. That is the viewer the run itself
-    opens a board with (`board.md`), so a board opens the same way
-    whoever opened it, and the platform's opener stays at one
-    implementation per shell instead of two. `yngboard` therefore
-    reads no browser environment variable of its own:
-    `YNGV_HTML_BROWSER` keeps one reader and one matching rule, in
-    `yngv`, where ynghandback R13.7 states it and
+7.  **`yngboard` reads `YNGV_HTML_BROWSER` itself**, and it decides
+    whether a board is opened at all:
+
+    | Value                                           | What `yngboard` does                  |
+    |-------------------------------------------------|---------------------------------------|
+    | unset, empty, whitespace only, or anything else | names the board and opens it          |
+    | `0`, `no`, `false`, `off`                       | names the board and opens **nothing** |
+
+    The value is matched with surrounding whitespace stripped and case
+    folded first, exactly as ynghandback R13.7 states it for `yngv`, so
+    `no`, `NO`, `no ` and ` no ` all read alike and an unknown value
+    never stops the call. What `yngboard` does instead of opening is
+    its own, and not `yngv`'s: it names the board's path and stops,
+    because a board is a page with its payload inlined and its source
+    in a terminal is no use to anyone. That is why the reading is not
+    left to `yngv`.
+8.  The **opening** is `yngv`'s, where the value says to open:
+    `yngboard` hands it the file, finding it beside itself, where R9.4
+    installs the two together, else on PATH. That is the viewer the run
+    itself opens a board with (`board.md`), so a board opens the same
+    way whoever opened it, and the platform's opener stays at one
+    implementation per shell. With no `yngv` to be found, `yngboard`
+    says so and names the board's path, as `board.md` does when the
+    viewer is missing; with the value off, no `yngv` is looked for and
+    none is needed.
+9.  R9.7 puts the matching rule in **four** scripts — `yngv.ps1`,
+    `yngv.sh`, `yngboard.ps1`, `yngboard.sh` — where
     [#148](https://github.com/emsumagangjr/YNGAIPlaybook/issues/148)
-    fixed it — a second reader is how that defect would come back. With
-    no `yngv` to be found, it says so and names the board's path, as
-    `board.md` does when the viewer is missing.
-8.  It **takes no argument**, `-h` / `--help` (`-Help` in PowerShell)
+    was two of them reading one value apart. The cost is taken
+    deliberately, and contained the way ynghandback R13.9 contains it.
+    All four headers state the rule in the same words — *the value is
+    matched with surrounding whitespace stripped and without regard to
+    case* — and the function that applies it is character for character
+    the same in each pair (`html_browser_wanted` in the two shell
+    scripts, `Test-HtmlBrowserWanted` in the two PowerShell ones), so a
+    reader comparing any two finds no difference to explain and a
+    `diff` proves it. What each tool does with the answer is its own
+    (R9.7), and that is the only thing the four may differ in. A change
+    to the rule is a change to four files, and all four are named here.
+10. It **takes no argument**, `-h` / `--help` (`-Help` in PowerShell)
     aside, which prints the script's own header. Anything else is
     refused with the usage, before anything is read. A board handed to
-    `yngv` exits 0; no board for this worktree's log, no project around
-    this folder, and no `yngv` to open it with each print their one line
-    on standard error and exit 1; an argument exits 2.
+    `yngv`, and a board named with the browser off, each exit 0; no
+    board for this worktree's log, no project around this folder, and
+    no `yngv` to open it with each print their one line on standard
+    error and exit 1; an argument exits 2.
 
 ## R10 Carried over unchanged
 
