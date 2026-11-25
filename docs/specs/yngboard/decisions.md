@@ -85,3 +85,14 @@ taken back.
   working; the renamed step file and deleted index are internal.
 - **2026-11-25** Refused: hiding the table when nothing needs
   attention. "Where has everything got to" is the question it answers.
+- **2026-11-25** Refused: `yngboard` opening the file itself, with its
+  own copy of the platform opener and of `YNGV_HTML_BROWSER`. That
+  would be four copies of one opener across two languages, and two
+  readers of one variable, which is exactly how #148 happened. It hands
+  the file to `yngv`, installed beside it. → R9.7
+- **2026-11-25** Refused: asking the provider which Epic a slice
+  belongs to. R9.3 forbids it, and the run logs already answer it: the
+  log holding a slice's events is its Epic's. → R9.6
+- **2026-11-25** Refused: falling back to the most recently written
+  board when the branch names an issue with none. It is the stale-board
+  case R9.1's third row refuses, one step removed.
