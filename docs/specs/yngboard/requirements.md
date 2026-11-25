@@ -338,6 +338,8 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
                     "dispatchedAt": "<UTC>",
                     "report": { "outcome": "done", "at": "<date>",
                                 "summary": "..." },
+                    "progress": { "at": "<UTC>", "step": "...",
+                                  "note": "..." },
                     "pr": { "number": 131, "url": "...", "state": "OPEN",
                             "checks": "passed", "mergeable": true },
                     "dependsOn": [103], "blocks": [105, 106],
