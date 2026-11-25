@@ -457,10 +457,19 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     | the project root, or `main`          | the most recently written `yngboard-*.html`    |
     | no board written for that log        | one line saying so, naming `/yngorchestrator <n>` |
 
+    Where there is no `<n>` to name — the root, `main` — that line names
+    `/yngorchestrator <issue>` instead. A branch that names an issue takes
+    the first row or the third, **never the second**: another log's board
+    is not this worktree's, and a board of the wrong Epic is worse than no
+    board.
+
 2.  It finds `<root>` as step 1 of `locate.md` does
     (`git rev-parse --path-format=absolute --git-common-dir`, else a
     `.bare/` beside it) and takes `<n>` from the branch as `locate.md`'s
-    `continue` does.
+    `continue` does. A branch that is none of `epic/<n>-`, `slice/<n>-`
+    and `fix/<n>-` leaves `<n>` empty — `main`, a detached HEAD, a name
+    carrying no number — and an empty `<n>` is the table's second row,
+    as the root is.
 3.  **It opens a file and nothing else**: no provider call, no gather,
     no ranking, no regeneration, no write. ynghandback R13.2 and R13.3
     refused a command that *regenerates* a board, because the provider
@@ -475,6 +484,61 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 5.  A board it opens is as old as its own timestamp, which the board
     states (R7.3). `yngboard` never implies otherwise, and a board too
     old to trust is refreshed by starting a run (ynghandback R13.4).
+6.  A slice's board is its Epic's, and R9.3 forbids asking the provider
+    which Epic that is. It reads the run logs instead: a slice run
+    writes to its Epic's log (`SKILL.md`, *Run log*), so the log holding
+    a slice's own events **is** its Epic's. `<log>` is therefore the
+    first `yngorchestratorruns/<m>.md` holding a line whose issue field
+    is `#<n>`, matched whole, so `#1599` is never read as `#159` and a
+    pull request number later in the line is never read as an issue. A
+    slice with no such line in any log has no board, which is the third
+    row of R9.1's table.
+7.  **`yngboard` reads `YNGV_HTML_BROWSER` itself**, and it decides
+    whether a board is opened at all:
+
+    | Value                                           | What `yngboard` does                  |
+    |-------------------------------------------------|---------------------------------------|
+    | unset, empty, whitespace only, or anything else | names the board and opens it          |
+    | `0`, `no`, `false`, `off`                       | names the board and opens **nothing** |
+
+    The value is matched with surrounding whitespace stripped and case
+    folded first, exactly as ynghandback R13.7 states it for `yngv`, so
+    `no`, `NO`, `no ` and ` no ` all read alike and an unknown value
+    never stops the call. What `yngboard` does instead of opening is
+    its own, and not `yngv`'s: it names the board's path and stops,
+    because a board is a page with its payload inlined and its source
+    in a terminal is no use to anyone. That is why the reading is not
+    left to `yngv`.
+8.  The **opening** is `yngv`'s, where the value says to open:
+    `yngboard` hands it the file, finding it beside itself, where R9.4
+    installs the two together, else on PATH. That is the viewer the run
+    itself opens a board with (`board.md`), so a board opens the same
+    way whoever opened it, and the platform's opener stays at one
+    implementation per shell. With no `yngv` to be found, `yngboard`
+    says so and names the board's path, as `board.md` does when the
+    viewer is missing; with the value off, no `yngv` is looked for and
+    none is needed.
+9.  R9.7 puts the matching rule in **four** scripts — `yngv.ps1`,
+    `yngv.sh`, `yngboard.ps1`, `yngboard.sh` — where
+    [#148](https://github.com/emsumagangjr/YNGAIPlaybook/issues/148)
+    was two of them reading one value apart. The cost is taken
+    deliberately, and contained the way ynghandback R13.9 contains it.
+    All four headers state the rule in the same words — *the value is
+    matched with surrounding whitespace stripped and without regard to
+    case* — and the function that applies it is character for character
+    the same in each pair (`html_browser_wanted` in the two shell
+    scripts, `Test-HtmlBrowserWanted` in the two PowerShell ones), so a
+    reader comparing any two finds no difference to explain and a
+    `diff` proves it. What each tool does with the answer is its own
+    (R9.7), and that is the only thing the four may differ in. A change
+    to the rule is a change to four files, and all four are named here.
+10. It **takes no argument**, `-h` / `--help` (`-Help` in PowerShell)
+    aside, which prints the script's own header. Anything else is
+    refused with the usage, before anything is read. A board handed to
+    `yngv`, and a board named with the browser off, each exit 0; no
+    board for this worktree's log, no project around this folder, and
+    no `yngv` to open it with each print their one line on standard
+    error and exit 1; an argument exits 2.
 
 ## R10 Carried over unchanged
 
