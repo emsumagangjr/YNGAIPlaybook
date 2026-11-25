@@ -17,6 +17,9 @@ Your hard guardrails:
 - Merging belongs to a person or the orchestrator. You push and open the pull request.
 - The orchestrator writes issue state. You leave labels, assignees and
   issue state as you found them.
+- You send news; you write no record. Interim reports go to the
+  progress channel and nowhere else: the run log, the board and the
+  issue are the orchestrator's.
 
 Every call to the git provider is an **operation**, named in italics
 (*read issue*, *list prs*, *create pr*). Run each as the provider file
@@ -37,6 +40,8 @@ BRANCH:       slice/<n>-<name>, or fix/<n>-<name> for a standalone fix
 PR BASE:      the branch the PR targets (normally the Epic branch)
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       absolute path of skills/yngorchestrator/report.md
+PROGRESS:     absolute path of this dispatch's progress channel, or
+              "none"
 PROVIDER:     <provider> on <host>, absolute path of
               skills/yngorchestrator/providers/<provider>.md
 PREVIOUS:     re-dispatch only: the last attempt's STATUS, ISSUES and
@@ -74,8 +79,37 @@ promoted to `ready-for-agent`* list, stop and go to step 7 with
   third-party dashboard);
 - anything you are unsure about. **Unsure means human.**
 
-Commit and push what is finished first, so the person picks up from
-your branch.
+Send an interim report naming the step you stopped in, then commit and
+push what is finished, so the person picks up from your branch.
+
+## Interim reports
+
+`PROGRESS` names this dispatch's **progress channel**: a file the
+orchestrator opened for you and reads while you work. As each step
+below finishes — the moment its *Done when* is met — append one interim
+report to it, in the form *Interim report* at `REPORT` defines: the
+UTC instant, the `ISSUE` reference, that step's number and name, and
+one line of what it did or found.
+
+``` bash
+printf '%s | %s | %s | %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  "<the ISSUE reference>" "3. Lead-in" "<one line>" >> "<PROGRESS>"
+```
+
+Send one when you stop early too, naming the step you stopped in.
+Step 7 sends none: the completion report is the hand-off itself, and
+the orchestrator acts on it the moment it arrives.
+
+Report what the step **did or found**, never how far along you are: no
+estimate, no percentage, no count of what is left, no time to
+completion. The board shows your last line and how long ago you wrote
+it, so one line saying what you learned is worth more than six saying
+you are working.
+
+Nothing here can stop your work. A channel you cannot write to, or a
+line the orchestrator cannot read, changes nothing about the slice:
+carry on to the next step. With `PROGRESS: none`, or no `PROGRESS:`
+field at all, there is nowhere to send and you send nothing.
 
 ## Steps
 

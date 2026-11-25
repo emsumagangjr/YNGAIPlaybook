@@ -5,7 +5,7 @@ disable-model-invocation: true
 license: CC-BY-4.0
 metadata:
   display-name: YNG Orchestrator
-  version: 1.15.0
+  version: 1.16.0
   author: Emeterio M. Sumagang Jr.
   company: YNGSoftware
   homepage: https://github.com/emsumagangjr/YNGAIPlaybook
@@ -147,8 +147,100 @@ what the slice run did. Append one line per event to
 `yngorchestratorruns/<log>.md` (`<date> #<issue> <event>`): a slice
 planned, dispatched, reported, relabelled, merged, closed, a worktree
 removed or its removal deferred ([track.md](track.md)), a run launched
-into its own instance ([launch.md](launch.md)), and the hand-back page
-written or skipped ([handback.md](handback.md)).
+into its own instance ([launch.md](launch.md)), and each interim
+report a worker sends while it works (*Interim reports* below).
+
+The `dispatched` line carries the instant, not its date alone, and so
+does `re-dispatched`: a board's elapsed figure needs better than a date
+to tell a slice dispatched minutes ago from one dispatched before
+breakfast (yngboard R6.3). Every other event keeps the bare `<date>`;
+an interim report's own instant is part of its event (*Interim
+reports* below).
+
+``` text
+2026-11-25 #104 dispatched 2026-11-25T03:21:55Z
+2026-11-25 #104 re-dispatched 2026-11-25T11:04:02Z
+```
+
+### The board
+
+**Appending a line to `yngorchestratorruns/<log>.md` rewrites that
+log's run board afterwards**: follow [board.md](board.md), which
+gathers, ranks, builds the payload, renders it into the shipped
+template, writes `<root>/.yngaiplaybook/yngboard-<log>.html` and, under
+`run-board: open`, opens it once at the run's first write (yngboard
+R3.2).
+
+The rule lives here and nowhere else. It is a property of appending a
+line, not a step of its own, so no step added later can forget it and
+the board cannot drift from the log: [plan.md](plan.md),
+[dispatch.md](dispatch.md), [track.md](track.md), [merge.md](merge.md)
+and [scoped.md](scoped.md) never restate it. The board write is not
+itself an event and appends no line of its own (R3.4), and a board is
+a rendering: a write that fails leaves the board on disk alone, names
+the operation that failed, and stops nothing.
+
+It covers this run's own `<log>`, and two runs never reach it:
+
+- a run that **stops with a reason before its first logged event**
+  writes no board, and one that has already written one leaves it as
+  it is, true as of its own timestamp (R3.5);
+- a run that **hands on to its own instance** ([launch.md](launch.md))
+  writes none either: it holds no lock, it ends at the hand-off, and
+  the instance it opens writes the board from the same reads — paying
+  for them twice would buy the person nothing.
+
+A line the *Sweep deferred removals* path of [track.md](track.md)
+appends to **another** log is not this run's: that log's board waits
+for a run on it, because the board would need provider reads about an
+Epic this run is not running (R1.6).
+
+### Interim reports
+
+A worker sends **interim reports** while it works, and each one you
+receive becomes one run-log line (yngboard R14). The worker writes no
+line itself and sets no state: it appends to the **progress channel**
+[dispatch.md](dispatch.md) opened for it, and you are its only reader.
+
+**Drain every open channel each time a worker's message reaches you,
+and before you append any line of your own.** You hold how many of
+each channel's lines you have already logged; the rest are new:
+
+``` bash
+tail -n +$((logged + 1)) "$progress"
+```
+
+Append one line per new channel line, oldest first, keeping the
+instant, the step and the one line as the worker wrote them:
+
+``` text
+2026-11-25 #104 progress 2026-11-25T03:40:12Z | 3. Lead-in | The refresh path already has a seam: the token store.
+```
+
+`<date>` is the day you logged it, as on every line. `progress` is the
+interim report's event word and `reported` stays the completion
+report's, so the log keeps news and hand-off apart (yngboard R14.4).
+The lines you append here are not channel lines, so a drain never
+drains itself, and each one rewrites the board by the rule above: an
+interim report reaches the board the way everything else a run learns
+does.
+
+A channel line you cannot read — a field missing, a reference that is
+not that slice's, an instant that does not name its zone — is logged
+as it arrived and built into nothing:
+
+``` text
+2026-11-25 #104 progress unreadable <the line as it arrived, on one line>
+```
+
+It never fails the slice and never changes its state: the row falls
+back to what you already know about it (yngboard R14.4). Invent no
+field for it and ask the worker for nothing — news is not a hand-off,
+and the completion report is still what you act on.
+
+Delete a channel once you have acted on that slice's completion report
+(*On a report* in [track.md](track.md)): drain it one last time, then
+`rm -f` it. It is scratch, and the run log holds the history.
 
 ### The lock
 
@@ -244,9 +336,10 @@ Done when every dispatchable slice has a worker running.
 ### 4. Track
 
 As each worker's completion report arrives, follow [track.md](track.md).
-The report format is defined in [report.md](report.md). After acting on
-a report, return to step 3: a merge, yours on an `auto` path or the
-person's, closes a slice and can unblock the slices waiting on it.
+The report format is defined by *Completion report* in
+[report.md](report.md). After acting on a report, return to step 3: a
+merge, yours on an `auto` path or the person's, closes a slice and can
+unblock the slices waiting on it.
 
 Done when every slice issue is closed, or is waiting on a person.
 
@@ -280,17 +373,19 @@ against `requirements.md`. When a person has already merged it, skip
 to the `epic-to-main` close in step 3 of [merge.md](merge.md): the
 Epic is closed there if the merge left it open (R12.2).
 
-Then write the Epic's hand-back page: follow
-[handback.md](handback.md), which renders this same list as
-`<root>/.yngaiplaybook/ynghandback-<log>.html` and opens it as
-`<handback-page>` says (ynghandback R14.1). The list above stays
-first and stays whole, because it is what reaches the person over
-Remote Control, where a `file://` path is useless: where a page is
-written, add one line to it naming that page's path (ynghandback
-R1.3). Where its gather fails, no page is written, the list above
-still stands, and handback.md names the operation that failed.
+The list above stays first and stays whole, because it is what reaches
+the person over Remote Control, where a `file://` path is useless
+(yngboard R1.4). Add one line below it naming the run's board, which
+every event of this run has rewritten (*The board* above):
+
+``` text
+Run board: <root>/.yngaiplaybook/yngboard-<log>.html — every slice, its state and what it needs. Type yngboard to open it.
+```
+
+Where no board has been written, leave that line out: the list above
+is the hand-back either way.
 
 Last, delete the run's lock (*The lock* above): the run has ended.
 
-Done when the person holds the list and the page's path, the run log
-has the hand-back page's line, and the lock is gone.
+Done when the person holds the list, and the board's path where there
+is a board, and the lock is gone.

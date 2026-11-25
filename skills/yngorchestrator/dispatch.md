@@ -126,12 +126,29 @@ Dispatched: branch `<branch>`, worktree `<folder>`
 The comment goes on every dispatch, in Epic, slice and standalone runs
 alike, and again on a re-dispatch ([track.md](track.md)).
 
-Log `dispatched` to the run log.
+Log `dispatched` to the run log, with the UTC instant that line
+carries (*Run log* in [SKILL.md](SKILL.md)).
 
 Done when the issue shows `workflow:in-progress` alone among its
 `workflow:` states and carries this dispatch's `Dispatched:` comment.
 
 ## 4. Launch the workers
+
+Open one **progress channel** per slice first: the file that slice's
+worker appends its interim reports to while it works, and the only
+thing it writes of the run's (yngboard R14.3). It is scratch, not a
+record — the run log holds the history — so it is a temporary file,
+outside every worktree and outside `.yngaiplaybook/`, where the board
+is the only file a run adds (yngboard R2.5):
+
+``` bash
+progress=$(mktemp)   # one per slice, named to its worker below
+```
+
+Hold each path against its slice for the rest of the run: you drain it
+while the worker works, and delete it once you have acted on that
+worker's completion report (*Interim reports* in [SKILL.md](SKILL.md)).
+A re-dispatch opens a fresh one ([track.md](track.md)).
 
 Fill one prompt per slice from this template. Every value comes from
 the issue and from step 2; the worker reads nothing else to start.
@@ -145,12 +162,18 @@ BRANCH:       slice/<n>-<name>
 PR BASE:      <the Epic branch>
 LEAD-IN:      diagnose | design the seam | none
 REPORT:       <absolute path of skills/yngorchestrator/report.md>
+PROGRESS:     <this slice's progress channel, as an absolute path>
 PROVIDER:     <provider> on <host>, <absolute path of skills/yngorchestrator/providers/<provider>.md>
 ```
 
 `ISSUE` carries the full reference, `<issues repo>#<n>`, even when the
 issues repo is the code repo: the worker reads the issue in the issues
 repo it names, and names it so in its commits and pull request.
+
+`PROGRESS` carries the channel this slice's worker sends its interim
+reports to, and nothing else reads or writes it. A worker given none
+sends none, and the slice's row shows its dispatch instant alone until
+the completion report arrives (yngboard R5.2).
 
 `PROVIDER` carries the run's provider and host and the one provider
 file this run loaded (R7.4), so the worker's *read issue*, *list prs*

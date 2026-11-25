@@ -61,8 +61,9 @@
          config's issues: value, else origin's repo): labels on GitHub and
          GitLab; on Bitbucket, whose API cannot create them, a warning
          naming each component and the epic milestone to create by hand.
-      7. Copy yngv, the file viewer, into -BinDir and put it on your user
-         PATH, only if missing. Per user, not per project.
+      7. Copy yngv, the file viewer, and yngboard, which opens a worktree's
+         run board with it, into -BinDir and put it on your user PATH, only
+         if missing. Per user, not per project.
       8. Say which herdr products are installed: the herdr CLI and the
          Herdr desktop app, one line each, and nothing written. Both are
          optional. Each run opens its own instance where launcher: says:
@@ -123,10 +124,11 @@
     components and milestone).
 
 .PARAMETER SkipViewer
-    Do not install yngv.
+    Do not install yngv, and so not yngboard either: yngboard opens a board
+    with yngv.
 
 .PARAMETER BinDir
-    Where yngv goes. Default: $HOME\.local\bin.
+    Where yngv and yngboard go. Default: $HOME\.local\bin.
 
 .EXAMPLE
     F:\YNGAIPlaybook\scripts\yngorch.ps1
@@ -375,6 +377,18 @@ $configPairs = @(
 $keyPattern = '^([ \t]*)([A-Za-z0-9_][A-Za-z0-9_.-]*):(?:[ \t](.*))?$'
 $headerPattern = '^# --- Setting: (\S+)'
 
+# A setting that was renamed keeps its former name readable (spec R8.4):
+# the new setting is added only when the file has neither name as an active
+# key, so a config carrying the old key is left to go on as it is. No value
+# of either name is ever written or changed. One entry per rename, and the
+# same list as yngorch.sh holds. The second table reads it backwards: the
+# setting a former name belongs to, so the template block carrying that
+# former name is reported as what it is rather than as new.
+$settingFormerNames = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+$settingFormerNames['run-board'] = 'handback-page'
+$settingRenamedFrom = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
+foreach ($n in $settingFormerNames.Keys) { $settingRenamedFrom[$settingFormerNames[$n]] = $n }
+
 # $Text's lines, each with its own line ending.
 function Split-Lines([string]$Text) {
     $segs = New-Object System.Collections.Generic.List[string]
@@ -526,7 +540,8 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
     $ctx = @{
         Display = $Display; TLines = $tLines; TKeys = (Get-Keys $tLines $tBanner); FKeys = (Get-Keys $fLines $fLines.Count)
         Inserts = @{}; Added = (New-Object System.Collections.Generic.List[string])
-        Warnings = (New-Object System.Collections.Generic.List[string]) }
+        Warnings = (New-Object System.Collections.Generic.List[string])
+        Notes = (New-Object System.Collections.Generic.List[string]) }
     $fHeaders = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
     foreach ($line in $fLines) { if ($line -cmatch $headerPattern) { $fHeaders[$Matches[1]] = $true } }
     $known = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
@@ -544,8 +559,14 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
         $fTop = [int[]]@($ctx.FKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name } | ForEach-Object { $_.Pos })
         $tTop = @($ctx.TKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name -and $_.Index -ge $start -and $_.Index -lt $end })
         if (-not $fTop.Count -and -not $fHeaders.ContainsKey($name)) {
+            $former = $settingFormerNames[$name]
+            if ($former -and @($ctx.FKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $former }).Count) {
+                $ctx.Notes.Add("${Display}: $name not added; $former, its former name, is set in your file and is still read in its place")
+                continue
+            }
             for ($i = $start; $i -lt $end; $i++) { $sections.Add($tLines[$i]) }
-            $ctx.Added.Add("${Display}: $name (new in the template)")
+            $what = if ($settingRenamedFrom.ContainsKey($name)) { "the former name of $($settingRenamedFrom[$name])" } else { 'new in the template' }
+            $ctx.Added.Add("${Display}: $name ($what)")
         }
         elseif ($tTop.Count) { Add-MissingKeys $ctx $tTop[0].Pos $fTop $name }
     }
@@ -567,6 +588,7 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
     }
     else { Step 'kept' "$Display (yours, nothing new)" }
     foreach ($w in $ctx.Warnings) { Step 'warning' $w }
+    foreach ($note in $ctx.Notes) { Step 'note' $note }
     $noted = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
     foreach ($p in (Get-KeyPaths $ctx.FKeys)) {
         if ($known.ContainsKey($p) -or $noted.ContainsKey($p)) { continue }
@@ -814,16 +836,20 @@ else {
     else { Set-BitbucketStates $repo }
 }
 
-# 7. The yngv viewer, per user (not per project): yngv.ps1 and a yngv.cmd
-# shim in BinDir, which goes on the user PATH when it is not there yet.
-if ($SkipViewer) { Step 'skipped' 'yngv (-SkipViewer)' }
+# 7. The yngv viewer and the yngboard command, per user (not per project):
+# a .ps1 and a .cmd shim each in BinDir, which goes on the user PATH when it
+# is not there yet. The two go together: yngboard opens a board with yngv,
+# and finds it beside itself (yngboard R9.8).
+if ($SkipViewer) { Step 'skipped' 'yngv and yngboard (-SkipViewer)' }
 else {
     New-Item -ItemType Directory -Force $BinDir | Out-Null
-    Copy-Item -Force (Join-Path $PSScriptRoot 'yngv.ps1') (Join-Path $BinDir 'yngv.ps1')
-    Set-Content -Encoding Ascii (Join-Path $BinDir 'yngv.cmd') @(
-        '@echo off',
-        'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0yngv.ps1" %*')
-    Step 'copied' "yngv -> $BinDir (yngv.ps1, yngv.cmd)"
+    foreach ($tool in 'yngv', 'yngboard') {
+        Copy-Item -Force (Join-Path $PSScriptRoot "$tool.ps1") (Join-Path $BinDir "$tool.ps1")
+        Set-Content -Encoding Ascii (Join-Path $BinDir "$tool.cmd") @(
+            '@echo off',
+            "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0$tool.ps1`" %*")
+    }
+    Step 'copied' "yngv, yngboard -> $BinDir (.ps1 and .cmd each)"
 
     # Read the raw user PATH so %VAR% entries stay unexpanded, and write it
     # back with the same registry type.
@@ -843,7 +869,7 @@ else {
         }
         $r = [UIntPtr]::Zero
         [void][YngEnv]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [UIntPtr]::Zero, 'Environment', 2, 5000, [ref]$r)
-        Step 'added' "$full to your user PATH (open a new terminal to use yngv)"
+        Step 'added' "$full to your user PATH (open a new terminal to use yngv and yngboard)"
     }
 }
 
@@ -858,4 +884,5 @@ Write-Host 'Done. Next:'
 Write-Host "  - Set auto-promote (Gate 1) and your merge rules (Gate 2) in $config"
 Write-Host '  - Anywhere in the project, start Claude Code and run: /yngorchestrator <issue>; each run opens in its own instance'
 Write-Host '  - To pick up a run again: /yngorchestrator continue'
+Write-Host '  - To see where a run has got to, in any worktree: yngboard'
 Write-Host '  - After creating a new worktree, run this script again to link it.'

@@ -21,10 +21,18 @@ apply that rule through [merge.md](merge.md).
 
 ## On a report
 
-### 1. Validate
+### 1. Drain, then validate
 
-The report must carry every field of [report.md](report.md), in
-order, with STATUS one of its four values. Log `reported <status>`.
+A worker's message has reached you, so drain every open progress
+channel first (*Interim reports* in [SKILL.md](SKILL.md)): this
+slice's last interim reports reach the log, and the board, ahead of
+the report that ends them, and the slices still out get theirs logged
+while their workers are still working. This slice's own channel is
+closed at the end of step 2, once you have acted on the report.
+
+The report must carry every field of *Completion report* in
+[report.md](report.md), in order, with STATUS one of its four values.
+Log `reported <status>`.
 
 When a field is missing or STATUS is unknown, ask the worker once, with
 SendMessage, to resend the full report. A second malformed report is
@@ -64,7 +72,11 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 
   Post the `Dispatched:` comment again, as in step 3 of
   [dispatch.md](dispatch.md), naming the same branch and worktree
-  folder (R44.2). Log `re-dispatched`.
+  folder (R44.2). Open a fresh progress channel for the new attempt
+  and name it in `PROGRESS:` (step 4 of [dispatch.md](dispatch.md)):
+  what the first attempt reported is not this one's (yngboard R14.5).
+  Log `re-dispatched`, with the UTC instant that line carries (*Run
+  log* in [SKILL.md](SKILL.md)).
 - Two attempts: hand back to a person. *Set state*
   `workflow:ready-for-human`, and *comment* on the issue:
 
@@ -81,8 +93,13 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 
 Log `ready-for-human`.
 
+Delete this attempt's progress channel last, whichever row acted: the
+slice is in flight no longer, or a re-dispatch has opened a fresh one
+(*Interim reports* in [SKILL.md](SKILL.md)).
+
 Done when the issue's state matches the STATUS row above, its comment
-is posted, and the run log has the line.
+is posted, the run log has the line, and this attempt's channel is
+gone.
 
 ## On a merge
 
@@ -231,8 +248,8 @@ reported and still deferred, and every lock the sweep took is gone.
 A run that stops between a worker's report and the *set state* it
 calls for leaves a slice whose `workflow:*` label and whose last
 report in the run log describe different things (ynghandback R7.1).
-Only a person can say which is right, so the hand-back page carries it
-as a waiting item ([handback.md](handback.md)).
+Only a person can say which is right, so the slice's row on the run
+board carries `conflict` ([board.md](board.md)).
 
 These are the pairs that agree. Each row is a slice's last `reported`
 line in the run log — its value is the completion report's `STATUS`
@@ -258,8 +275,8 @@ The **label wins**: it is the provider's record and the gate's audit
 trail, and the only thing that can be authoritative (R7.2). Act on it,
 here and everywhere else. The report is neither silently dropped nor
 silently preferred: it is shown beside the label, with the date of its
-run-log line (R7.3), and the disagreement is a `conflict` row in the
-hand-back page's waiting list (R7.4).
+run-log line (R7.3), and the disagreement is the slice's `conflict`
+value on the board (R7.4).
 
 Done when a slice whose readings disagree is known to be a `conflict`
 row, and the run has acted on its label.

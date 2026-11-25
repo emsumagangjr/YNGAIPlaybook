@@ -243,7 +243,8 @@ existing folder.
     the template is not a warning: pass it on. The project's playbook files
     go in `<root>/.yngaiplaybook/`: the config
     (`yngorchestratorconfig.yml`), the run logs and locks
-    (`yngorchestratorruns/`), and a `README.md` explaining them, which
+    (`yngorchestratorruns/`), the run boards a run writes as it goes
+    (`yngboard-<n>.html`), and a `README.md` explaining them, which
     the installer rewrites every time. Upgrading from 1.1.0-1.4.0, it
     moves `<root>/.yngorchestrator/` (1.2.0-1.4.0) or
     `<root>/.orchestrator/` (1.1.0) into `<root>/.yngaiplaybook/`, config
@@ -254,13 +255,17 @@ existing folder.
     moves and writes nothing there and warns: report it, naming the
     folders.
 
-    It also installs `yngv`, the file viewer, for the person, in
-    `~/.local/bin` (Windows: `yngv.ps1` and a `yngv.cmd` shim, with the
-    folder added to their user PATH when missing). On macOS/Linux a
-    `note` line with an `export PATH=...` line means the folder is not
-    on PATH: give the person that line, and leave their shell startup
-    file alone. When the person does not want `yngv`, add `-SkipViewer`
-    / `--skip-viewer`.
+    It also installs two commands for the person, in `~/.local/bin`:
+    `yngv`, the file viewer, and `yngboard`, which opens a worktree's
+    run board with it (Windows: `yngv.ps1` and `yngboard.ps1`, each
+    with a `.cmd` shim, with the folder added to their user PATH when
+    missing). `-BinDir <path>` / `--bin-dir <path>` puts both
+    somewhere else. On macOS/Linux a `note` line with an
+    `export PATH=...` line means the folder is not on PATH: give the
+    person that line, and leave their shell startup file alone. When
+    the person wants neither, add `-SkipViewer` / `--skip-viewer`,
+    which leaves out `yngboard` too: `yngboard` opens a board with
+    `yngv`.
 
     **The provider.** When step 2 settled the provider by asking, add
     `-Provider github|gitlab|bitbucket` / `--provider
@@ -317,8 +322,8 @@ existing folder.
 5.  **Report.** Tell the person:
     - The project root, the playbook version (`VERSION`) installed, and
       what the installer created or kept, the issues repo included.
-    - Where `yngv` went, and whether they must open a new terminal or
-      add the PATH line first.
+    - Where `yngv` and `yngboard` went, and whether they must open a
+      new terminal or add the PATH line first.
     - Which herdr products the installer found (its `found` or `note`
       lines), and the `launcher:` it kept or wrote. Run by you, the
       installer cannot ask, so it prints a `note` instead: ask the
@@ -362,11 +367,14 @@ existing folder.
     ~/.yngaiplaybook/scripts/yngorch.sh             # macOS/Linux
     ```
 
-    It also puts `yngv`, the file viewer, in `~/.local/bin`. On Windows
-    it adds that folder to your user PATH; on macOS/Linux it prints the
+    It also puts two commands in `~/.local/bin`: `yngv`, the file
+    viewer, and `yngboard`, which opens this worktree's run board with
+    it (*What a run leaves you* below). On Windows it adds that folder
+    to your user PATH; on macOS/Linux it prints the
     `export PATH=...` line to add when the folder is not on PATH. Open a
-    new terminal afterwards. Add `-SkipViewer` / `--skip-viewer` to
-    leave `yngv` out, and `-IssuesRepo <path>` / `--issues-repo <path>`
+    new terminal afterwards. `-BinDir <path>` / `--bin-dir <path>` puts
+    both somewhere else. Add `-SkipViewer` / `--skip-viewer` to
+    leave `yngv` out, and `yngboard` with it, and `-IssuesRepo <path>` / `--issues-repo <path>`
     (the provider's path, as in `issues:` below) when your issues live
     in a separate repository on the same provider
     ([After installing](#after-installing)). In a terminal, when it finds the Herdr app or herdr, it asks which launcher to use; add `-Launcher` / `--launcher <value>` to choose without being asked.
@@ -544,40 +552,66 @@ clone until you have checked the new one:
     `remote-control:`.
 
     **What a run leaves you.** Every run ends by telling you what is
-    waiting on you, and writes that same list as a **hand-back page**:
-    one self-contained HTML file per Epic or standalone issue, in
+    waiting on you. As it goes, it also writes a **run board**: one
+    self-contained HTML file per run log, in
     `<root>/.yngaiplaybook/` beside the config and the run logs.
-    `ynghandback-<n>.html` is one run's page, `<n>` being its run log's
-    number, and `ynghandback.html` is the project index, one row per run
-    log. The page is an addition to the list the run prints, never a
-    replacement: that printed list is what reaches you over Remote
-    Control, where a `file://` path is no use to you. One key, yours:
+    `yngboard-<n>.html` is one run log's board, `<n>` being that log's
+    number — an Epic's number, or a standalone issue's own — and it is
+    rewritten at every run-log event, with one table showing every
+    slice, where each one is, what each needs from you, and the latest
+    line each working agent has reported. The board is an addition to
+    the list the run prints, never a replacement: that printed list is
+    what reaches you over Remote Control, where a `file://` path is no
+    use to you. It is also run-only: nothing watches the provider and
+    nothing refreshes a board between runs, so it is current as of the
+    last event of the last run, which is what its timestamp says. One
+    key, yours:
 
     ``` yaml
-    handback-page: open  # open | write | no; absent, empty or any other value: open
+    run-board: write  # write | open | no; absent, empty or any other value: write
     ```
 
-    - `open` — the run writes the page and the index, then opens
-      the page in your default browser. The default.
-    - `write` — the run writes both and opens nothing. For a machine
-      you work on over SSH, or a run you follow from your phone.
-    - `no` — the run writes no page at all.
+    - `write` — the run writes the board at every event and opens
+      nothing. The default. Leave a browser tab on the board and
+      reload it, or type `yngboard`.
+    - `open` — the run writes the same board, and opens it in your
+      default browser once, at that run's first write.
+    - `no` — the run writes no board at all.
 
-    `yngorch` adds the key at `open` when it is missing, and never
-    changes a value you set. To open a page outside a run, use `yngv`,
-    which the installer puts on your PATH and which opens `.html` and
-    `.htm` in your default browser, new in 1.15.0:
+    `handback-page:` is the setting's former name, from 1.15.0, and is
+    still honoured: with no `run-board:` key beside it, its value is
+    read in `run-board`'s place and nothing ever rewrites it; set
+    both, and `run-board:` wins. `yngorch` adds `run-board:` at
+    `write` only when your config carries neither key, and never
+    changes a value you set.
+
+    To open a board, type `yngboard`, which the installer puts on your
+    PATH beside `yngv`:
 
     ``` bash
-    yngv <root>/.yngaiplaybook/ynghandback.html
+    yngboard
     ```
 
-    `YNGV_HTML_BROWSER=no` makes `yngv` print the file's own source in
-    the terminal instead, and `-Console` / `-c` does the same for one
-    call. Nothing outside a run regenerates a page or calls the
-    provider, and `yngorch` gains no command or flag for it: a page too
-    old to trust is refreshed by starting a run (guide, section 25,
-    *Hand-back page*).
+    It takes no argument, `-h` / `--help` aside, which prints its own
+    header. In a worktree whose branch names an issue
+    (`epic/<n>-`, `slice/<n>-` or `fix/<n>-`) it opens that log's
+    board — a slice's board is its Epic's — and at the project root,
+    or on `main`, it opens the most recently written one; with none
+    written for that log it says so in one line and names the run that
+    would write one. It opens a file and nothing else: no provider
+    call, no regeneration, no write. It hands the board to `yngv`, and
+    `YNGV_HTML_BROWSER=no` makes it name the board's path and open
+    nothing. `yngv` opens a board by path too, and prints any file's
+    own source in the terminal with `-Console` / `-c`:
+
+    ``` bash
+    yngv <root>/.yngaiplaybook/yngboard-<n>.html
+    ```
+
+    Nothing outside a run regenerates a board or calls the provider,
+    and `yngorch` gains no command or flag for it: a board too old to
+    trust is refreshed by starting a run (guide, section 25, *Run
+    board*).
 
 2.  **Start an Epic:** create its issue, in the issues repo when you
     have one, marked as an Epic: the `epic` label on GitHub and

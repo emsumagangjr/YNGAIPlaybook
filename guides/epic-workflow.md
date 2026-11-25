@@ -1,7 +1,7 @@
 # Epic Workflow: Bare Repository + Git Worktrees for Agentic Development
 
 > Compiled by Emeterio M. Sumagang Jr. · YNGSoftware (www.yngsoftware.com)  
-> Version 1.15.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
+> Version 1.16.0 · Created 2026-09-16 · Part of [YNGAIPlaybook](../README.md)
 
 ## Purpose
 
@@ -464,11 +464,18 @@ as an agent: the *YNG Orchestrator*.
 
 The MR is open and waiting for a person. Nothing else. The agent's own
 review runs *before* the MR exists (see the agent slice workflow), so it
-happens inside `in-progress` and never appears on the board. That is
-deliberate: an "agent is reviewing" column would be empty most of the
-time and would show nothing anyone can act on. With `in-review` meaning
-"your turn", its length is the review backlog, which is the one number
-on the board worth watching.
+happens inside `in-progress` and gets no column of its own on the
+tracker board. That is deliberate: an "agent is reviewing" column would
+be empty most of the time and would show nothing anyone can act on.
+With `in-review` meaning "your turn", the length of that column is the
+review backlog, which is the one number on the tracker board worth
+watching.
+
+The run board of section 25 is a different thing, and it does show that
+review: a slice still labelled `in-progress` carries its worker's
+latest interim report, step 5 among them, as news about work in flight.
+A tracker column and a row on the run board answer different questions —
+whose turn it is, and where the work has got to.
 
 ### Gate 1 by plan approval
 
@@ -1248,7 +1255,12 @@ dependencies, build outputs, and runtime resources.
 
 A coding agent operating under this architecture should:
 
-1.  Work only inside its assigned slice worktree.
+1.  Work only inside its assigned slice worktree, with one exception:
+    the **progress channel** the dispatcher opened for it and named to
+    it in its own prompt, which it appends its interim reports to (see
+    section 25, *Run board*). That one file sits outside every
+    worktree; nothing else outside the worktree is the agent's to
+    write.
 2.  Stay on its assigned slice branch unless explicitly instructed
     otherwise.
 3.  Treat the Epic branch as an integration branch.
@@ -1501,10 +1513,9 @@ skills/yngorchestrator/plan.md      cut the Epic into slices; create issues
 skills/yngorchestrator/dispatch.md  Gate 1 check, worktree, launch a worker
 skills/yngorchestrator/track.md     act on reports; close merged slices
 skills/yngorchestrator/merge.md     apply the project's merge rule to a PR
-skills/yngorchestrator/handback.md  write the hand-back page at the hand-back: gather, rank, render, open
-skills/yngorchestrator/web/template.html  one Epic's or one standalone issue's hand-back page: its markup and style
-skills/yngorchestrator/web/index.html  the project index of hand-back pages: one row per run log
-skills/yngorchestrator/report.md    the completion report every worker ends with
+skills/yngorchestrator/board.md     write the run board at every run-log event: gather, rank, render, open
+skills/yngorchestrator/web/template.html  one run log's run board: its markup and style
+skills/yngorchestrator/report.md    the completion report every worker ends with, and the interim reports it sends while it works
 skills/yngorchestrator/providers/README.md  the operations every provider implements; adding a provider
 skills/yngorchestrator/providers/<provider>.md  one provider's commands: github.md, gitlab.md, bitbucket.md
 agents/slice-worker.md              the worker: one slice, worktree to PR
@@ -1567,8 +1578,7 @@ myproject/
 │   ├── README.md                # the folder explained, written by yngorch
 │   ├── yngorchestratorconfig.yml # provider, issues repo, auto-promote, merge rules
 │   ├── yngorchestratorconfig.yml.bak # the config before a reinstall added to it
-│   ├── ynghandback.html         # the project index: every Epic and standalone issue with a run log
-│   ├── ynghandback-100.html     # Epic #100's hand-back page, rewritten at each hand-back
+│   ├── yngboard-100.html        # Epic #100's run board, rewritten at every run-log event
 │   └── yngorchestratorruns/
 │       ├── 100.md               # run log for Epic #100
 │       └── 100.lock             # held while a run on Epic #100 writes
@@ -1795,9 +1805,12 @@ to yours, as below) and
 `.bare/info/exclude` (Git's local ignore file, never pushed), links
 every worktree, and `.shared/.claude/` into the root's own `.claude/`,
 through `yngshared`, sets up the workflow states in the issues repo
-(*setup states*) when the provider's tool check passes, and puts `yngv`, the file viewer, in
-your `~/.local/bin` (on Windows it also adds that folder to your user
-PATH; on macOS/Linux it prints the line to add when it is missing).
+(*setup states*) when the provider's tool check passes, and puts two
+commands in your `~/.local/bin`: `yngv`, the file viewer, and
+`yngboard`, which opens this worktree's run board with it (*Run board*
+below). On Windows it also adds that folder to your user PATH; on
+macOS/Linux it prints the line to add when it is missing, and
+`-BinDir <path>` / `--bin-dir <path>` sends both somewhere else.
 Then set `auto-promote:` and your merge rules in
 `.yngaiplaybook/yngorchestratorconfig.yml`.
 
@@ -1821,7 +1834,8 @@ writes nothing there and warns. A root with an old folder and no
 run. The orchestrator links the worktrees it creates itself. `-Project <path>` / `--project
 <path>` installs into a project other than the current folder, and
 `-SkipLabels` / `--skip-labels` leaves the workflow states alone, and
-`-SkipViewer` / `--skip-viewer` leaves `yngv` out.
+`-SkipViewer` / `--skip-viewer` leaves `yngv` out, and `yngboard` with
+it: `yngboard` opens a board with `yngv`.
 
 A reinstall keeps every setting you have and adds the new ones. When
 `.yngaiplaybook/yngorchestratorconfig.yml` exists, `yngorch` compares
@@ -1991,11 +2005,14 @@ A slice or standalone run checks Gate 1 before it creates any branch.
 Run it again on an issue at `workflow:in-review` and it resumes from
 the pull request. Each run ends with one list of everything waiting on
 you: pull requests to merge, issues handed back, slices waiting for
-promotion. It writes that same list as a hand-back page too, and, with
-the default `handback-page: open`, opens it in your browser
-(*Hand-back page* below); the list it prints here comes first and whole
-either way, since it is what reaches you over Remote Control, where a
-`file://` path is no use to you.
+promotion. As it goes, it also writes a **run board**, rewritten at
+every run-log event, showing every slice and where each one has got to
+(*Run board* below); type `yngboard` in any worktree to open it. The
+board is an addition to that printed list, never a replacement, and the
+list comes first and whole, since it is what reaches you over Remote
+Control, where a `file://` path is no use to you. The board is also
+run-only: nothing watches the provider and nothing refreshes it between
+runs.
 
 After a slice or standalone merge, the run's own instance still sits
 in the worktree it would remove, and stays open, so the run does not
@@ -2010,89 +2027,148 @@ deferred for the next sweep; close the instance and run `continue`
 again. A run started outside the worktree removes it at once, as
 before.
 
-### Hand-back page
+### Run board
 
-Every run ends by telling you what is waiting on you. It also writes
-that same list as a **hand-back page**: one self-contained HTML file
-for one Epic or one standalone issue, in `.yngaiplaybook/`, opened in
-your default browser. It opens from `file://` with no server, no
-network and no installed runtime.
-
-The page is an **addition** to the list the run prints, never a
-replacement. That list stays first and stays whole: it is what reaches
-you over Remote Control, on claude.ai or the Claude app, where a
-`file://` path is no use to you. The run adds one line naming the
-page's path.
-
-Two names, each rewritten whole, with no history kept, because the run
-log is the history:
+A run writes a **run board** as it goes: one self-contained HTML file
+for one run log, in `.yngaiplaybook/`, showing every slice of the Epic,
+where each one is, and what each needs from you. It opens from
+`file://` with no server, no network and no installed runtime.
 
 | File | What it is |
 |------|------------|
-| `.yngaiplaybook/ynghandback.html` | the project index: one row per Epic and standalone issue that has a run log, each row carrying the instant its own page was written |
-| `.yngaiplaybook/ynghandback-<n>.html` | one Epic's or one standalone issue's page, `<n>` being its run log's number |
+| `.yngaiplaybook/yngboard-<n>.html` | one run log's board, `<n>` being that log's number: an Epic's number, or a standalone issue's own |
 
-A slice run writes its Epic's page, as it writes its Epic's log, and
-never a page of its own.
+A slice run writes its Epic's board, as it writes its Epic's log, and
+never a board of its own. A board is overwritten whole, with no history
+kept, because the run log is the history. A write also deletes what
+1.15.0 left for the same log, `ynghandback.html` and
+`ynghandback-<n>.html`: a file nothing updates is worse than one that
+is either current or absent.
 
-The page is a rendering of the run's own hand-back list, not a second
-source of truth: the run ranks what is waiting and writes it into the
-page as data, so the two cannot disagree. First and largest is the
-waiting list — a pull request open for review, a merge held by a
-condition, a slice handed to you, a slice waiting for Gate 1, an open
-review decision, and an issue whose workflow state and whose last
-report disagree — in the run's own order: the items holding up the
-most slices first, and a slice waiting on you ahead of what it holds
-up. Beside it, an Epic's page shows four things and no fifth: its
-slices with their workflow states, its pull requests, the dependency
-edges from each issue's `Depends on:` line, and the open review
-decisions. The run log and the worktrees sit in a *run detail* section,
-closed when the page opens, and the spec folder is a link.
+**Written at every run-log event.** Appending a line to the run log
+rewrites that log's board afterwards, so the board says where
+everything has got to as of the line just appended — a slice
+dispatched, a worker's interim report, a completion report, a merge, a
+slice closed. A run that stops with a reason before its first logged
+event writes no board, and one that has already written a board leaves
+it as it is, true as of its own timestamp.
 
-The page never acts. It has no promote control, no merge control and
-no form, and makes no request of any kind: every waiting row links to
-the provider page where you take the action, and the next run reads
-what you did there, as it already does. Both gates stay yours, on the
-provider, where the label and the merge are the record. Where an
+**Run-only.** Nothing watches the provider and nothing refreshes a
+board between runs: no hook, no watcher, no scheduled refresh, no
+daemon. A board is current as of the last event of the last run, which
+is what its timestamp says. A label you apply, a check that goes red
+and a pull request someone else merges reach the board at the next run
+that reads the provider, never before. Between runs nothing moves,
+because a run is the only thing that moves a slice.
+
+**An addition, never a replacement.** Every run still ends by telling
+you what is waiting on you, and that printed list stays first and stays
+whole: it is what reaches you over Remote Control, on claude.ai or the
+Claude app, where a `file://` path is no use to you. The run adds one
+line naming the board's path.
+
+The board's body is **one table**, one row per slice, with the board's
+own issue first — the Epic on an Epic's board, the issue itself on a
+standalone's — so the `epic-to-main` pull request has a row, and a
+standalone issue's board is that one row:
+
+| Column | What it holds |
+|--------|---------------|
+| **Slice** | its number and title, linked to the issue |
+| **State** | the one `workflow:*` label, and under it what the run last learned about that slice |
+| **PR** | its number, linked, with its checks and whether it is mergeable |
+| **Attention** | what the row needs from you, or `none` |
+| **Blocks** | the slices whose `Depends on:` waits on this one |
+
+**Attention** is one of `merge` (review and merge an open pull
+request), `held` (an `auto` merge was held, with the condition named),
+`human` (the slice is `workflow:ready-for-human`), `promote` (Gate 1
+waits on your label), `decision` (an open decision in a review record),
+`conflict` (the label and the last report disagree) or `none`. Each
+carries its reason and the provider address where you act. Rows needing
+you sort first, in the run's own order — the rows holding up the most
+slices first, and a slice waiting on you ahead of what it holds up —
+then the rest by number. When no row needs you, one line above the
+table says so and the table is still there: *where has everything got
+to* is the question the board answers.
+
+Under **State**, a slice the run has dispatched shows its dispatch
+instant and the latest **interim report** its worker sent: the step
+just finished, one line of what that step did or found, and how long
+ago it said it. A worker sends one as each step of its own chain
+finishes, over the progress channel the dispatcher opened for it
+(section 20, rule 1), and the dispatcher turns each into a run-log
+line, which rewrites the board. Until the first one arrives, the row
+says *nothing reported yet* beside the dispatch instant and nothing
+more: no progress bar, no percentage, no phase, no spinner, and no
+guess at where the worker has got to between two reports. A slice whose
+worker has finished shows what it reported instead, with the instant
+and its summary. The dependency edges are the **Blocks** column; the
+run log and the worktrees sit in a *run detail* section, closed when
+the board opens, and the spec folder is a link.
+
+The board never acts. It has no promote control, no merge control and
+no form, and makes no request of any kind: every row that needs you
+links to the provider page where you take the action, and the next run
+reads what you did there, as it already does. Both gates stay yours, on
+the provider, where the label and the merge are the record. Where an
 issue's workflow state and its last report disagree, the state wins —
-it is the provider's record and the gate's audit trail — and the
-report is shown beside it as a dated note.
+it is the provider's record and the gate's audit trail — the row's
+attention is `conflict`, and the report is shown beside the label as a
+dated note.
 
 One top-level key in `.yngaiplaybook/yngorchestratorconfig.yml`,
 beside `launcher:` and `remote-control:`, says what each run does:
 
-| `handback-page:` | At the hand-back |
-|------------------|------------------|
-| `open` | writes the page and the index, then opens the page in your default browser. The default: an absent key, an empty value or any other value means `open`, and never stops a run |
-| `write` | writes both and opens nothing. For a machine you work on over SSH, or a run you follow from your phone |
-| `no` | writes no page at all |
+| `run-board:` | What a run does |
+|--------------|-----------------|
+| `write` | writes the board at every event and opens nothing. The default: an absent key, an empty value or any other value means `write`, and never stops a run |
+| `open` | writes the same board, and opens it in your default browser once, at that run's first write |
+| `no` | writes no board at all |
 
-`yngorch` adds the key at its default on a reinstall, and never
-changes a value you set.
+The default is `write`, where 1.15.0's was `open`: a board is written
+from the start of a run now rather than at its end, so `open` would
+raise a browser window near the start of every run, including one that
+turns out to have nothing to do. `handback-page:` is the setting's
+former name and is still honoured: with no `run-board:` key beside it,
+its value is read in `run-board`'s place, and nothing ever rewrites it;
+set both, and `run-board:` wins. `yngorch` adds `run-board:` at its
+default only when your config carries neither key, and never changes a
+value you set.
 
-A run that stops with a reason before its hand-back writes no page:
-the page says what is waiting at a hand-back, and there was none. The
-page is built from the same live provider reads the printed list came
-from, and from all of them or none: when one fails — a rate limit, an
-expired login, an outage — the page and the index on disk are left
-exactly as they are, and the run names the operation that failed, so
-an honestly dated page from yesterday is never replaced by a freshly
-dated one that is wrong where you cannot see it. Either way the run
-log gets one line, `handback page written` or
-`handback page skipped <reason>`, before the lock goes.
+A board is built from the live provider reads the run has already made,
+and from all of them or none: when one fails — a rate limit, an expired
+login, an outage — the board on disk is left exactly as it is, and the
+run names the operation that failed, so an honestly dated board is
+never replaced by a freshly dated one that is wrong where you cannot
+see it. A failed write stops nothing either: a board is a rendering,
+and the run log is the record.
 
-To open a page outside a run, use `yngv`, the file viewer the
-installer puts on your PATH, which opens `.html` and `.htm` in your
-default browser from 1.15.0 on:
+To open a board, type `yngboard`, which the installer puts on your PATH
+beside `yngv`:
 
 ``` text
-yngv <root>/.yngaiplaybook/ynghandback.html
+yngboard
 ```
 
-`YNGV_HTML_BROWSER=no` makes it print the file's own source in the
-terminal instead, and `-Console` / `-c` does the same for one call.
-Nothing outside a run regenerates a page or calls the provider, and
-`yngorch` gains no command, flag or subcommand for it: a page too old
+It takes no argument, `-h` / `--help` aside, which prints its own
+header. In a worktree whose branch names an issue
+(`epic/<n>-`, `slice/<n>-` or `fix/<n>-`) it opens that log's board — a
+slice's board is its Epic's — and at the project root, or on `main`, it
+opens the most recently written one. With no board written for that
+log, it says so in one line and names the run that would write one. It
+opens a file and nothing else: no provider call, no gather, no ranking,
+no regeneration, no write. It hands the board to `yngv`, so a board
+opens the same way whoever opened it, and `YNGV_HTML_BROWSER=no` makes
+it name the board's path and open nothing. `yngv` opens a board by path
+too:
+
+``` text
+yngv <root>/.yngaiplaybook/yngboard-<n>.html
+```
+
+Nothing outside a run regenerates a board or calls the provider, and
+`yngorch` gains no command, flag or subcommand for it: a board too old
 to trust is refreshed by starting a run, the only context that already
 holds the data.
 

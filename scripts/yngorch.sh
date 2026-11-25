@@ -57,9 +57,11 @@
 #      config's issues: value, else origin's repo): labels on GitHub and
 #      GitLab; on Bitbucket, whose API cannot create them, a warning
 #      naming each component and the epic milestone to create by hand.
-#   7. Copy yngv, the file viewer, to <bin-dir>/yngv (default ~/.local/bin).
-#      Per user, not per project. When that folder is not on PATH it prints
-#      the line to add to your shell's startup file; it edits none itself.
+#   7. Copy yngv, the file viewer, to <bin-dir>/yngv, and yngboard, which
+#      opens a worktree's run board with it, to <bin-dir>/yngboard (default
+#      ~/.local/bin). Per user, not per project. When that folder is not on
+#      PATH it prints the line to add to your shell's startup file; it edits
+#      none itself.
 #   8. Say which herdr products are installed: the herdr CLI and the
 #      Herdr desktop app, one line each, and nothing written. Both are
 #      optional. Each run opens its own instance where launcher: says:
@@ -104,6 +106,9 @@
 #                  stops the install before anything is written.
 #   --skip-labels  do not touch the repository's workflow states (labels, or
 #                  Bitbucket components and milestone).
+#   --skip-viewer  do not install yngv, and so not yngboard either:
+#                  yngboard opens a board with yngv.
+#   --bin-dir      where yngv and yngboard go. Default: ~/.local/bin.
 # Requires: bash, git. For the check and the workflow states, the provider's
 # tool: gh (GitHub) or glab (GitLab) logged in to the host, or curl with
 # BITBUCKET_EMAIL and BITBUCKET_API_TOKEN set (Bitbucket Cloud). The token is
@@ -516,14 +521,30 @@ END {
         if (!K_tab) { sp++; sind[sp] = K_ind; spath[sp] = p }
     }
 
+    # A setting that was renamed keeps its former name readable (spec R8.4):
+    # the new setting is added only when the file has neither name as an
+    # active key, so a config carrying the old key is left to go on as it
+    # is. No value of either name is ever written or changed. One line per
+    # rename, and the same list as yngorch.ps1 holds. renamed reads that
+    # list backwards: the setting a former name belongs to, so the
+    # template block carrying that former name is reported as what it is
+    # rather than as new.
+    former["run-board"] = "handback-page"
+    for (fn in former) renamed[former[fn]] = fn
+
     # Missing settings (R39.5, R39.6): whole sections, in template order.
     warns = ""; ins_set = ""
     for (s = 1; s <= ns; s++) {
         n = sname[s]
         if (cnt[n] > 0 || (n in hdr)) continue
+        if ((n in former) && cnt[former[n]] > 0) {
+            notes = notes "N " disp ": " n " not added; " former[n] ", its former name, is set in your file and is still read in its place\n"
+            continue
+        }
         missing[n] = 1
         for (i = sstart[s]; i <= send[s]; i++) ins_set = ins_set t[i] eol
-        addl[sstart[s]] = "A " disp ": " n " (new in the template)\n"
+        what = (n in renamed) ? "the former name of " renamed[n] : "new in the template"
+        addl[sstart[s]] = "A " disp ": " n " (" what ")\n"
     }
 
     # Missing nested keys (R39.7, R39.8), in template order.
@@ -850,14 +871,18 @@ else
     else bitbucket_states "$repo"; fi
 fi
 
-# 7. The yngv viewer, per user (not per project). The person's shell
-# startup file is theirs: when bin_dir is not on PATH, print the line.
-if [ "$skip_viewer" = 1 ]; then step skipped "yngv (--skip-viewer)"
+# 7. The yngv viewer and the yngboard command, per user (not per project).
+# The two go together: yngboard opens a board with yngv, and finds it beside
+# itself (yngboard R9.8). The person's shell startup file is theirs: when
+# bin_dir is not on PATH, print the line.
+if [ "$skip_viewer" = 1 ]; then step skipped "yngv and yngboard (--skip-viewer)"
 else
     mkdir -p "$bin_dir"
-    cp "$here/yngv.sh" "$bin_dir/yngv"; chmod +x "$bin_dir/yngv"
+    for tool in yngv yngboard; do
+        cp "$here/$tool.sh" "$bin_dir/$tool"; chmod +x "$bin_dir/$tool"
+    done
     bin_full=$(cd "$bin_dir" && pwd)
-    step copied "yngv -> $bin_full/yngv"
+    step copied "yngv, yngboard -> $bin_full/"
     case ":$PATH:" in
         *":$bin_full:"*|*":$bin_full/:"*) step kept "$bin_full already on PATH" ;;
         *) step note "$bin_full is not on PATH; add this line to your shell's startup file (~/.bashrc, ~/.zshrc), then open a new terminal:"
@@ -878,4 +903,5 @@ echo "Done. Next:"
 echo "  - Set auto-promote (Gate 1) and your merge rules (Gate 2) in $config"
 echo "  - Anywhere in the project, start Claude Code and run: /yngorchestrator <issue>; each run opens in its own instance"
 echo "  - To pick up a run again: /yngorchestrator continue"
+echo "  - To see where a run has got to, in any worktree: yngboard"
 echo "  - After creating a new worktree, run this script again to link it."

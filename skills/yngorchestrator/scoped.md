@@ -3,7 +3,7 @@
 A run on a slice handles that slice only (R19); a run on a standalone
 issue handles that issue only (R20). You arrive from
 [locate.md](locate.md) holding `<root>`, `<code repo>`,
-`<issues repo>`, `<auto-promote>`, `<handback-page>`, the issue `<n>`,
+`<issues repo>`, `<auto-promote>`, `<run-board>`, the issue `<n>`,
 its title, its kind and, for a slice, its parent `<parent>`, and
 whether the run launches.
 The run holds its lock (*The lock* in [SKILL.md](SKILL.md)) and writes
@@ -23,11 +23,8 @@ Every command names its target by absolute path, and every operation
 an issue or `<code repo>` for a pull request (*Two repositories*).
 
 When a step stops the run, tell the person the reason in one sentence,
-log it, delete the lock if the run holds it, and end the run. Such a
-run never reaches step 8, so it writes no hand-back page: the page
-says what is waiting at a hand-back, and there was none (ynghandback
-R14.4). You never apply `workflow:ready-for-agent`: that label comes
-only from a person.
+log it, delete the lock if the run holds it, and end the run. You never
+apply `workflow:ready-for-agent`: that label comes only from a person.
 
 | Kind       | Branch             | `PR BASE`        | `SPEC`                       | Merge path      |
 |------------|--------------------|------------------|------------------------------|-----------------|
@@ -193,25 +190,21 @@ handed back at `workflow:ready-for-human`, with the reason. Once a
 person has merged a waiting pull request, `/yngorchestrator <n>`
 closes the issue (step 1).
 
-Then write this run's hand-back page: follow
-[handback.md](handback.md), which renders that same list as
-`<root>/.yngaiplaybook/ynghandback-<log>.html` and opens it as
-`<handback-page>` says (ynghandback R14.1, R14.3). `<log>` names the
-page, as it names the run log (*Run log* in [SKILL.md](SKILL.md)): a
-standalone run writes its own issue's page, and a slice run writes its
-Epic's, as it writes its Epic's log, and never one of its own
-(ynghandback R2.2). The list above stays first and stays whole,
-because it is what reaches the person over Remote Control, where a
-`file://` path is useless: where a page is written, add one line to it
-naming that page's path (ynghandback R1.3). Where its gather fails, no
-page is written, the list above still stands, and handback.md names
-the operation that failed.
+That list stays first and stays whole, because it is what reaches the
+person over Remote Control, where a `file://` path is useless (yngboard
+R1.4). Add one line below it naming the run's board (*The board* in
+[SKILL.md](SKILL.md)). `<log>` names the board, as it names the run
+log: a standalone run's is its own issue's, and a slice run's is its
+Epic's, never one of its own (yngboard R2.1).
 
-handback.md appends that one run-log line itself, before the lock is
-deleted below: `handback page written`, or
-`handback page skipped <reason>` (ynghandback R14.5).
+``` text
+Run board: <root>/.yngaiplaybook/yngboard-<log>.html — every slice, its state and what it needs. Type yngboard to open it.
+```
+
+Where no board has been written, leave that line out: the list above
+is the hand-back either way.
 
 Last, delete the run's lock (*The lock* in [SKILL.md](SKILL.md)).
 
-Done when the person knows where the issue stands, the run log holds
-the hand-back page's line, and the lock is gone.
+Done when the person knows where the issue stands, holds the board's
+path where there is a board, and the lock is gone.
