@@ -445,7 +445,16 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     the block stays to be read, and a file written from the template
     carries one live key for the setting, `run-board`. The
     cross-reference in the template's header (its "See handback-page
-    below") names `run-board`.
+    below") names `run-board`. A block whose name is another setting's
+    former name is reported as that and never as new, so a person is
+    not told a deprecated setting has arrived: adding the template's
+    `handback-page` block to a file that has neither key, or that
+    deleted the block, reads
+    `added .yngaiplaybook/yngorchestratorconfig.yml: handback-page (the former name of run-board)`,
+    where yngorchestrator R40.2 would say `(new in the template)`.
+    Both installers print those words. Only the report changes: the
+    block is added as every other is, and no key of either name is
+    written or changed.
 5.  It stays beside `launcher` and `remote-control`: what a run may do
     on the person's own machine (ynghandback R12.5).
 
