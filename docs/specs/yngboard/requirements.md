@@ -45,7 +45,7 @@ below names what it changes. Where it names nothing, it is new.
 ## Deliverables
 
 ``` text
-skills/yngorchestrator/board.md                 replaces handback.md: gather, render, write, open (R1, R3)
+skills/yngorchestrator/board.md                 replaces handback.md: gather, rank, build the payload, render, write, open (R1, R3)
 skills/yngorchestrator/web/template.html        one table, attention column, elapsed and latest report on render (R4, R5, R7, R14)
 skills/yngorchestrator/web/index.html           deleted (R2)
 skills/yngorchestrator/SKILL.md                 the Run log section carries the write rule; a line per interim report (R3, R14)
@@ -137,10 +137,42 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 4.  The board write is **not itself a run-log event**: it appends no
     line. A rule that fires on every line must not write a line, and a
     derived file is not a change to issue state. ynghandback R14.5's
-    `handback page written` line is withdrawn.
+    `handback page written` line is withdrawn, and
+    `handback page skipped <reason>` with it: a board that was not
+    written is named where its reason belongs, to the person, and not
+    in the log of what the run did to the Epic (R3.8).
 5.  A run that stops with a reason before its first logged event writes
     no board. A run that has already written one leaves it as it is:
     it is true as of its own timestamp.
+6.  **The rule covers the run's own log.** `<log>` is the log the run
+    writes (*Run log* in `SKILL.md`), and the board it rewrites is that
+    log's. A line the *Sweep deferred removals* path of `track.md`
+    appends to **another** log leaves that log's board alone: the
+    provider reads it would need are reads about an Epic this run is
+    not running, which R1.6 and ynghandback R10.2 both refuse. That
+    board waits for a run on its own log, which is what run-only means.
+7.  **A run that hands on to its own instance writes no board**
+    (`launch.md`). It holds no lock, it ends at the hand-off, and the
+    instance it opens writes the board from the same reads: paying for
+    them twice would buy the person nothing, and under `open` it would
+    raise a second window for one hand-off. With R3.5 these are the
+    only two runs the rule does not reach, and both are runs that did
+    nothing to the Epic.
+8.  **A board write is silent, and nothing waits on it.** It prints no
+    line of its own: the board's path reaches the person once, at the
+    hand-back, as the line R1.4 adds below step 5's list. A write that
+    fails — a failed operation (R10), or a template placeholder not met
+    exactly once — leaves the board on disk alone, names what failed
+    once in the run, and stops nothing. A board is a rendering, and no
+    step of the run depends on one.
+9.  **At every event, a run gathers only what it does not already
+    hold.** ynghandback R10.2 kept page generation from adding provider
+    traffic of its own; written at every event, that matters more, not
+    less. The step that logged the line holds the reads it made and the
+    values it has just written — a label it set, a pull request it
+    merged, an issue it closed — and the board is built from those. A
+    provider read is made only where the run holds nothing current: the
+    first board of a run, and an answer an action since has changed.
 
 ## R4 The one table
 
@@ -217,7 +249,18 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     order it is given, after the first row, and sorts nothing (R4.2,
     R7.2). Rows in the wrong order are a defect in the run, not in the
     template.
-10. **The line above the table** (R4.5) shows when no row carries an
+10. **One row, one value.** A slice has one row, so where more than one
+    of R4.3's values applies it takes the most specific, in this order:
+    `conflict`, `held`, `decision`, `merge`, `human`, `promote`, then
+    `none`. A held merge and an open decision are both true of a pull
+    request open for review, and `merge` alone would say the least of
+    the three; `conflict` comes first because it says the rest of the
+    row may be wrong. Where a later value also applied, the row's `why`
+    names it in the same sentence: half of what is waiting is worse
+    than a longer sentence. `none` is the value of a closed slice and
+    of an open one that needs nothing, and carries `why: null` and
+    `actionUrl: null` — there is no reason and nowhere to go.
+11. **The line above the table** (R4.5) shows when no row carries an
     `attention` other than `none`. Under a `schema` the template does
     not know it is not shown: the values may be somewhere the template
     did not look, and saying nothing needs a person would be a guess
@@ -328,6 +371,20 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 6.  A template reading a `schema` it does not know renders the table
     and a line saying the board was written by a newer orchestrator
     (ynghandback R4.6, with the table in place of the waiting list).
+7.  **`re-dispatched` carries the instant too**, and `dispatchedAt` is
+    the instant on the slice's **last** `dispatched` or `re-dispatched`
+    line. A re-dispatched slice is in flight from its latest dispatch,
+    not its first, and an elapsed figure counted from the first would
+    say a fresh worker had been silent since yesterday — R5.4's signal,
+    inverted again. Both lines are the run-log format change R6.3 asks
+    for; every other event keeps the bare date.
+8.  **`issue.pr` is null until the run holds that pull request.** The
+    `epic-to-main` pull request is looked for once, by step 5 of
+    `SKILL.md`, when every slice is closed; before then the first row
+    shows the Epic with no pull request, and the board adds no read of
+    its own to confirm what is not there yet (R3.9). A standalone's
+    `issue.pr` is the `fix-to-main` pull request the run already read
+    (R9).
 
 ## R7 What the template may compute
 

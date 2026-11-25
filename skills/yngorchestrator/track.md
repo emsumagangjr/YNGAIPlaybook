@@ -64,7 +64,8 @@ Log `in-review <PR>`. Then follow [merge.md](merge.md) for the
 
   Post the `Dispatched:` comment again, as in step 3 of
   [dispatch.md](dispatch.md), naming the same branch and worktree
-  folder (R44.2). Log `re-dispatched`.
+  folder (R44.2). Log `re-dispatched`, with the UTC instant that line
+  carries (*Run log* in [SKILL.md](SKILL.md)).
 - Two attempts: hand back to a person. *Set state*
   `workflow:ready-for-human`, and *comment* on the issue:
 
@@ -231,8 +232,8 @@ reported and still deferred, and every lock the sweep took is gone.
 A run that stops between a worker's report and the *set state* it
 calls for leaves a slice whose `workflow:*` label and whose last
 report in the run log describe different things (ynghandback R7.1).
-Only a person can say which is right, so the hand-back page carries it
-as a waiting item ([handback.md](handback.md)).
+Only a person can say which is right, so the slice's row on the run
+board carries `conflict` ([board.md](board.md)).
 
 These are the pairs that agree. Each row is a slice's last `reported`
 line in the run log — its value is the completion report's `STATUS`
@@ -258,8 +259,8 @@ The **label wins**: it is the provider's record and the gate's audit
 trail, and the only thing that can be authoritative (R7.2). Act on it,
 here and everywhere else. The report is neither silently dropped nor
 silently preferred: it is shown beside the label, with the date of its
-run-log line (R7.3), and the disagreement is a `conflict` row in the
-hand-back page's waiting list (R7.4).
+run-log line (R7.3), and the disagreement is the slice's `conflict`
+value on the board (R7.4).
 
 Done when a slice whose readings disagree is known to be a `conflict`
 row, and the run has acted on its label.

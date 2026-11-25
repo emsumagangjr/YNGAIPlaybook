@@ -126,7 +126,8 @@ Dispatched: branch `<branch>`, worktree `<folder>`
 The comment goes on every dispatch, in Epic, slice and standalone runs
 alike, and again on a re-dispatch ([track.md](track.md)).
 
-Log `dispatched` to the run log.
+Log `dispatched` to the run log, with the UTC instant that line
+carries (*Run log* in [SKILL.md](SKILL.md)).
 
 Done when the issue shows `workflow:in-progress` alone among its
 `workflow:` states and carries this dispatch's `Dispatched:` comment.
