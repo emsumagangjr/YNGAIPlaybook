@@ -157,6 +157,11 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     | **Attention** | what it needs from a person, or nothing (R4.3)       |
     | **Blocks**    | the slices whose `Depends on:` waits on this one     |
 
+    The first row is the board's own issue: the Epic on an Epic's board,
+    the issue itself on a standalone's (R10, ynghandback R9.1). So the
+    `epic-to-main` pull request has a row, and a standalone's board is
+    that one row.
+
 2.  The separate ranked waiting list is gone. Its ranking survives as
     the table's **sort order**: rows needing attention first, in step
     5's order — the rows holding up the most slices first, and a slice
@@ -187,6 +192,32 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
     decisions as the `decision` value with its `why`. The run log and
     the worktrees stay in the collapsed *run detail* section
     (ynghandback R6.2), and the spec folder stays a link (R6.3).
+7.  **The first row's fields.** The first row is rendered from the
+    payload's `issue`, which carries the same row fields a slice does —
+    `label`, `attention`, `why`, `actionUrl`, `pr` and `blocks` —
+    beside the `number`, `title`, `url` and `branch` ynghandback R4.9
+    gave it. They arrive; nothing changes meaning and nothing leaves,
+    so `schema` stays **2** (R6.1, R14.5, ynghandback R4.6). A field
+    the payload leaves out renders as nothing said, never as `none`:
+    `none` is a value the run chose, and the template chooses none
+    (R7.4).
+8.  **The State column** is the one `workflow:*` label, and under it
+    what the run last learned about that slice: while the slice is
+    labelled `workflow:in-progress`, its dispatch instant and its
+    latest interim report (R5.2, R14.5); otherwise its completion
+    report where one has arrived — `report.outcome`, `report.at` and
+    `report.summary`, kept apart from the label and the checks as
+    R6.5 keeps them. The word *reported* names it, never the bare word
+    "status" (R11.3).
+9.  **The order is the run's.** The template renders `slices[]` in the
+    order it is given, after the first row, and sorts nothing (R4.2,
+    R7.2). Rows in the wrong order are a defect in the run, not in the
+    template.
+10. **The line above the table** (R4.5) shows when no row carries an
+    `attention` other than `none`. Under a `schema` the template does
+    not know it is not shown: the values may be somewhere the template
+    did not look, and saying nothing needs a person would be a guess
+    (R6.6).
 
 ## R5 A slice in flight
 
@@ -198,7 +229,13 @@ VERSION, CHANGELOG.md, SKILL.md metadata        1.16.0 (R13)
 2.  A row for a slice dispatched with no interim report yet therefore
     shows its **dispatch instant** and the words *nothing reported
     yet*, and nothing more. Once one has arrived, the row shows it
-    (R14.5).
+    (R14.5). The row this reaches is the one the run has labelled
+    `workflow:in-progress`, which `dispatch.md` step 3 sets while a
+    worker is out: the label is the run's own mark that a slice is in
+    flight, and the template reads it rather than working it out
+    (R7.2). On such a row a null `dispatchedAt` reads *dispatched,
+    time unknown* (R6.3); on any other row it is a slice not yet
+    dispatched (R6.2), and the row says nothing about dispatch at all.
 3.  No progress bar, no percentage, no phase, no spinner, no guess. A
     board that implies progress it cannot see is worse than one that
     says it cannot see any.
