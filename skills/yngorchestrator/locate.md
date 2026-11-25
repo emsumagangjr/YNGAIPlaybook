@@ -256,22 +256,33 @@ case "$(value remote-control | tr '[:upper:]' '[:lower:]')" in
 esac
 ```
 
-**The hand-back page**, `<handback-page>`, is `handback-page:`, in lower
-case (ynghandback R12): `write` writes the page and opens nothing, `no`
-writes no page; no file, no key, an empty value or any other value is
-`open`, which writes the page and opens it in the browser. It never
-stops the run, and it decides one thing: what step 5 of
-[SKILL.md](SKILL.md) does at the hand-back.
+**The run board**, `<run-board>`, is `run-board:`, in lower case (R8):
+`open` writes the board and opens it in the browser once, at the run's
+first write, `no` writes no board; no file, no key, an empty value or
+any other value is `write`, which writes the board and opens nothing.
+It never stops the run, and it decides one thing: what the run does
+with the board at each run-log event.
+
+`handback-page:` is the setting's former name and is still honoured:
+when the config has no `run-board:` key, the value of `handback-page:`
+is read in its place, by the same three values. When both keys are
+there, `run-board` wins. The orchestrator never rewrites either key,
+here or anywhere else; only the person edits them.
 
 ``` bash
-case "$(value handback-page | tr '[:upper:]' '[:lower:]')" in
-  write) handbackpage=write ;;
-  no)    handbackpage=no ;;
-  *)     handbackpage=open ;;
+if grep -q '^run-board:' "$cfg" 2>/dev/null; then
+  board=$(value run-board)          # the key is there: its own value, empty or not
+else
+  board=$(value handback-page)      # no run-board key: the former name's value
+fi
+case "$(printf '%s\n' "$board" | tr '[:upper:]' '[:lower:]')" in
+  open) runboard=open ;;
+  no)   runboard=no ;;
+  *)    runboard=write ;;
 esac
 ```
 
-Hold `<handback-page>` for the whole run, as read here; a change to the
+Hold `<run-board>` for the whole run, as read here; a change to the
 file takes effect at the next run.
 
 **The agent**, `<agent>`, is `agent:`, in lower case; no file, no key
@@ -329,7 +340,7 @@ pull request, not an issue.
 
 Done when you hold `<provider>`, its provider file, `<host>`,
 `<code repo>`, `<issues repo>`, `<auto-promote>`, `<launcher>`,
-`<remote control>`, `<handback-page>`, `<agent>` and `<n>`, the issue
+`<remote control>`, `<run-board>`, `<agent>` and `<n>`, the issue
 exists in the issues repo, and you hold its state, state reason,
 title, body and labels.
 

@@ -375,6 +375,12 @@ $configPairs = @(
 $keyPattern = '^([ \t]*)([A-Za-z0-9_][A-Za-z0-9_.-]*):(?:[ \t](.*))?$'
 $headerPattern = '^# --- Setting: (\S+)'
 
+# A setting that was renamed keeps its former name readable (spec R8.4):
+# the new setting is added only when the file has neither name as an active
+# key, so a config carrying the old key is left to go on as it is. No value
+# of either name is ever written or changed. One entry per rename.
+$settingFormerNames = @{ 'run-board' = 'handback-page' }
+
 # $Text's lines, each with its own line ending.
 function Split-Lines([string]$Text) {
     $segs = New-Object System.Collections.Generic.List[string]
@@ -526,7 +532,8 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
     $ctx = @{
         Display = $Display; TLines = $tLines; TKeys = (Get-Keys $tLines $tBanner); FKeys = (Get-Keys $fLines $fLines.Count)
         Inserts = @{}; Added = (New-Object System.Collections.Generic.List[string])
-        Warnings = (New-Object System.Collections.Generic.List[string]) }
+        Warnings = (New-Object System.Collections.Generic.List[string])
+        Notes = (New-Object System.Collections.Generic.List[string]) }
     $fHeaders = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
     foreach ($line in $fLines) { if ($line -cmatch $headerPattern) { $fHeaders[$Matches[1]] = $true } }
     $known = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
@@ -544,6 +551,11 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
         $fTop = [int[]]@($ctx.FKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name } | ForEach-Object { $_.Pos })
         $tTop = @($ctx.TKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $name -and $_.Index -ge $start -and $_.Index -lt $end })
         if (-not $fTop.Count -and -not $fHeaders.ContainsKey($name)) {
+            $former = $settingFormerNames[$name]
+            if ($former -and @($ctx.FKeys | Where-Object { $_.Indent -eq '' -and $_.Name -ceq $former }).Count) {
+                $ctx.Notes.Add("${Display}: $name not added; $former, its former name, is set in your file and is still read in its place")
+                continue
+            }
             for ($i = $start; $i -lt $end; $i++) { $sections.Add($tLines[$i]) }
             $ctx.Added.Add("${Display}: $name (new in the template)")
         }
@@ -567,6 +579,7 @@ function Update-ConfigFile([string]$Template, [string]$Target, [string]$Display,
     }
     else { Step 'kept' "$Display (yours, nothing new)" }
     foreach ($w in $ctx.Warnings) { Step 'warning' $w }
+    foreach ($note in $ctx.Notes) { Step 'note' $note }
     $noted = New-Object Collections.Hashtable ([StringComparer]::Ordinal)
     foreach ($p in (Get-KeyPaths $ctx.FKeys)) {
         if ($known.ContainsKey($p) -or $noted.ContainsKey($p)) { continue }
