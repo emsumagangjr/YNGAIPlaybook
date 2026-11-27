@@ -164,22 +164,33 @@ reports* below).
 
 ### The board
 
-**Appending a line to `yngorchestratorruns/<log>.md` rewrites that
-log's run board afterwards**: follow [board.md](board.md), which
-gathers, ranks, builds the payload, renders it into the shipped
-template, writes the board or boards this run owns — each named for
-the issue it is about (*Which board this run writes* in board.md) —
-and, under `run-board: open`, opens one once at the run's first write
-(yngboard R3.2, yngboardcommand R6.1, R8.1).
+**Appending one or more lines to `yngorchestratorruns/<log>.md`
+rewrites that log's run board once, after the last line of the
+batch**: follow [board.md](board.md), which gathers, ranks, builds the
+payload, renders it into the shipped template, writes the board or
+boards this run owns — each named for the issue it is about (*Which
+board this run writes* in board.md) — and, under `run-board: open`,
+opens one once at the run's first write (yngboard R3.2,
+yngboardcommand R6.1, R8.1, R9.1). A **batch** is the lines a step
+appends before it does anything else.
 
-The rule lives here and nowhere else. It is a property of appending a
-line, not a step of its own, so no step added later can forget it and
-the board cannot drift from the log: [plan.md](plan.md),
+The rule once fired per line (yngboard R3.2), so draining a channel of
+four interim reports cost four writes, each rebuilding the whole
+payload to change one slice's list — and the interim reports of
+yngboard R14 made such batches the common case, not the rare one.
+Nothing a person can observe changes: the board after the batch is
+identical either way, written once instead of N times.
+
+The rule lives here and nowhere else. It is a property of appending to
+the log, not a step of its own, so no step added later can forget it
+and the board cannot drift from the log: [plan.md](plan.md),
 [dispatch.md](dispatch.md), [track.md](track.md), [merge.md](merge.md)
 and [scoped.md](scoped.md) never restate it. The board write is not
-itself an event and appends no line of its own (R3.4), and a board is
-a rendering: a write that fails leaves the board on disk alone, names
-the operation that failed, and stops nothing.
+itself an event and appends no line of its own (yngboard R3.4), and a
+board is a rendering: a write that fails leaves the board on disk
+alone, names the operation that failed, and stops nothing. A batch
+that fails part-way still rewrites the board for the lines that
+landed: the board follows the log as it is, not as it was meant to be.
 
 It covers this run's own `<log>`, and two runs never reach it:
 
@@ -222,7 +233,8 @@ instant, the step and the one line as the worker wrote them:
 interim report's event word and `reported` stays the completion
 report's, so the log keeps news and hand-off apart (yngboard R14.4).
 The lines you append here are not channel lines, so a drain never
-drains itself, and each one rewrites the board by the rule above: an
+drains itself. A drain is **one batch**, however many lines it has:
+append them all, then write the board once by the rule above, so an
 interim report reaches the board the way everything else a run learns
 does.
 
@@ -284,6 +296,10 @@ rm -f "<root>/.yngaiplaybook/yngorchestratorruns/<log>.lock"
 ```
 
 ## Steps
+
+`/yngorchestrator board`, and `/yngorchestrator board <n>`, gather a
+board fresh and open it. That run is [locate.md](locate.md) steps 1 to
+4 and then [board.md](board.md), and then it ends: no step below runs.
 
 ### 1. Locate
 
