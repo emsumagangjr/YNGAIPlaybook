@@ -12,32 +12,35 @@
 # for message.
 #
 # DESCRIPTION
-#   A run board is one HTML file for one run log, written by
-#   /yngorchestrator at every run-log event into
-#   <root>/.yngaiplaybook/yngboard-<n>.html. It shows every slice of the
-#   Epic, each slice's state, and whether each needs a person. yngboard
-#   finds the board this worktree belongs to and hands it to yngv, which
-#   opens it in the default browser - unless YNGV_HTML_BROWSER is off, when
-#   it names the board and opens nothing.
+#   A run board is one HTML file for one issue, written by /yngorchestrator
+#   into <root>/.yngaiplaybook/yngboard-<issue>.html: an Epic's board, a
+#   slice's own board, or a standalone issue's. yngboard finds the board of
+#   the issue this worktree's branch names and hands it to yngv, which opens
+#   it in the default browser - unless YNGV_HTML_BROWSER is off, when it
+#   names the board and opens nothing.
 #
-#   It opens a file and nothing else: no provider call, no gather, no
-#   ranking, no regeneration, no write. A board is as old as the timestamp
-#   it shows, and a run is what refreshes it.
+#   WHAT IT CANNOT DO: refresh a board. It opens a file and nothing else -
+#   no provider call, no gather, no ranking, no regeneration, no write - so
+#   a board is as old as the timestamp it shows. The command that refreshes
+#   one is /yngorchestrator board, in Claude Code: it gathers the board
+#   fresh, writes it and opens it. Where Claude Code cannot be reached, a
+#   whole run (/yngorchestrator <n>) writes one on its way past.
 #
 #   Which board, by the branch of the worktree the call is made in:
 #
-#       epic/<n>-...     that Epic's own board, run log <n>
-#       slice/<n>-...    its Epic's board: the run log holding #<n>'s events
-#       fix/<n>-...      that standalone issue's own board, run log <n>
+#       epic/<n>-...     that Epic's board, yngboard-<n>.html
+#       slice/<n>-...    that slice's own board, yngboard-<n>.html
+#       fix/<n>-...      that standalone issue's board, yngboard-<n>.html
 #       no issue named   the most recently written yngboard-*.html
 #
+#   The branch names the issue directly: no run log is read to find one.
 #   The last row is the project root, a worktree on main, a detached HEAD,
 #   and any branch whose name does not start with an issue number.
 #
-#   With no board written for that log, it says so in one line, names the
-#   run that would write one, and opens nothing. A branch that names an
-#   issue never falls back to another log's board: a board of the wrong
-#   Epic is worse than no board.
+#   With no board written for that issue, it says so in one line, names
+#   /yngorchestrator board, and opens nothing. A branch that names an issue
+#   never falls back to another issue's board: a board of the wrong issue
+#   is worse than no board.
 #
 # ENVIRONMENT
 #   YNGV_HTML_BROWSER   Whether a board is opened in the browser at all.
@@ -56,7 +59,7 @@
 #                       drifting apart.
 #
 # REQUIREMENTS
-#   - bash 3.2+ (the macOS default is fine), git, sed, grep, ls.
+#   - bash 3.2+ (the macOS default is fine), git, sed, tr, ls.
 #   - yngv, beside this script or on PATH, to open a board in the browser.
 #     yngorch installs the two together, into the same folder. With
 #     YNGV_HTML_BROWSER off, nothing is opened and yngv is never needed.
@@ -73,7 +76,7 @@
 #
 # EXIT
 #   0  the board was handed to yngv, or named because the browser is off
-#   1  no board for this worktree's log, no project around this folder,
+#   1  no board for this worktree's issue, no project around this folder,
 #      or no yngv to open it with
 #   2  an argument was given; yngboard takes none
 
@@ -120,40 +123,24 @@ if [ -z "$root" ] || [ ! -d "$root/.bare" ]; then
 fi
 boards="$root/.yngaiplaybook"
 
-# 2. <n> from the branch, as locate.md's `continue` takes it. No branch, a
-# detached HEAD and a branch like main all leave both empty.
+# 2. The issue from the branch, as locate.md's `continue` takes it: an
+# Epic's, a slice's own and a standalone issue's number alike, since every
+# board is named for the issue it is about. No branch, a detached HEAD and a
+# branch like main all leave <n> empty.
 branch=$(git branch --show-current 2>/dev/null)
-kind=$(printf '%s\n' "$branch" | sed -nE 's#^(epic|fix|slice)/([0-9]+)-.*#\1#p')
-n=$(printf '%s\n' "$branch"    | sed -nE 's#^(epic|fix|slice)/([0-9]+)-.*#\2#p')
+n=$(printf '%s\n' "$branch" | sed -nE 's#^(epic|fix|slice)/([0-9]+)-.*#\2#p')
 
-# 3. The run log the board is named for: an Epic's and a standalone issue's
-# own number, a slice's its Epic's (SKILL.md, Run log). A slice's Epic is
-# the log holding the slice's own events, which is a local file read: no
-# provider call finds it.
-log=""
-case "$kind" in
-    epic|fix) log=$n ;;
-    slice)
-        for f in "$boards/yngorchestratorruns"/*.md; do
-            [ -f "$f" ] || continue
-            if grep -Eq "^[^ ]+ #${n}([[:space:]]|\$)" "$f"; then
-                log=$(basename "$f" .md)
-                break
-            fi
-        done
-        ;;
-esac
-
-# 4. The board file itself. A branch that names an issue gets that issue's
-# log's board or none at all: another log's board is not this worktree's,
-# and a board of the wrong Epic is worse than no board. Only a branch naming
-# no issue falls back to the most recently written one.
+# 3. The board file itself: yngboard-<n>.html, or none at all. Another
+# issue's board is not this worktree's, and a board of the wrong issue is
+# worse than no board - a slice's Epic's board least of all, since it is the
+# one a person in a slice worktree could mistake for theirs. Only a branch
+# naming no issue falls back to the most recently written one.
 board=""
 why=""
 if [ -n "$n" ]; then
-    if [ -n "$log" ] && [ -f "$boards/yngboard-$log.html" ]; then
-        board="$boards/yngboard-$log.html"
-        why="run log $log"
+    if [ -f "$boards/yngboard-$n.html" ]; then
+        board="$boards/yngboard-$n.html"
+        why="#$n"
     fi
 else
     board=$(ls -t "$boards"/yngboard-*.html 2>/dev/null | sed -n 1p)
@@ -163,14 +150,14 @@ fi
 
 if [ -z "$board" ]; then
     if [ -n "$n" ]; then
-        printf 'yngboard: no board written for #%s yet - start a run to write one: /yngorchestrator %s\n' "$n" "$n" >&2
+        printf 'yngboard: no board written for #%s yet - write and open one: /yngorchestrator board\n' "$n" >&2
     else
-        printf 'yngboard: no board written in %s yet - start a run to write one: /yngorchestrator <issue>\n' "$boards" >&2
+        printf 'yngboard: no board written in %s yet - write and open one: /yngorchestrator board <issue>\n' "$boards" >&2
     fi
     exit 1
 fi
 
-# 5. Open it, unless YNGV_HTML_BROWSER says no. Opening is yngv's: it is
+# 4. Open it, unless YNGV_HTML_BROWSER says no. Opening is yngv's: it is
 # beside this script, where yngorch puts the two together, else on PATH. The
 # variable is read here rather than left to yngv, because "no browser" means
 # something of yngboard's own - name the board, open nothing - and a board's
@@ -192,7 +179,7 @@ else
     browser=0
 fi
 
-printf 'yngboard: %s (%s; as of the timestamp on the page - a run refreshes it)\n' "$board" "$why"
+printf 'yngboard: %s (%s; as of the timestamp on the page - /yngorchestrator board refreshes it)\n' "$board" "$why"
 
 if [ "$browser" = 0 ]; then
     printf 'yngboard: YNGV_HTML_BROWSER is off: nothing was opened\n'

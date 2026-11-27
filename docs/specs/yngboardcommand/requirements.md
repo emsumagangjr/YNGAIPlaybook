@@ -259,19 +259,49 @@ forbidden outright:
 
 ## R12 `yngboard`, the terminal command
 
-*Amends yngboard R9.1 and R9.3's wording, not its rule.*
+*Amends yngboard R9.1, withdraws yngboard R9.6, and amends R9.3's
+wording, not its rule.*
 
 1.  Its branch table maps a branch to the **issue** whose board to
-    open, following R6: `slice/<n>-` now opens that slice's board, not
-    its Epic's.
-2.  Where no board exists for that issue, its one line names
+    open, following R6:
+
+    | The branch      | The board it opens                          |
+    |-----------------|---------------------------------------------|
+    | `epic/<n>-`     | `yngboard-<n>.html`, the Epic's             |
+    | `slice/<n>-`    | `yngboard-<n>.html`, **that slice's own** (R5) |
+    | `fix/<n>-`      | `yngboard-<n>.html`, the standalone's       |
+    | no issue named  | the most recently written `yngboard-*.html` |
+
+    `slice/<n>-` therefore opens that slice's board, not its Epic's.
+    The last row is unchanged: the project root, `main`, a detached
+    HEAD, and any branch carrying no issue number. A branch that names
+    an issue still takes that issue's board or none at all — never
+    another issue's, and its Epic's least of all, which is the one a
+    person standing in a slice worktree could mistake for theirs.
+2.  **yngboard R9.6 is withdrawn.** It had `yngboard` scan
+    `yngorchestratorruns/*.md` for a line naming `#<n>`, to find the
+    Epic log a slice's board was named for; with R6 naming every board
+    for its own issue there is nothing left to find, because the branch
+    names the board's issue directly. One test for a file replaces
+    reading every run log, and a slice whose Epic has not logged it yet
+    still has its own board.
+3.  Where no board exists for that issue, its one line names
     **`/yngorchestrator board`**, not `/yngorchestrator <n>`: the
-    cheaper command that does what the person asked. It names the whole
-    Epic run only where Claude Code cannot be reached.
-3.  It still opens a file and nothing else (yngboard R9.3). Nothing in
+    cheaper command that does what the person asked. Where the branch
+    names no issue, that line names `/yngorchestrator board <issue>`,
+    since R4.1 needs an `<n>` there. It names a whole Epic run only
+    where Claude Code cannot be reached, which is the scripts' headers
+    and not this line.
+4.  It still opens a file and nothing else (yngboard R9.3). Nothing in
     this feature gives it a provider call: that rule stands exactly as
     written, and this Epic adds the refreshing command beside it rather
     than inside it.
+5.  Everything else of yngboard R9 stands: finding `<root>` (R9.2),
+    `YNGV_HTML_BROWSER` read by `yngboard` itself and the four
+    scripts' one function (R9.7, R9.9), the opening left to `yngv`
+    (R9.8), and `-h` / `--help` with its header, an argument refused
+    with exit 2, and the exit codes (R9.10) — where "no board for this
+    worktree's log" is now "for this worktree's issue".
 
 ## R13 Vocabulary
 
