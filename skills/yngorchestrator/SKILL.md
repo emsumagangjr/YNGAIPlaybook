@@ -167,9 +167,10 @@ reports* below).
 **Appending a line to `yngorchestratorruns/<log>.md` rewrites that
 log's run board afterwards**: follow [board.md](board.md), which
 gathers, ranks, builds the payload, renders it into the shipped
-template, writes `<root>/.yngaiplaybook/yngboard-<log>.html` and, under
-`run-board: open`, opens it once at the run's first write (yngboard
-R3.2).
+template, writes the board or boards this run owns — each named for
+the issue it is about (*Which board this run writes* in board.md) —
+and, under `run-board: open`, opens one once at the run's first write
+(yngboard R3.2, yngboardcommand R6.1, R8.1).
 
 The rule lives here and nowhere else. It is a property of appending a
 line, not a step of its own, so no step added later can forget it and

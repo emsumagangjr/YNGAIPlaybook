@@ -1,9 +1,9 @@
 # Write the run board
 
-The run board is one HTML file for one run log: every slice of the
-Epic, each slice's state, and what each needs from a person (R1.1).
-You write it again at every run-log event, so it says where everything
-has got to as of the line just appended.
+The run board is one HTML file for one issue: every slice of the Epic,
+each slice's state, and what each needs from a person (R1.1,
+yngboardcommand R6.1). You write it again at every run-log event, so
+it says where everything has got to as of the line just appended.
 
 This file is six things in order — **gather, rank, build the payload,
 render, write, open** — and no run-log line at the end. The board write
@@ -35,31 +35,72 @@ and branch, the Epic's worktree and spec folder where the run holds
 them, and the reads the step that logged the line made. `<skill>` is
 the folder holding this file and SKILL.md.
 
-| `<run-board>` | What this file does                                          |
-|---------------|--------------------------------------------------------------|
-| `write`       | steps 1 to 5: writes the board, opens nothing (the default)  |
-| `open`        | the same, and step 6 opens it once, at this run's first write |
-| `no`          | nothing: return to the step that called you                  |
+| `<run-board>` | What this file does                                                                 |
+|---------------|-------------------------------------------------------------------------------------|
+| `write`       | steps 1 to 5: writes the board or boards this run owns, opens nothing (the default) |
+| `open`        | the same, and step 6 opens it once, at this run's first write                       |
+| `no`          | nothing: return to the step that called you                                         |
 
 Writing a board is a local file write: it shows nothing and interrupts
 nothing, and this file prints no line of its own for it (R3.1, R3.8).
 At the hand-back, step 5 of SKILL.md and step 8 of
-[scoped.md](scoped.md) name the board's path once, beside the prose
-list that still comes first (R1.4).
+[scoped.md](scoped.md) name the path of every board the run wrote,
+once, below the prose list that still comes first and stays whole
+(R1.4).
 
 ## Which board this run writes
 
-One board per run log, and `<log>` already names it (*Run log* in
-SKILL.md): the Epic's number for an Epic run and for any of its
-slices, the issue's own number for a standalone. So a slice run writes
-its Epic's board, `yngboard-<epic>.html`, as it writes its Epic's log,
-and never a board of its own (R2.1).
+Every board is `<root>/.yngaiplaybook/yngboard-<issue>.html`, where
+`<issue>` is the issue the board is **about**: the Epic for an Epic's
+board, the slice for a slice's, the issue itself for a standalone's
+(yngboardcommand R6.1).
 
-| This run     | Writes                     | The board is about | `epic`, `slices`     | `mergePath`     |
-|--------------|----------------------------|--------------------|----------------------|-----------------|
-| an Epic      | `yngboard-<log>.html`      | the Epic           | the Epic, its slices | `slice-to-epic` |
-| one slice    | the same board, its Epic's | the Epic           | the Epic, its slices | `slice-to-epic` |
-| a standalone | `yngboard-<log>.html`      | the issue itself   | `null`, `[]`         | `fix-to-main`   |
+yngboard R2.1 named the file for `<log>` instead, one board per run
+log. A slice's log is its Epic's (*Run log* in SKILL.md), so `<log>`
+can no longer tell an Epic's board from its slice's, now that a slice
+has one of its own (yngboardcommand R6.2). Nothing an existing install
+holds changes name: an Epic's `<log>` and its own number are the same,
+and so are a standalone's (yngboardcommand R6.3). Issue numbers are
+unique in the issues repo, so no two boards collide (yngboardcommand
+R6.4).
+
+### Who writes which board
+
+| The writer                           | Writes                                               |
+|--------------------------------------|------------------------------------------------------|
+| an Epic run (the dispatcher)         | the Epic's board only                                |
+| a slice run ([scoped.md](scoped.md)) | its own board **and** the Epic's                     |
+| a standalone run                     | its own board                                        |
+| `/yngorchestrator board`             | the one board the command names (yngboardcommand R4) |
+
+**The dispatcher writes no slice board** (yngboardcommand R8.2). It
+appends a line per slice event, interim reports included; writing each
+slice's board too would mean five writes an event with four live
+workers, each rebuilding a payload nobody is looking at. A slice board
+is read by someone sitting in that slice's worktree, and the
+dispatcher's instance is not.
+
+**A slice run writes both** (yngboardcommand R8.3), because it appends
+its lines to the Epic's log and the write rule covers the log it wrote
+to (*Run log* in SKILL.md). Dropping the Epic's would stall it
+silently whenever the work goes through slice runs. Both writes are
+reads it has already made: one gather, two renders — steps 1 and 2
+once, then steps 3 to 5 again for the second board (yngboardcommand
+R8.4).
+
+**yngboard R2.2 is withdrawn** (yngboardcommand R5.2): "a slice run
+writes its Epic's board and never a board of its own". It followed
+from boards being named by run log, which yngboardcommand R6 changes.
+
+### What each board is about
+
+| The board                           | Is about         | `epic`, `slices`     | `mergePath`     |
+|-------------------------------------|------------------|----------------------|-----------------|
+| an Epic's, `yngboard-<epic>.html`   | the Epic         | the Epic, its slices | `slice-to-epic` |
+| a standalone's, `yngboard-<n>.html` | the issue itself | `null`, `[]`         | `fix-to-main`   |
+
+A slice board, `yngboard-<slice>.html`, is about its slice; what it
+holds is yngboardcommand R5 and R7.
 
 A slice run holds its Epic only as `<parent>` ([scoped.md](scoped.md)),
 so the Epic's title, address and slices are reads it makes here (step
@@ -120,7 +161,7 @@ carried over whole by R10: step 2's `conflict` value.
 
 **A failed operation writes nothing.** When any of the four fails — a
 rate limit, an expired login, an outage — leave the existing
-`yngboard-<log>.html` exactly as it is and return to the step that
+`yngboard-<issue>.html` exactly as it is and return to the step that
 called you, naming the operation that failed. Say it once in the run:
 which operation failed, that the board on disk is unchanged, and that
 it carries its own timestamp. Do not retry, and never write a board
@@ -432,8 +473,11 @@ nothing was written and the step that called you has the reason.
 The board is overwritten whole: no history is kept, because the run log
 is the history (R2.4).
 
+Both paths here key on the board's own `<issue>`, never on `<log>`
+(yngboardcommand R6.5):
+
 ``` bash
-board="<root>/.yngaiplaybook/yngboard-<log>.html"
+board="<root>/.yngaiplaybook/yngboard-<issue>.html"
 mv "$out" "$board"
 ```
 
@@ -442,26 +486,29 @@ Then delete the files this board replaces, where they are still there
 
 ``` bash
 rm -f "<root>/.yngaiplaybook/ynghandback.html" \
-      "<root>/.yngaiplaybook/ynghandback-<log>.html"
+      "<root>/.yngaiplaybook/ynghandback-<issue>.html"
 ```
 
-Those are the two files 1.15.0 wrote for this run log: the page it
-wrote at the hand-back, and the project index that listed every run's
-page. Nothing writes either any more, and a file nothing updates is
-worse than one that is either current or absent. Delete them after the
-board is in place, and only for this run's own `<log>`: another log's
-stale files belong to a run on that log (R2.3).
+Those are the two files 1.15.0 wrote for this issue: the page it wrote
+at the hand-back, and the project index that listed every run's page.
+Nothing writes either any more, and a file nothing updates is worse
+than one that is either current or absent. Delete them after the board
+is in place, and only for this board's own `<issue>`: another issue's
+stale files belong to the run that writes that issue's board (R2.3).
 
-Done when `yngboard-<log>.html` holds this payload and neither stale
+A slice run arrives here twice, once for each board it writes
+(*Who writes which board* above): its own first, then its Epic's.
+
+Done when `yngboard-<issue>.html` holds this payload and neither stale
 file is left beside it.
 
 ## 6. Open
 
 With `<run-board>` `open`, and only at **this run's first** board write
-(R3.3):
+(R3.3) — for a slice run, its own board, which step 5 writes first:
 
 ``` bash
-yngv "<root>/.yngaiplaybook/yngboard-<log>.html"
+yngv "<root>/.yngaiplaybook/yngboard-<issue>.html"
 ```
 
 `yngv` is the viewer the installer put on the person's PATH

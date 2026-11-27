@@ -192,19 +192,29 @@ closes the issue (step 1).
 
 That list stays first and stays whole, because it is what reaches the
 person over Remote Control, where a `file://` path is useless (yngboard
-R1.4). Add one line below it naming the run's board (*The board* in
-[SKILL.md](SKILL.md)). `<log>` names the board, as it names the run
-log: a standalone run's is its own issue's, and a slice run's is its
-Epic's, never one of its own (yngboard R2.1).
+R1.4). Below it, name the board this run wrote (*The board* in
+[SKILL.md](SKILL.md)). A board is named for the issue it is **about**,
+not for the run log, so a standalone run names its own issue's
+(yngboardcommand R6.1):
 
 ``` text
-Run board: <root>/.yngaiplaybook/yngboard-<log>.html — every slice, its state and what it needs. Type yngboard to open it.
+Run board: <root>/.yngaiplaybook/yngboard-<n>.html — this issue, where it stands and what it needs. Type yngboard to open it.
 ```
 
-Where no board has been written, leave that line out: the list above
+A **slice** run writes two boards, its own and its Epic's
+(*Who writes which board* in [board.md](board.md)), so it names both,
+its own first — that is the board of the worktree the person is
+standing in (yngboardcommand R8.1):
+
+``` text
+Slice board: <root>/.yngaiplaybook/yngboard-<n>.html — this slice, where it stands and what it needs. Type yngboard to open it.
+Epic board: <root>/.yngaiplaybook/yngboard-<parent>.html — every slice of the Epic, its state and what it needs.
+```
+
+Where no board has been written, leave those lines out: the list above
 is the hand-back either way.
 
 Last, delete the run's lock (*The lock* in [SKILL.md](SKILL.md)).
 
-Done when the person knows where the issue stands, holds the board's
-path where there is a board, and the lock is gone.
+Done when the person knows where the issue stands, holds the path of
+every board this run wrote, and the lock is gone.
