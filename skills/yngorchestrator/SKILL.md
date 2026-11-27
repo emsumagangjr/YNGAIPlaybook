@@ -167,10 +167,12 @@ reports* below).
 **Appending one or more lines to `yngorchestratorruns/<log>.md`
 rewrites that log's run board once, after the last line of the
 batch**: follow [board.md](board.md), which gathers, ranks, builds the
-payload, renders it into the shipped template, writes
-`<root>/.yngaiplaybook/yngboard-<log>.html` and, under
-`run-board: open`, opens it once at the run's first write. A **batch**
-is the lines a step appends before it does anything else.
+payload, renders it into the shipped template, writes the board or
+boards this run owns — each named for the issue it is about (*Which
+board this run writes* in board.md) — and, under `run-board: open`,
+opens one once at the run's first write (yngboard R3.2,
+yngboardcommand R6.1, R8.1, R9.1). A **batch** is the lines a step
+appends before it does anything else.
 
 The rule once fired per line (yngboard R3.2), so draining a channel of
 four interim reports cost four writes, each rebuilding the whole
