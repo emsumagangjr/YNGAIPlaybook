@@ -97,15 +97,52 @@ from boards being named by run log, which yngboardcommand R6 changes.
 | The board                           | Is about         | `epic`, `slices`     | `mergePath`     |
 |-------------------------------------|------------------|----------------------|-----------------|
 | an Epic's, `yngboard-<epic>.html`   | the Epic         | the Epic, its slices | `slice-to-epic` |
+| a slice's, `yngboard-<slice>.html`  | that one slice   | the Epic, `[]`       | `slice-to-epic` |
 | a standalone's, `yngboard-<n>.html` | the issue itself | `null`, `[]`         | `fix-to-main`   |
 
-A slice board, `yngboard-<slice>.html`, is about its slice; what it
-holds is yngboardcommand R5 and R7.
+A slice board, `yngboard-<slice>.html`, is about its slice, and what
+it holds is *A slice board* below.
 
 A slice run holds its Epic only as `<parent>` ([scoped.md](scoped.md)),
 so the Epic's title, address and slices are reads it makes here (step
 1). A standalone run's board is about the issue the run is on: there
 is no Epic above it, and it is no slice of one (R10, ynghandback R9.1).
+
+### A slice board
+
+A slice board is about one slice: that slice is `issue`, the table's
+one row, and `slices` is `[]` (yngboardcommand R5.1, R7.4).
+
+**It is not a second kind of page.** The shipped template renders it
+with the slice as `issue` and `slices: []`, exactly as a standalone's
+board is already rendered, and the slice section hides as it does
+there (yngboardcommand R5.4, R7.4, ynghandback R9.2). No second
+template is added, and nothing here authors markup (step 4).
+
+**It is redundant beside the Epic's board, and deliberately so**
+(yngboardcommand R5.3). A person working one slice has the Epic's
+other eight rows in the way, and the thing they want — that slice's
+interim reports in full — is what an Epic's board can only summarise:
+there, every row carries the latest one and no more (R14.5), because
+nine slices' sequences would be the run log with a stylesheet. Here
+there is one row, and room for the whole of it.
+
+Three things it carries that no other board does, each of them the
+run's own work in step 3 and none of it the template's (R7.2):
+
+| What                     | Where it goes                                                          |
+|--------------------------|------------------------------------------------------------------------|
+| the reports in full      | `interim`, newest first                                                |
+| the link up to the Epic  | `epic.board`, the Epic's board beside it in `.yngaiplaybook/`          |
+| the Epic's log, filtered | `runlog`, its lines naming `#<slice>`, with `runlogNote` saying so     |
+
+Everything else is what the Epic's board already carries for that
+slice, opened out on one row instead of nine: its one `workflow:*`
+`label`, its `pr` with number, checks and mergeable, its `dependsOn`
+and `blocks`, its `attention` and `why`, its `dispatchedAt`, its
+`report` and its open `decisions` (yngboardcommand R7.1). Nothing is
+read a second way for it, and nothing is left out because the row is
+first.
 
 ## 1. Gather
 
@@ -136,11 +173,13 @@ read of one: the issue is the board's own subject (*read issue* `<n>`,
 which the run has already made), and its pull request is found by *list
 prs* for the head `^fix/<n>-`, then *pr status* (R10, ynghandback R9.1).
 
-In a **slice** run the board is its Epic's, so these are the Epic's
-reads: *read issue* `<parent>` for the Epic's title and address, *list
-children* for its slices, and the per-slice reads above. For a slice
-run writing its Epic's board those reads **are** the board, not traffic
-on top of it.
+In a **slice** run both boards come out of this one gather (*Who
+writes which board* above), and these are the Epic's reads: *read
+issue* `<parent>` for the Epic's title and address, *list children*
+for its slices, and the per-slice reads above. The slice's own board
+is about one of those slices and adds no read of its own — it is the
+same answers, rendered to one row. For a slice run writing its Epic's
+board those reads **are** the board, not traffic on top of it.
 
 **The Epic's own pull request** fills the first row (R4.7, R6.8), and
 is read only where the run holds it: step 5 of SKILL.md looks for it
@@ -158,6 +197,16 @@ hand, a check gone red, a pull request someone else merged are in none
 of it — so where the log and a live read differ, the live read is what
 the board shows. For a label and a report, ynghandback R7 settles it,
 carried over whole by R10: step 2's `conflict` value.
+
+A **slice board reads the same log** — a slice's log is its Epic's —
+and keeps the lines naming `#<slice>` (yngboardcommand R7): that
+slice's dispatches, its interim reports, its completion reports and
+the conditions that held its merge, with the other eight slices' lines
+out of the way. One read of one file serves both boards, and the
+filtering is the run's, never the template's (R7.2). A slice whose
+Epic's log holds no line naming it has `runlog: []` and a board that
+is otherwise whole: the provider still has its label, its pull request
+and its `Depends on:` line.
 
 **A failed operation writes nothing.** When any of the four fails — a
 rate limit, an expired login, an outage — leave the existing
@@ -256,19 +305,30 @@ Done when every slice has its `attention`, `why`, `actionUrl` and
 
 ## 3. Build the payload
 
-Every key of R6.1, in that order, schema `2`. An absent value is
-`null`, an absent list `[]`.
+Every key of R6.1, in that order, with the three keys yngboardcommand
+R7 adds — `interim`, `runlogNote` and `epic.board` — under schema
+`3`. An absent value is `null`, an absent list `[]`.
+
+`schema` rises to `3` because a field **changes meaning**, which is
+what raises it (ynghandback R4.6): on a slice board `runlog` is no
+longer the log but the lines of it naming that slice, and a reader
+taking it for the whole log would be wrong about what it had not been
+shown. The three arrivals ride along with that rise. `progress` keeps
+its meaning exactly — the latest interim report of this attempt
+(R14.5) — so an Epic board's rows are unchanged by any of this.
 
 | Key         | What you write                                                                   |
 |-------------|----------------------------------------------------------------------------------|
-| `schema`    | `2`                                                                              |
+| `schema`    | `3`                                                                              |
 | `generated` | now, in UTC, in the lock's form: `date -u +%Y-%m-%dT%H:%M:%SZ` (R6.4)            |
 | `live`      | `true`: this payload was gathered from the provider                              |
 | `mergePath` | this run's own merge path, as [merge.md](merge.md) and [track.md](track.md) name it: `slice-to-epic` for an Epic and its slices, `fix-to-main` for a standalone (R6.4) |
 | `issue`     | the issue this board is about, as the table's first row                          |
-| `epic`      | the Epic's `number`, `title`, `url` and `spec`; `null` in a standalone run        |
-| `slices`    | step 2's rows, one per slice from *list children*, in step 2's order; `[]` in a standalone run |
-| `runlog`    | the run log's lines, oldest first, each as its own string                        |
+| `epic`      | the Epic's `number`, `title`, `url` and `spec`, and `board` on a slice board; `null` in a standalone run |
+| `slices`    | step 2's rows, one per slice from *list children*, in step 2's order; `[]` on a slice board and in a standalone run |
+| `interim`   | every readable interim report for the board's own issue, newest first; `[]` on an Epic's board |
+| `runlog`    | the run log's lines, oldest first, each as its own string; on a slice board, the Epic's log filtered to the lines naming `#<slice>` (step 1) |
+| `runlogNote`| the one line about that log, where it needs one; `null` where it does not        |
 | `worktrees` | the Epic's worktree and its slices', or a standalone's own, as `{ "path": ..., "deferred": ... }` |
 
 `waiting[]` is gone: the ranked list it carried is the order of
@@ -277,24 +337,35 @@ Every key of R6.1, in that order, schema `2`. An absent value is
 
 ### `issue`, the first row
 
-`issue` is the one key both kinds fill, and the template takes the
-board's heading, its identity and its first row from it: the Epic in an
-Epic or a slice run, the standalone issue in a standalone run. It
-carries the four fields that name it, and then the same row fields a
-slice carries, because the first row is a row (R6.2, R4.7):
+`issue` is the one key every board fills, and the template takes the
+board's heading, its identity and its first row from it: the Epic on
+an Epic's board, the slice on its own, the standalone issue on a
+standalone's. It carries the four fields that name it, and then the
+same row fields a slice carries, because the first row is a row (R6.2,
+R4.7):
 
 | Key                        | What you write                                                       |
 |----------------------------|----------------------------------------------------------------------|
 | `number`, `title`, `url`   | the issue's own, with the provider file's *Issue URL*                 |
-| `branch`                   | that issue's own branch, `epic/<n>-<name>` or `fix/<n>-<name>`        |
+| `branch`                   | that issue's own branch: `epic/<n>-<name>`, `slice/<n>-<name>` or `fix/<n>-<name>` |
 | `label`                    | its one `workflow:*` state, or `null`                                 |
 | `attention`, `why`, `actionUrl` | step 2's table, read on this issue and its own pull request      |
-| `pr`                       | the `epic-to-main` pull request, or a standalone's `fix-to-main` one; `null` where the run holds none (step 1) |
-| `blocks`                   | `[]`: nothing in `slices[]` depends on the board's own issue          |
+| `pr`                       | the `epic-to-main` pull request, a slice's own `slice-to-epic` one, or a standalone's `fix-to-main` one; `null` where the run holds none (step 1) |
+| `blocks`                   | `[]` on an Epic's and a standalone's board, nothing in `slices[]` depending on the board's own issue; step 2's on a slice board |
 
 `branch` is the only branch the payload carries: `epic` has none of its
 own (R6.4, ynghandback R4.9). `epic` is what only an Epic has beside
 it: its spec folder and its slice set.
+
+**On a slice board `issue` is the slice, opened out.** Beside the
+fields above it carries every field *A slice* below gives that row on
+the Epic's board — `dispatchedAt`, `report`, `progress`, `dependsOn`
+and `decisions` — read exactly as they are read there, out of the same
+gather (yngboardcommand R7.1). Its `blocks` is step 2's value for that
+slice rather than `[]`: what this slice is holding up is worth knowing
+in the worktree where it is being worked, even though `slices[]` is
+empty beside it. Nothing about the row is worked out a second way
+because it is first; it is the same row, with room for all of it.
 
 In a standalone run `epic` is `null` and `slices` is `[]` (R10,
 ynghandback R9.1). Its board is then that one row, and the sections an
@@ -310,6 +381,16 @@ the issue names would be a dead link from there:
 ``` text
 ../<the Epic worktree's folder name>/docs/specs/<feature>/
 ```
+
+`epic.board` is the Epic's own board, beside this one in the same
+folder: the bare file name `yngboard-<epic>.html`, since every board
+sits in `.yngaiplaybook/`. It is the one link up a slice board carries
+(yngboardcommand R7.3), and the template names the Epic on it. It is
+written on a **slice board only**: an Epic's board is the board above,
+and a standalone has no Epic at all, so both write `null` and the
+template shows no link rather than one to themselves. A slice run
+writes its Epic's board in the same pass (*Who writes which board*
+above), so the file the link names is there.
 
 ### A slice
 
@@ -386,8 +467,60 @@ log holds a `worktree removal deferred <path>` line with no later
 [track.md](track.md)); such a path is listed even when `worktree list`
 no longer shows it.
 
-Done when the payload holds every key of R6.1, in that order, under
-`schema: 2`.
+### `interim`, the reports in full
+
+`interim` is every readable interim report the run log holds for the
+board's **own issue**, newest first, each in `progress`'s own shape
+(yngboardcommand R7.2):
+
+``` json
+"interim": [ { "at": "<UTC>", "step": "...", "note": "..." } ]
+```
+
+It is built from that issue's `progress` lines in the log (R14.4),
+read in the log's order and written out reversed, so the newest is
+first and the template re-orders nothing (R7.2). Every attempt is in
+it, the `dispatched` and `re-dispatched` lines that divide them being
+in `runlog` beside it: on a slice dispatched twice the sequence is the
+point, and `progress` is still this attempt's latest and nothing else
+(R6.7, R14.5).
+
+A line logged `progress unreadable` is **no interim report**, and
+builds nothing into `interim` (R14.4). It stays in `runlog`, where the
+person can see what arrived; nothing is inferred from it, and no guess
+is made at what it meant to say.
+
+`at`, `step` and `note` are what `progress` carries: `at` in
+`generated`'s own form, naming its zone, because the elapsed figure
+beside it is derived on render (R5.4, R7.3, yngboardcommand R7.5);
+`step` and `note` the worker's own words, with no phase, fraction or
+guess added to them (R14.6).
+
+`interim` is `[]` on an **Epic's board**: every row there already
+carries that slice's latest in `progress`, and nine slices' sequences
+under one table would be the run log with a stylesheet. On a
+**standalone's board** it is that issue's own reports, by the same
+rule as a slice's — one worker, one row, one sequence, one page
+(yngboardcommand R5.4).
+
+### `runlog`, and the one line about it
+
+`runlog` is the log's lines, oldest first, each as its own string. On
+a slice board it is the **Epic's log, filtered** to the lines naming
+`#<slice>` (step 1), and `runlogNote` is the one line that says so, in
+the run's own words:
+
+``` text
+The Epic's run log (#<epic>), filtered to the lines naming #<slice>.
+```
+
+`runlogNote` is `null` where there is nothing to say about the log: an
+Epic's board and a standalone's show their own log whole. The template
+prints the note above the log and writes none of its own, as it writes
+none of anything (R7.2).
+
+Done when the payload holds every key of R6.1, in that order, with
+yngboardcommand R7's three beside them, under `schema: 3`.
 
 ## 4. Render
 

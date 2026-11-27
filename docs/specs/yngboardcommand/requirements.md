@@ -150,7 +150,10 @@ forbidden outright:
 4.  It is **not** a second kind of page. The shipped template renders
     it with the slice as `issue` and `slices: []`, exactly as a
     standalone's board is already rendered (yngboard R10, ynghandback
-    R9).
+    R9). What it adds it adds to that one page, by the board's own
+    issue rather than by its kind, so a standalone's board shows its
+    own interim reports the same way (R7.2): one page behaving the
+    same everywhere, not a second one.
 
 ## R6 A board is named for its issue
 
@@ -176,16 +179,56 @@ forbidden outright:
     request with number, checks and mergeable, its `dependsOn` and
     `blocks`, its `attention` and `why`, and its open review decisions
     — the same fields the Epic's board carries for it (yngboard R4.1).
+    The slice is the payload's `issue`, so `issue` carries every field
+    a slice row carries: `dispatchedAt`, `report`, `progress`,
+    `dependsOn` and `decisions` beside the fields a board's own issue
+    already had (yngboard R6.2). Its `blocks` is that slice's own, not
+    the `[]` an Epic's and a standalone's first row takes: what it
+    holds up is worth knowing in the worktree where it is worked.
 2.  **Its interim reports in full**, newest first, each with the instant
     and the step the worker wrote (yngboard R14). This is the reason a
     slice board exists: an Epic's board shows the latest, a slice's
-    shows the sequence.
-3.  One link up to the Epic's board, and the Epic named.
+    shows the sequence. The payload gains **`interim`**: every readable
+    interim report for the board's **own issue**, newest first, each
+    `{ "at": ..., "step": ..., "note": ... }`, and `[]` on an Epic's
+    board, whose rows each carry their own latest. Every attempt is in
+    it, the dispatches that divide them being in `runlog` beside it.
+    `progress` keeps its meaning — the latest interim report of this
+    attempt (yngboard R14.5) — so an Epic board's rows are unchanged.
+    A line logged `progress unreadable` is **no interim report**: it
+    builds nothing into `interim` and stays in `runlog`, where the
+    person can see what arrived (yngboard R14.4).
+3.  One link up to the Epic's board, and the Epic named: `epic.board`,
+    the bare file name `yngboard-<epic>.html`, every board sitting in
+    `.yngaiplaybook/` (R6.1). It is written on a slice board alone; an
+    Epic's board is the board above, and a standalone has no Epic, so
+    both write `null` and the page shows no link rather than one to
+    itself.
 4.  No slice table: `slices` is `[]`, and the section hides as it does
-    for a standalone (ynghandback R9.2).
+    for a standalone (ynghandback R9.2). `epic` is the Epic — its
+    `number`, `title`, `url` and `spec`, with `board` beside them.
 5.  A slice board carries the same timestamp rules as any other
     (yngboard R5.4): every instant names its zone, and the elapsed
-    figure is derived on render.
+    figure is derived on render. The template renders `interim` as a
+    list in the order the run gave it, each instant with its figure
+    beside it and never instead of it (yngboard R7.3); the section is
+    absent where `interim` is `[]`.
+6.  **`runlog` is the Epic's log, filtered** to the lines naming
+    `#<slice>`: a slice's log is its Epic's, and the other eight
+    slices' lines are the noise this board exists to clear. The
+    payload gains **`runlogNote`**, the one line that says the log is
+    the Epic's and filtered, shown above the log; it is `null` on an
+    Epic's board and a standalone's, which show their own log whole.
+7.  **`schema` becomes `3`.** `runlog` changes meaning on a slice
+    board, and a field changing meaning is what raises the schema
+    (ynghandback R4.6); `interim`, `runlogNote` and `epic.board`
+    arrive with it. The template still renders a schema it does not
+    know and still says which way the mismatch runs (yngboard R6.6).
+8.  **Every judgement stays in the run** (yngboard R7.2): which board
+    sits above this one, what is readable, what order the reports come
+    in, and which lines of the log are this slice's are all settled
+    when the payload is written. The template does arithmetic on the
+    instants the run baked in, and decides nothing.
 
 ## R8 Who writes which board
 
