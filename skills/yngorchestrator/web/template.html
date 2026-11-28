@@ -31,8 +31,15 @@
       that needs a person links to the provider page where they act.
     - It is one table, every slice in it, the board's own issue first
       (R4). Nothing is hidden when nothing needs attention.
+    - It is one page for all three kinds of board. An Epic's names the
+      Epic and lists its slices; a slice's and a standalone's name
+      their own issue and list none, and a slice board adds the link up
+      to its Epic's and that slice's interim reports in full. Which
+      kind this payload is, the run decided when it wrote it
+      (yngboardcommand R5.4).
 
-  The payload shape is docs/specs/yngboard/requirements.md, R6.
+  The payload shape is docs/specs/yngboard/requirements.md, R6, as
+  docs/specs/yngboardcommand/requirements.md R7 amends it.
 -->
 <style>
   :root {
@@ -142,10 +149,21 @@
   .chip[data-kind="conflict"] { background: var(--k-conflict); }
   .chip[data-kind="none"]     { background: var(--k-none); }
 
+  /* A slice board's interim reports, newest first, in the order the run
+     gave them (yngboardcommand R7.2). The list is open on the page: it is
+     the reason a slice board exists. */
+  .interim ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  .interim li { padding: .6rem .8rem; border-bottom: 1px solid var(--line); }
+  .interim li:last-child { border-bottom: 0; }
+  .interim .step { font-weight: 600; font-size: .9rem; overflow-wrap: break-word; }
+  .interim .note { font-size: .9rem; margin-top: .15rem; overflow-wrap: break-word; }
+  .interim .at { display: block; color: var(--muted); font-size: .8rem; margin-top: .25rem; overflow-wrap: anywhere; }
+
   details.detail { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .8rem; }
   details.detail > summary { cursor: pointer; padding: .55rem 0; font-weight: 600; }
   details.detail h3 { font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: .8rem 0 .4rem; }
   details.detail pre { margin: 0 0 .5rem; padding: .6rem .7rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font-size: .82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+  details.detail p.note { margin: 0 0 .5rem; color: var(--muted); font-size: .85rem; overflow-wrap: break-word; }
   details.detail ul { margin: 0 0 .6rem; padding-left: 1.1rem; font-size: .85rem; }
   details.detail li { overflow-wrap: anywhere; margin-bottom: .2rem; }
   .flag { color: var(--k-held); font-weight: 600; }
@@ -185,7 +203,7 @@
 (function () {
   "use strict";
 
-  var KNOWN_SCHEMA = 2;
+  var KNOWN_SCHEMA = 3;
   var head = document.getElementById("page-head");
   var main = document.getElementById("page-main");
   var foot = document.getElementById("page-foot");
@@ -513,6 +531,19 @@
       add(meta, ageNode(null, "written " + str(data.generated), str(data.generated)));
     }
     if (data && data.live === false) { add(meta, el("span", null, "written without provider contact")); }
+    // One link up to the Epic's board, naming the Epic (yngboardcommand
+    // R7.3). The run writes `epic.board` only where a board sits above this
+    // one, so a slice board carries it and an Epic's own board carries
+    // null: which board is above which is the run's to decide, not this
+    // page's, and nothing here works a file name out.
+    if (epic && href(epic.board)) {
+      var up = el("span");
+      text(up, "epic board ");
+      var names = (typeof epic.number === "number") ? "#" + epic.number : "the Epic";
+      if (str(epic.title)) { names += " " + str(epic.title); }
+      up.appendChild(link(epic.board, names, str(epic.board)));
+      add(meta, up);
+    }
     if (epic && str(epic.spec)) {
       var s = el("span");
       text(s, "spec ");
@@ -522,16 +553,50 @@
     if (meta.childNodes.length) { add(head, meta); }
   }
 
+  // Every interim report the run gathered for the board's own issue
+  // (yngboardcommand R7.2): a slice board's reason to exist, where an
+  // Epic's board shows only the latest on each row. They are listed in the
+  // order the run gave them - newest first - and nothing here re-orders
+  // them or judges what belongs in the list: a line the run could not read
+  // never reached it, and is in the run log below (yngboard R14.4).
+  function renderInterim(data) {
+    var reports = arr(data && data.interim);
+    if (!reports.length) { return; }
+    var sec = el("section", "interim");
+    add(sec, el("h2", null, "Interim reports"));
+    var ul = el("ul");
+    for (var i = 0; i < reports.length; i++) {
+      var r = obj(reports[i]);
+      if (!r || !(str(r.step) || str(r.note) || str(r.at))) { continue; }
+      var li = el("li");
+      add(li, el("div", "step", str(r.step) || "—"));
+      if (str(r.note)) { add(li, el("div", "note", str(r.note))); }
+      // The instant as the run wrote it, naming its zone, with the elapsed
+      // figure derived beside it and never instead of it (R7.3).
+      if (str(r.at)) { add(li, ageNode("at mono", str(r.at), str(r.at))); }
+      add(ul, li);
+    }
+    if (!ul.childNodes.length) { return; }
+    add(sec, ul);
+    add(main, sec);
+  }
+
   function renderRunDetail(data) {
     var log = arr(data && data.runlog);
+    // One line about the log itself, where the run has one to give: on a
+    // slice board, that this is the Epic's log, filtered to that slice
+    // (yngboardcommand R7). The words are the run's; this page neither
+    // writes them nor works out when they are needed.
+    var note = str(data && data.runlogNote);
     var trees = arr(data && data.worktrees);
-    if (!log.length && !trees.length) { return; }
+    if (!log.length && !note && !trees.length) { return; }
     var sec = el("section");
     var d = el("details", "detail");
     add(d, el("summary", null, "Run detail"));
-    if (log.length) {
+    if (log.length || note) {
       add(d, el("h3", null, "Run log"));
-      add(d, el("pre", "mono", log.join("\n")));
+      if (note) { add(d, el("p", "note", note)); }
+      if (log.length) { add(d, el("pre", "mono", log.join("\n"))); }
     }
     if (trees.length) {
       add(d, el("h3", null, "Worktrees"));
@@ -596,8 +661,9 @@
   // A schema this page does not know. It still renders the table, and says
   // which way the mismatch runs (R6.6): a schema above this page's came
   // from a newer orchestrator, and one below it - 1.15.0 shipped schema 1
-  // in the field (R6.1) - from an older one. Saying "newer" of an older
-  // payload would be the one thing worse than saying nothing.
+  // and 1.16.0 schema 2 in the field (R6.1) - from an older one. Saying
+  // "newer" of an older payload would be the one thing worse than saying
+  // nothing.
   var unknown = data.schema !== KNOWN_SCHEMA;
   if (unknown) {
     var says = (typeof data.schema === "number") ? "payload schema " + data.schema : "a payload schema this page does not know";
@@ -610,6 +676,7 @@
   slices = arr(data.slices);
 
   renderBoard(unknown);
+  renderInterim(data);
   renderRunDetail(data);
   renderFoot(data);
 
